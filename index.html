@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f766e" />
+  <meta name="description" content="SI ALIF — Sistem Informasi Agenda, Lokasi, Informasi, dan Foto" />
+  <title>SI ALIF</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./assets/css/style.css" />
+</head>
+<body>
+  <div class="page-glow glow-1"></div>
+  <div class="page-glow glow-2"></div>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigasi utama">
+      <div class="brand">
+        <div class="brand-mark">A<span class="brand-spark">✦</span></div>
+        <div>
+          <div class="brand-title">SI ALIF</div>
+          <div class="brand-subtitle">DLH Kabupaten Mojokerto</div>
+        </div>
+      </div>
+
+      <nav class="side-nav">
+        <button class="nav-item active" data-view="dashboard">
+          <span>⌂</span><span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-view="submit">
+          <span>＋</span><span>Setor Dokumentasi</span>
+        </button>
+        <button class="nav-item" data-view="activities">
+          <span>▦</span><span>Kegiatan</span>
+        </button>
+        <button class="nav-item" data-view="gallery">
+          <span>▧</span><span>Galeri</span>
+        </button>
+        <button class="nav-item" data-view="map">
+          <span>⌖</span><span>Peta</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-note">
+        <strong>SI ALIF 02.1</strong>
+        <span id="sidebarModeText">Memeriksa Google Drive...</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Sistem Informasi Agenda, Lokasi, Informasi, dan Foto</p>
+          <h1 id="pageTitle">Dashboard</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="status-pill" id="backendStatus" type="button" title="Status koneksi backend"><span class="status-dot"></span><span id="backendStatusText">Memeriksa Drive...</span></button>
+          <button class="avatar" aria-label="Profil">AL</button>
+        </div>
+      </header>
+
+      <section class="view active" id="view-dashboard">
+        <div class="section-accent"></div>
+        <div class="hero-card">
+          <div>
+            <span class="hero-badge">✦ Dokumentasi Lapangan DLH</span>
+            <h2>Foto kegiatan jangan berhenti di WhatsApp.</h2>
+            <p>Setor sekali, simpan terstruktur, cari lagi kapan pun dibutuhkan.</p>
+          </div>
+          <button class="primary big" data-view="submit">＋ Setor Dokumentasi</button>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card">
+            <div class="stat-icon">◷</div>
+            <span class="stat-label">Hari ini</span>
+            <strong id="statToday">0</strong>
+            <span class="stat-foot">kegiatan</span>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon">▦</div>
+            <span class="stat-label">Bulan ini</span>
+            <strong id="statMonth">0</strong>
+            <span class="stat-foot">kegiatan</span>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon">▧</div>
+            <span class="stat-label">Dokumentasi</span>
+            <strong id="statPhotos">0</strong>
+            <span class="stat-foot">foto tersimpan</span>
+          </article>
+          <article class="stat-card">
+            <div class="stat-icon">✓</div>
+            <span class="stat-label">Kelengkapan</span>
+            <strong id="statCompleteness">0%</strong>
+            <span class="stat-foot">kegiatan lengkap</span>
+          </article>
+        </div>
+
+        <div class="content-grid">
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Terbaru</span>
+                <h3>Dokumentasi Kegiatan</h3>
+              </div>
+              <button class="link-button" data-view="activities">Lihat semua</button>
+            </div>
+            <div class="activity-list" id="recentActivities"></div>
+          </article>
+
+          <aside class="panel">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Agenda</span>
+                <h3>Mendatang</h3>
+              </div>
+            </div>
+            <div class="agenda-empty">
+              <div class="agenda-empty-icon">◷</div>
+              <strong>Belum ada agenda mendatang</strong>
+              <span>Agenda terjadwal akan tampil di sini ketika fitur Agenda mulai digunakan.</span>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-submit">
+        <div class="form-layout">
+          <article class="panel form-panel">
+            <div class="panel-head">
+              <div class="title-with-icon">
+                <div class="title-icon">＋</div>
+                <div>
+                  <span class="eyebrow">30 detik selesai</span>
+                  <h3>Setor Dokumentasi</h3>
+                </div>
+              </div>
+            </div>
+
+            <form id="documentationForm">
+              <div class="field-grid">
+                <label class="field field-wide">
+                  <span>Nama kegiatan</span>
+                  <input id="activityName" required placeholder="Contoh: Pembinaan TPS3R Desa Kesiman" />
+                </label>
+
+                <label class="field">
+                  <span>Bidang</span>
+                  <select id="division" required>
+                    <option value="">Pilih bidang</option>
+                    <option>Sekretariat</option>
+                    <option>PSLB3</option>
+                    <option>PPKL</option>
+                    <option>Penaatan</option>
+                    <option>UPTD Laboratorium Lingkungan</option>
+                  </select>
+                </label>
+
+                <label class="field">
+                  <span>Tanggal</span>
+                  <input id="activityDate" type="date" required />
+                </label>
+
+                <label class="field field-wide">
+                  <span>Lokasi</span>
+                  <div class="input-action">
+                    <input id="locationText" required placeholder="Desa/Kecamatan atau nama lokasi" />
+                    <button type="button" class="secondary" id="gpsButton">⌖ Ambil GPS</button>
+                  </div>
+                  <small id="gpsStatus">Koordinat belum diambil.</small>
+                </label>
+
+                <label class="field field-wide">
+                  <span>Keterangan singkat</span>
+                  <textarea id="description" rows="3" maxlength="300" placeholder="Apa yang dilakukan / hasil singkat kegiatan"></textarea>
+                </label>
+
+                <label class="field field-wide">
+                  <span>Foto kegiatan</span>
+                  <div class="upload-box">
+                    <input id="photoInput" type="file" accept="image/*" capture="environment" multiple />
+                    <div class="upload-copy">
+                      <strong>＋ Pilih atau ambil foto</strong>
+                      <span>Bisa pilih beberapa foto sekaligus. File asli dikirim langsung ke Google Drive.</span>
+                    </div>
+                  </div>
+                  <div class="preview-grid" id="previewGrid"></div>
+                  <div class="upload-progress" id="uploadProgress" hidden>
+                    <div class="upload-progress-head">
+                      <span id="uploadProgressText">Menyiapkan upload...</span>
+                      <strong id="uploadProgressValue">0%</strong>
+                    </div>
+                    <div class="upload-progress-track"><span id="uploadProgressBar"></span></div>
+                  </div>
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button type="reset" class="secondary" id="resetButton">Kosongkan</button>
+                <button type="submit" class="primary" id="submitDocumentation">Kirim Dokumentasi</button>
+              </div>
+            </form>
+          </article>
+
+          <aside class="panel tips-panel">
+            <span class="eyebrow">Prinsip SI ALIF</span>
+            <h3>Yang setor adalah pemilik kegiatan.</h3>
+            <p>SI ALIF dibuat supaya dokumentasi tidak menumpuk di HP admin dan tidak tercecer di grup chat.</p>
+            <ul class="check-list">
+              <li>Foto tetap milik kegiatan.</li>
+              <li>Metadata dicatat saat masih segar.</li>
+              <li>Lokasi dapat diambil dari perangkat.</li>
+              <li>Admin tinggal mencari ketika butuh.</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-activities">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Arsip kegiatan</span>
+              <h3>Daftar Kegiatan</h3>
+            </div>
+            <div class="filters">
+              <input id="searchActivity" placeholder="Cari kegiatan..." />
+              <select id="filterDivision">
+                <option value="">Semua bidang</option>
+                <option>Sekretariat</option>
+                <option>PSLB3</option>
+                <option>PPKL</option>
+                <option>Penaatan</option>
+              </select>
+            </div>
+          </div>
+          <div class="activity-list" id="allActivities"></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-gallery">
+        <article class="panel empty-state">
+          <div class="empty-icon">▧</div>
+          <h3>Galeri Terstruktur</h3>
+          <p>Galeri terstruktur akan menampilkan foto berdasarkan kegiatan agar admin cukup mengambil file yang benar-benar dibutuhkan.</p>
+        </article>
+      </section>
+
+      <section class="view" id="view-map">
+        <article class="panel empty-state">
+          <div class="empty-icon">⌖</div>
+          <h3>Peta Kegiatan</h3>
+          <p>Lokasi kegiatan yang memiliki koordinat akan dapat divisualisasikan pada peta kegiatan.</p>
+        </article>
+      </section>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </main>
+
+    <nav class="mobile-nav" aria-label="Navigasi mobile">
+      <button class="mobile-item active" data-view="dashboard"><span>⌂</span><small>Beranda</small></button>
+      <button class="mobile-item" data-view="activities"><span>▦</span><small>Kegiatan</small></button>
+      <button class="mobile-add" data-view="submit" aria-label="Setor dokumentasi">＋</button>
+      <button class="mobile-item" data-view="gallery"><span>▧</span><small>Galeri</small></button>
+      <button class="mobile-item" data-view="map"><span>⌖</span><small>Peta</small></button>
+    </nav>
+  </div>
+
+  <script src="./assets/js/config.js"></script>
+  <script src="./assets/js/app.js"></script>
+</body>
+</html>

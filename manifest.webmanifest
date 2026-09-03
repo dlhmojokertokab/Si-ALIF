@@ -1,0 +1,17 @@
+{
+  "name": "SI ALIF",
+  "short_name": "SI ALIF",
+  "description": "Sistem Informasi Agenda, Lokasi, Informasi, dan Foto",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f7f4fb",
+  "theme_color": "#7b61b5",
+  "icons": [
+    {
+      "src": "./assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
