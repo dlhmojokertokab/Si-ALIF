@@ -439,12 +439,10 @@ button { cursor: pointer; }
   .input-action { grid-template-columns: 1fr; }
   .preview-grid { grid-template-columns: repeat(3, 1fr); }
   .form-actions {
-    position: sticky;
-    bottom: 78px;
-    background: rgba(251, 249, 254, 0.94);
-    backdrop-filter: blur(10px);
-    padding: 10px 0;
-    z-index: 5;
+    position: static;
+    background: transparent;
+    padding: 4px 0 0;
+    margin-top: 18px;
   }
   .form-actions .primary { flex: 1; }
   .filters { min-width: 0; width: 100%; display: grid; }

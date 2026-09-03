@@ -1,4 +1,4 @@
-const CACHE = "si-alif-02-1-cleanup";
+const CACHE = "si-alif-02-2-mobile-upload-fix";
 const ASSETS = [
   "./",
   "./index.html",
