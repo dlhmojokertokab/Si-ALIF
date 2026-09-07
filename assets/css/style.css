@@ -5265,3 +5265,637 @@ body.similar-activity-open {
   }
 }
 
+
+
+/* =========================================================
+   SI ALIF 07.2 — READABILITY POLISH
+   Tujuan: tetap compact, tapi bukan compact untuk semut.
+   ========================================================= */
+
+/* ---------- Global interactive text ---------- */
+.primary,
+.secondary,
+.button-link,
+.link-button,
+.danger-button,
+.danger-ghost {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.field,
+.field > span {
+  font-size: 13px;
+}
+
+.field input,
+.field select,
+.field textarea,
+.filters input,
+.filters select,
+.smart-filter-search input,
+.smart-filter-bar select {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.field small {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* ---------- Header / navigation ---------- */
+.page-chip {
+  font-size: 11px;
+}
+
+.product-expansion {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.mobile-item small {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ---------- Dashboard ---------- */
+.dashboard-hero p {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.dashboard-hero-actions button,
+.dashboard-hero-actions .big {
+  font-size: 13px;
+}
+
+.dashboard-summary-card small,
+.dashboard-summary-card span:last-child {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.dashboard-clear-state strong {
+  font-size: 14px;
+}
+
+.dashboard-clear-state small {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.dashboard-order-row strong {
+  font-size: 13px;
+}
+
+.dashboard-order-row div span {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.dashboard-quick-action strong {
+  font-size: 13px;
+}
+
+.dashboard-quick-action small {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* ---------- Setor: mode tabs ---------- */
+.documentation-mode {
+  gap: 6px;
+}
+
+.documentation-mode-card {
+  min-height: 48px;
+  padding: 10px 12px;
+}
+
+.documentation-mode-card strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.documentation-mode-card span {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* ---------- Setor: Tujuan setor tabs ---------- */
+.publication-tabs {
+  padding: 4px;
+  gap: 5px;
+}
+
+.publication-tab {
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+.publication-tab strong {
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+
+/* ---------- Optional detail ---------- */
+.optional-details summary span {
+  font-size: 12px;
+}
+
+.optional-details summary small {
+  font-size: 10px;
+}
+
+.optional-details-body textarea {
+  font-size: 14px;
+}
+
+/* ---------- Pesanan Medsos inside Setor ---------- */
+.publication-options-head strong {
+  font-size: 13px;
+}
+
+.publication-options-head small {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.publication-type strong {
+  font-size: 12px;
+}
+
+.publication-type small {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.publication-warning strong {
+  font-size: 12px;
+}
+
+.publication-warning span {
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+/* ---------- Upload ---------- */
+.upload-copy strong {
+  font-size: 13px;
+}
+
+.upload-copy span {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.upload-queue-head strong {
+  font-size: 12px;
+}
+
+.upload-queue-head small {
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.upload-retry-button {
+  font-size: 12px;
+}
+
+.upload-queue-file strong {
+  font-size: 12px;
+}
+
+.upload-queue-file span,
+.upload-queue-file small {
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.upload-queue-state strong {
+  font-size: 10px;
+}
+
+/* ---------- Gallery ---------- */
+.gallery-picker label {
+  font-size: 11px;
+}
+
+.gallery-picker select {
+  font-size: 14px;
+}
+
+.gallery-activity-info strong {
+  font-size: 15px;
+}
+
+.gallery-activity-info span {
+  font-size: 12px;
+}
+
+.gallery-selection span {
+  font-size: 12px;
+}
+
+.gallery-toolbar-actions button {
+  font-size: 12px;
+}
+
+.gallery-card-info strong {
+  font-size: 12px;
+}
+
+.gallery-card-info span {
+  font-size: 10.5px;
+}
+
+.gallery-group-head span,
+.gallery-group-drive,
+.filter-summary {
+  font-size: 11px;
+}
+
+/* ---------- Gallery folder cards ---------- */
+.gallery-folder-count {
+  font-size: 11px;
+}
+
+.gallery-folder-content strong {
+  font-size: 14px;
+}
+
+.gallery-folder-content span,
+.gallery-folder-location {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.gallery-folder-open {
+  font-size: 12px;
+}
+
+/* ---------- Pesanan Medsos page ---------- */
+.order-tab {
+  font-size: 12px;
+}
+
+.order-main h4 {
+  font-size: 14px;
+}
+
+.order-main p {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.order-type,
+.order-status-badge {
+  font-size: 10.5px;
+}
+
+.order-media-line {
+  font-size: 11px;
+}
+
+.order-note span,
+.order-requester span {
+  font-size: 10px;
+}
+
+.order-note p,
+.order-requester strong {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.order-actions button,
+.order-actions .button-link {
+  font-size: 12px;
+}
+
+/* ---------- Success ---------- */
+.success-lead {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.success-summary-main span,
+.success-photo-count span,
+.success-publication small {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.success-merge-note strong {
+  font-size: 12px;
+}
+
+.success-merge-note small {
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+/* ---------- Trash ---------- */
+.trash-modal-head p {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.trash-count {
+  font-size: 11px;
+}
+
+.trash-item-title strong {
+  font-size: 13px;
+}
+
+.trash-item-title span {
+  font-size: 10px;
+}
+
+.trash-item-main p {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.trash-item-main small {
+  font-size: 10px;
+}
+
+.trash-item-actions button {
+  font-size: 12px;
+}
+
+.trash-empty strong,
+.trash-load-error strong {
+  font-size: 13px;
+}
+
+.trash-empty small,
+.trash-loading small,
+.trash-load-error small {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* ---------- Move / Merge / Similar warning ---------- */
+.activity-action-head p,
+.similar-activity-head p {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.activity-action-source small {
+  font-size: 10px;
+}
+
+.activity-action-source strong {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.activity-action-note,
+.similar-publication-note {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.similar-activity-score strong {
+  font-size: 10px;
+}
+
+.similar-activity-score span {
+  font-size: 14px;
+}
+
+.similar-activity-main > strong {
+  font-size: 13px;
+}
+
+.similar-activity-main > span {
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.similar-activity-card > button {
+  font-size: 12px;
+}
+
+/* ---------- Mobile: readable without becoming huge ---------- */
+@media (max-width: 760px) {
+  .topbar .eyebrow,
+  #view-submit .title-with-icon .eyebrow {
+    font-size: 10px;
+  }
+
+  .page-chip {
+    font-size: 10.5px;
+  }
+
+  .product-expansion {
+    font-size: 11.5px;
+  }
+
+  .dashboard-hero p {
+    font-size: 12px;
+  }
+
+  .dashboard-hero-actions button,
+  .dashboard-hero-actions .big {
+    min-height: 42px;
+    font-size: 12px;
+  }
+
+  .dashboard-summary-card small,
+  .dashboard-summary-card span:last-child {
+    font-size: 9px;
+    white-space: normal;
+  }
+
+  .dashboard-order-row strong,
+  .dashboard-quick-action strong {
+    font-size: 12px;
+  }
+
+  .dashboard-order-row div span,
+  .dashboard-quick-action small {
+    font-size: 10px;
+  }
+
+  .mobile-item small {
+    font-size: 10px;
+  }
+
+  /* segmented tabs: shorter box + bigger words */
+  .documentation-mode-card {
+    min-height: 44px;
+    padding: 8px 7px;
+  }
+
+  .documentation-mode-card strong {
+    font-size: 11.5px;
+  }
+
+  .publication-tab {
+    min-height: 42px;
+    padding: 7px 6px;
+  }
+
+  .publication-tab strong {
+    font-size: 11.5px;
+  }
+
+  #documentationForm .field,
+  #documentationForm .field > span {
+    font-size: 12px;
+  }
+
+  #documentationForm .field input,
+  #documentationForm .field select,
+  #documentationForm .field textarea {
+    min-height: 42px;
+    font-size: 13px;
+  }
+
+  .optional-details summary span {
+    font-size: 11px;
+  }
+
+  .optional-details summary small {
+    font-size: 9.5px;
+  }
+
+  .publication-options-head strong {
+    font-size: 12px;
+  }
+
+  .publication-options-head small {
+    font-size: 10px;
+  }
+
+  .publication-type strong {
+    font-size: 11px;
+  }
+
+  .publication-warning strong {
+    font-size: 11px;
+  }
+
+  .publication-warning span {
+    font-size: 10px;
+  }
+
+  .upload-copy strong {
+    font-size: 12px;
+  }
+
+  .upload-copy span {
+    font-size: 10.5px;
+  }
+
+  #documentationForm .form-actions button {
+    min-height: 42px;
+    font-size: 12px;
+  }
+
+  .upload-queue-head strong,
+  .upload-queue-file strong {
+    font-size: 11px;
+  }
+
+  .upload-queue-head small,
+  .upload-queue-file span,
+  .upload-queue-file small,
+  .upload-queue-state strong {
+    font-size: 9.5px;
+  }
+
+  .gallery-toolbar-actions button {
+    min-height: 38px;
+    font-size: 11px;
+  }
+
+  .gallery-card-info strong {
+    font-size: 11.5px;
+  }
+
+  .gallery-card-info span {
+    font-size: 10px;
+  }
+
+  .gallery-folder-content strong {
+    font-size: 13px;
+  }
+
+  .gallery-folder-content span,
+  .gallery-folder-location {
+    font-size: 10.5px;
+  }
+
+  .trash-item-title strong {
+    font-size: 12px;
+  }
+
+  .trash-item-main p {
+    font-size: 10.5px;
+  }
+
+  .trash-item-main small,
+  .trash-item-title span {
+    font-size: 9.5px;
+  }
+
+  .trash-item-actions button {
+    font-size: 11px;
+  }
+
+  .activity-action-head p,
+  .similar-activity-head p {
+    font-size: 11px;
+  }
+
+  .activity-action-note,
+  .similar-publication-note {
+    font-size: 10.5px;
+  }
+
+  .similar-activity-main > strong {
+    font-size: 12px;
+  }
+
+  .similar-activity-main > span {
+    font-size: 10px;
+  }
+
+  .similar-activity-card > button {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 390px) {
+  /* Jangan pernah turun ke font 7–8 px lagi. */
+  .documentation-mode-card strong,
+  .publication-tab strong {
+    font-size: 11px;
+  }
+
+  #documentationForm .field input,
+  #documentationForm .field select {
+    font-size: 13px;
+  }
+
+  .dashboard-summary-card small,
+  .dashboard-summary-card span:last-child {
+    font-size: 8.5px;
+  }
+
+  .mobile-item small {
+    font-size: 9.5px;
+  }
+
+  .gallery-toolbar-actions button {
+    font-size: 10.5px;
+  }
+}

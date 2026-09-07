@@ -1,10 +1,10 @@
-const CACHE = "si-alif-07-1-move-merge-similar";
+const CACHE = "si-alif-07-2-readability-polish";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0710",
-  "./assets/js/config.js?v=0710",
-  "./assets/js/app.js?v=0710",
+  "./assets/css/style.css?v=0720",
+  "./assets/js/config.js?v=0720",
+  "./assets/js/app.js?v=0720",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg",
   "./assets/brand/si-alif-doodle-logo.png",
