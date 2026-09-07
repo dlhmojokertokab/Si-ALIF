@@ -1,4 +1,4 @@
-const CACHE = "si-alif-05-1-gallery-folders";
+const CACHE = "si-alif-05-2-persistent-navigation";
 const ASSETS = [
   "./",
   "./index.html",

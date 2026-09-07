@@ -35,14 +35,54 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
 let currentView = "dashboard";
-let handlingPopState = false;
+let routingReady = false;
+let handlingRoute = false;
 
-function switchView(view, options = {}) {
-  const { push = true, galleryFolderId = null } = options;
+function routeHash(view, options = {}) {
+  const activityId = options.activityId ? encodeURIComponent(String(options.activityId)) : "";
+  const galleryFolderId = options.galleryFolderId ? encodeURIComponent(String(options.galleryFolderId)) : "";
+
+  if (view === "gallery" && galleryFolderId) return `#gallery/${galleryFolderId}`;
+  if (view === "detail" && activityId) return `#detail/${activityId}`;
+  if (view === "success" && activityId) return `#success/${activityId}`;
+
+  const allowed = new Set([
+    "dashboard",
+    "submit",
+    "activities",
+    "gallery",
+    "map",
+    "success",
+    "detail"
+  ]);
+
+  return `#${allowed.has(view) ? view : "dashboard"}`;
+}
+
+function parseRouteHash() {
+  const raw = (window.location.hash || "#dashboard").replace(/^#/, "");
+  const parts = raw.split("/").filter(Boolean);
+  const view = parts[0] || "dashboard";
+  const id = parts[1] ? decodeURIComponent(parts.slice(1).join("/")) : "";
+
+  if (view === "gallery") {
+    return { view: "gallery", galleryFolderId: id || null };
+  }
+
+  if (view === "detail" || view === "success") {
+    return { view, activityId: id || null };
+  }
+
+  if (["dashboard", "submit", "activities", "map"].includes(view)) {
+    return { view };
+  }
+
+  return { view: "dashboard" };
+}
+
+function showView(view) {
   const target = $(`#view-${view}`);
-  if (!target) return;
-
-  const previousView = currentView;
+  if (!target) return false;
 
   $$(".view").forEach(el => el.classList.remove("active"));
   target.classList.add("active");
@@ -53,48 +93,180 @@ function switchView(view, options = {}) {
     el.classList.toggle("active", el.dataset.view === view);
   });
 
-  if (view === "gallery") {
-    if (galleryFolderId) {
-      openGalleryFolder(galleryFolderId, { pushHistory: false });
-    } else {
-      showGalleryFolders();
-    }
-  }
-
-  if (push && !handlingPopState && previousView !== view) {
-    const state = { siAlifView: view };
-    if (view === "gallery" && galleryFolderId) {
-      state.galleryFolderId = String(galleryFolderId);
-    }
-    history.pushState(state, "", window.location.href);
-  }
-
   window.scrollTo({ top: 0, behavior: "smooth" });
+  return true;
 }
 
-history.replaceState({ siAlifView: "dashboard" }, "", window.location.href);
+function navigateTo(view, options = {}) {
+  const { replace = false } = options;
+  const hash = routeHash(view, options);
 
-window.addEventListener("popstate", event => {
-  handlingPopState = true;
-  const targetView = event.state?.siAlifView || "dashboard";
-  switchView(targetView, {
-    push: false,
-    galleryFolderId: event.state?.galleryFolderId || null
-  });
-  handlingPopState = false;
+  if (window.location.hash === hash) {
+    applyRouteFromHash();
+    return;
+  }
+
+  const state = { siAlifRoute: true };
+
+  if (replace) {
+    history.replaceState(state, "", hash);
+  } else {
+    history.pushState(state, "", hash);
+  }
+
+  applyRouteFromHash();
+}
+
+function switchView(view, options = {}) {
+  // Compatibility wrapper for existing SI ALIF code.
+  navigateTo(view, options);
+}
+
+function renderSuccessForActivity(item) {
+  if (!item) return false;
+
+  lastSubmittedActivityId = item.id || null;
+  $("#successActivityName").textContent = item.name || "Aktivitas";
+  $("#successActivityMeta").textContent = [
+    item.division || "-",
+    item.place || "-",
+    item.date || "-"
+  ].join(" • ");
+  $("#successPhotoCount").textContent = Number(item.photos || 0);
+
+  const drive = $("#successDriveLink");
+  if (item.folderUrl) {
+    drive.href = item.folderUrl;
+    drive.hidden = false;
+  } else {
+    drive.hidden = true;
+  }
+
+  showView("success");
+  return true;
+}
+
+function renderDetailForActivity(item) {
+  if (!item) return false;
+
+  currentDetailActivityId = item.id;
+  $("#detailName").textContent = item.name || "Aktivitas";
+  $("#detailDescription").textContent = item.description || "Belum ada keterangan singkat.";
+  $("#detailPhotoCount").textContent = Number(item.photos || 0);
+  $("#detailDivision").textContent = item.division || "-";
+  $("#detailDate").textContent = item.date || "-";
+  $("#detailLocation").textContent = item.place || "-";
+  $("#detailStatus").textContent = item.status || "-";
+  $("#detailCoordinates").textContent = formatCoordinates(item.coordinates);
+
+  const drive = $("#detailDriveLink");
+  if (item.folderUrl) {
+    drive.href = item.folderUrl;
+    drive.hidden = false;
+  } else {
+    drive.hidden = true;
+  }
+
+  showView("detail");
+  return true;
+}
+
+function applyRouteFromHash() {
+  if (!routingReady || handlingRoute) return;
+
+  handlingRoute = true;
+
+  try {
+    const route = parseRouteHash();
+
+    if (route.view === "gallery") {
+      showView("gallery");
+
+      if (route.galleryFolderId) {
+        openGalleryFolder(route.galleryFolderId, { updateRoute: false });
+      } else {
+        showGalleryFolders();
+      }
+      return;
+    }
+
+    if (route.view === "detail") {
+      const item = activities.find(activity =>
+        String(activity.id) === String(route.activityId || "")
+      );
+
+      if (item) {
+        renderDetailForActivity(item);
+      } else if (activities.length) {
+        showToast("Aktivitas tidak ditemukan.");
+        navigateTo("activities", { replace: true });
+      } else {
+        showView("detail");
+      }
+      return;
+    }
+
+    if (route.view === "success") {
+      const item = activities.find(activity =>
+        String(activity.id) === String(route.activityId || "")
+      );
+
+      if (item) {
+        renderSuccessForActivity(item);
+      } else if (activities.length) {
+        navigateTo("dashboard", { replace: true });
+      } else {
+        showView("success");
+      }
+      return;
+    }
+
+    showView(route.view);
+  } finally {
+    handlingRoute = false;
+  }
+}
+
+function initializeRouting() {
+  const requestedHash = window.location.hash || "#dashboard";
+
+  routingReady = true;
+
+  // Direct load / refresh on a nested SI ALIF page should still have
+  // an in-app Dashboard entry behind it, so Back does not immediately
+  // leave the site.
+  if (requestedHash !== "#dashboard") {
+    history.replaceState({ siAlifRoute: true }, "", "#dashboard");
+    history.pushState({ siAlifRoute: true }, "", requestedHash);
+  } else {
+    history.replaceState({ siAlifRoute: true }, "", "#dashboard");
+  }
+
+  applyRouteFromHash();
+}
+
+window.addEventListener("popstate", () => {
+  applyRouteFromHash();
 });
 
-$$('[data-view]').forEach(button => {
-  button.addEventListener("click", () => switchView(button.dataset.view));
+window.addEventListener("hashchange", () => {
+  applyRouteFromHash();
+});
+
+$$("[data-view]").forEach(button => {
+  button.addEventListener("click", () => navigateTo(button.dataset.view));
 });
 
 $$("[data-history-back]").forEach(button => {
   button.addEventListener("click", () => {
-    if (history.state?.siAlifView && currentView !== "dashboard") {
-      history.back();
-    } else {
-      switchView("dashboard");
+    const route = parseRouteHash();
+
+    if (route.view === "dashboard") {
+      navigateTo("dashboard", { replace: true });
+      return;
     }
+
+    history.back();
   });
 });
 
@@ -459,46 +631,17 @@ function openActivityDetail(activityId) {
     return;
   }
 
-  currentDetailActivityId = item.id;
-  $("#detailName").textContent = item.name || "Aktivitas";
-  $("#detailDescription").textContent = item.description || "Belum ada keterangan singkat.";
-  $("#detailPhotoCount").textContent = Number(item.photos || 0);
-  $("#detailDivision").textContent = item.division || "-";
-  $("#detailDate").textContent = item.date || "-";
-  $("#detailLocation").textContent = item.place || "-";
-  $("#detailStatus").textContent = item.status || "-";
-  $("#detailCoordinates").textContent = formatCoordinates(item.coordinates);
-
-  const drive = $("#detailDriveLink");
-  if (item.folderUrl) {
-    drive.href = item.folderUrl;
-    drive.hidden = false;
-  } else {
-    drive.hidden = true;
-  }
-
-  switchView("detail");
+  navigateTo("detail", { activityId: item.id });
 }
 
 function showSuccessScreen(item) {
-  lastSubmittedActivityId = item?.id || null;
-  $("#successActivityName").textContent = item?.name || "Aktivitas";
-  $("#successActivityMeta").textContent = [
-    item?.division || "-",
-    item?.place || "-",
-    item?.date || "-"
-  ].join(" • ");
-  $("#successPhotoCount").textContent = Number(item?.photos || 0);
-
-  const drive = $("#successDriveLink");
-  if (item?.folderUrl) {
-    drive.href = item.folderUrl;
-    drive.hidden = false;
-  } else {
-    drive.hidden = true;
+  if (!item) {
+    navigateTo("dashboard");
+    return;
   }
 
-  switchView("success");
+  lastSubmittedActivityId = item.id || null;
+  navigateTo("success", { activityId: item.id });
 }
 
 
@@ -589,7 +732,7 @@ function renderGalleryFolders(items) {
       </div>
     `;
 
-    const open = () => openGalleryFolder(item.id, { pushHistory: true });
+    const open = () => navigateTo("gallery", { galleryFolderId: item.id });
     card.addEventListener("click", open);
     card.addEventListener("keydown", event => {
       if (event.key === "Enter" || event.key === " ") {
@@ -700,7 +843,13 @@ function renderGalleryPhotos() {
 }
 
 async function openGalleryFolder(activityId, options = {}) {
-  const { pushHistory = false } = options;
+  const { updateRoute = true } = options;
+
+  if (updateRoute) {
+    navigateTo("gallery", { galleryFolderId: activityId });
+    return;
+  }
+
   const activity = activities.find(item => String(item.id) === String(activityId));
 
   if (!activity) {
@@ -732,14 +881,6 @@ async function openGalleryFolder(activityId, options = {}) {
 
   setGalleryState("loading", "Membuka folder...", "Mengambil thumbnail dari Google Drive.");
 
-  if (pushHistory && !handlingPopState) {
-    history.pushState(
-      { siAlifView: "gallery", galleryFolderId: galleryActivityId },
-      "",
-      window.location.href
-    );
-  }
-
   try {
     const result = await apiFetch(`/api/activities/${encodeURIComponent(activity.id)}/files`);
     galleryFiles = result.files || [];
@@ -750,11 +891,7 @@ async function openGalleryFolder(activityId, options = {}) {
 }
 
 function openActivityGallery(activityId) {
-  if (currentView === "gallery") {
-    openGalleryFolder(activityId, { pushHistory: true });
-  } else {
-    switchView("gallery", { galleryFolderId: activityId });
-  }
+  navigateTo("gallery", { galleryFolderId: activityId });
 }
 
 async function downloadGalleryFile(file, index, total) {
@@ -823,6 +960,10 @@ async function loadActivitiesFromApi() {
   const result = await apiFetch("/api/activities");
   activities = (result.activities || []).map(normalizeRemoteActivity);
   refreshLists();
+
+  if (routingReady) {
+    applyRouteFromHash();
+  }
 }
 
 const today = new Date();
@@ -993,10 +1134,12 @@ $("#documentationForm").addEventListener("submit", async event => {
 });
 
 $("#galleryBackFromFolder").addEventListener("click", () => {
-  if (history.state?.galleryFolderId) {
+  const route = parseRouteHash();
+
+  if (route.view === "gallery" && route.galleryFolderId) {
     history.back();
   } else {
-    showGalleryFolders();
+    navigateTo("gallery", { replace: true });
   }
 });
 
@@ -1055,7 +1198,10 @@ function showToast(message) {
 }
 
 refreshLists();
-checkBackend();
+
+checkBackend().finally(() => {
+  initializeRouting();
+});
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
