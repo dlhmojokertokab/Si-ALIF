@@ -1998,3 +1998,66 @@ body {
     font-size: 20px;
   }
 }
+
+
+/* =========================
+   SI ALIF 05.2.2 — ROUTE BOOT
+   Prevent Dashboard flash on refresh/deep-link
+   ========================= */
+
+.route-boot {
+  display: none;
+}
+
+body.route-pending .app-shell,
+body.route-pending .page-glow {
+  visibility: hidden;
+}
+
+body.route-pending .route-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 7px;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(222, 207, 247, .70), transparent 32%),
+    #f8f5fc;
+  color: var(--text);
+}
+
+.route-boot-mark {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 3px;
+  border-radius: 19px;
+  background: linear-gradient(145deg, #ede4fb, #d9c7f2);
+  color: var(--primary-strong);
+  box-shadow: 0 14px 35px rgba(95, 70, 140, .12);
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: -.06em;
+}
+
+.route-boot-mark span {
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  font-size: 10px;
+}
+
+.route-boot strong {
+  font-size: 18px;
+  letter-spacing: -.03em;
+}
+
+.route-boot small {
+  color: var(--text-faint);
+  font-size: 10px;
+}

@@ -1,10 +1,10 @@
-const CACHE = "si-alif-05-2-1-nav-hotfix";
+const CACHE = "si-alif-05-2-2-route-boot";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0521",
-  "./assets/js/config.js?v=0521",
-  "./assets/js/app.js?v=0521",
+  "./assets/css/style.css?v=0522",
+  "./assets/js/config.js?v=0522",
+  "./assets/js/app.js?v=0522",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

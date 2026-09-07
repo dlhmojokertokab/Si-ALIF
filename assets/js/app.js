@@ -225,6 +225,7 @@ function applyRouteFromHash() {
     showView(route.view);
   } finally {
     handlingRoute = false;
+    document.body?.classList.remove("route-pending");
   }
 }
 
@@ -860,7 +861,24 @@ async function openGalleryFolder(activityId, options = {}) {
   const activity = activities.find(item => String(item.id) === String(activityId));
 
   if (!activity) {
+    // Saat refresh deep-link, route dibaca sebelum daftar aktivitas selesai
+    // diambil dari Drive. Tampilkan folder loading dulu; loadActivitiesFromApi()
+    // akan menjalankan route ini lagi setelah data tersedia.
+    if (!activities.length) {
+      galleryActivityId = String(activityId);
+      $("#galleryFolderView").hidden = true;
+      $("#galleryPhotoView").hidden = false;
+      $("#galleryToolbar").hidden = true;
+      $("#galleryGrid").innerHTML = "";
+      $("#galleryFolderName").textContent = "Membuka aktivitas...";
+      $("#galleryFolderMeta").textContent = "Mengambil data kegiatan dari Google Drive";
+      $("#galleryFolderDriveLink").hidden = true;
+      setGalleryState("loading", "Membuka folder...", "Menunggu data aktivitas.");
+      return;
+    }
+
     showToast("Aktivitas tidak ditemukan.");
+    navigateTo("gallery", { replace: true });
     return;
   }
 
@@ -1206,9 +1224,10 @@ function showToast(message) {
 
 refreshLists();
 
-checkBackend().finally(() => {
-  initializeRouting();
-});
+// Baca URL lebih dulu supaya refresh tidak sempat menampilkan Dashboard.
+// Data Google Drive dimuat setelah view yang benar sudah terpilih.
+initializeRouting();
+checkBackend();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
