@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-4-share-contribution";
+const CACHE = "si-alif-06-4-1-existing-mode-fix";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0640",
-  "./assets/js/config.js?v=0640",
-  "./assets/js/app.js?v=0640",
+  "./assets/css/style.css?v=0641",
+  "./assets/js/config.js?v=0641",
+  "./assets/js/app.js?v=0641",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

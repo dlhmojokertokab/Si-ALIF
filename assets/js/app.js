@@ -511,15 +511,24 @@ function populateExistingActivitySelect() {
   const current = selectedExistingActivityId || select.value;
   select.innerHTML = `<option value="">Pilih folder kegiatan</option>`;
 
-  activities.forEach(item => {
+  const eligibleActivities = activities.filter(item =>
+    Number(item.media || item.photos || item.videos || 0) > 0
+  );
+
+  eligibleActivities.forEach(item => {
     const option = document.createElement("option");
     option.value = item.id;
     option.textContent = `${item.date} — ${item.name} • ${item.division} • ${item.place}`;
     select.appendChild(option);
   });
 
-  if (current && activities.some(item => String(item.id) === String(current))) {
+  if (current && eligibleActivities.some(item => String(item.id) === String(current))) {
     select.value = current;
+  }
+
+  if (!eligibleActivities.length && !sharedContributionMode) {
+    const first = select.querySelector("option");
+    if (first) first.textContent = "Belum ada kegiatan aktif di Galeri";
   }
 
   if (sharedContributionMode && selectedExistingActivityId) {

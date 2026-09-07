@@ -3525,3 +3525,24 @@ body.edit-modal-open {
     padding: 7px;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.4.1 — EXISTING ACTIVITY MODE FIX
+   ========================= */
+
+/* Beberapa komponen SI ALIF punya display:grid sendiri.
+   Paksa atribut hidden tetap menang agar mode "Tambah ke Kegiatan Lama"
+   benar-benar hanya menampilkan picker + upload media. */
+[hidden] {
+  display: none !important;
+}
+
+.new-activity-only[hidden] {
+  display: none !important;
+}
+
+.existing-activity-picker[hidden],
+.shared-contribution-banner[hidden] {
+  display: none !important;
+}
