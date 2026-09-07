@@ -1,4 +1,4 @@
-const CACHE = "si-alif-02-2-mobile-upload-fix";
+const CACHE = "si-alif-03-aktivitas-success-detail";
 const ASSETS = [
   "./",
   "./index.html",

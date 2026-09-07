@@ -1,9 +1,11 @@
 const titleMap = {
   dashboard: "Dashboard",
   submit: "Setor Dokumentasi",
-  activities: "Kegiatan",
+  activities: "Aktivitas",
   gallery: "Galeri",
-  map: "Peta Kegiatan"
+  map: "Peta",
+  success: "Tersimpan",
+  detail: "Detail Aktivitas"
 };
 
 const config = window.SI_ALIF_CONFIG || {};
@@ -14,6 +16,7 @@ let selectedFiles = [];
 let coordinates = null;
 let backendOnline = false;
 let apiPin = localStorage.getItem("si-alif-api-pin") || "";
+let lastSubmittedActivityId = null;
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -44,13 +47,17 @@ function renderActivities(target, list) {
   box.innerHTML = "";
 
   if (!list.length) {
-    box.innerHTML = `<div class="empty-state"><p>Belum ada kegiatan yang cocok.</p></div>`;
+    box.innerHTML = `<div class="empty-state"><p>Belum ada aktivitas yang cocok.</p></div>`;
     return;
   }
 
   list.forEach(item => {
     const row = document.createElement("div");
-    row.className = "activity-row";
+    row.className = "activity-row activity-row-clickable";
+    row.tabIndex = 0;
+    row.setAttribute("role", "button");
+    row.setAttribute("aria-label", `Buka detail ${item.name}`);
+
     const driveLink = item.folderUrl
       ? `<a class="drive-link" href="${escapeHtml(item.folderUrl)}" target="_blank" rel="noopener">Buka Drive ↗</a>`
       : "";
@@ -66,6 +73,18 @@ function renderActivities(target, list) {
         ${driveLink}
       </div>
     `;
+
+    const open = event => {
+      if (event?.target?.closest?.("a")) return;
+      openActivityDetail(item.id);
+    };
+    row.addEventListener("click", open);
+    row.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        open(event);
+      }
+    });
     box.appendChild(row);
   });
 }
@@ -180,6 +199,63 @@ function normalizeRemoteActivity(item) {
     coordinates: item.coordinates || null,
     folderUrl: item.folderUrl || ""
   };
+}
+
+
+function formatCoordinates(value) {
+  if (!value || typeof value !== "object") return "Tidak disimpan";
+  const lat = Number(value.lat);
+  const lng = Number(value.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return "Tidak disimpan";
+  return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+}
+
+function openActivityDetail(activityId) {
+  const item = activities.find(activity => String(activity.id) === String(activityId));
+  if (!item) {
+    showToast("Aktivitas tidak ditemukan.");
+    return;
+  }
+
+  $("#detailName").textContent = item.name || "Aktivitas";
+  $("#detailDescription").textContent = item.description || "Belum ada keterangan singkat.";
+  $("#detailPhotoCount").textContent = Number(item.photos || 0);
+  $("#detailDivision").textContent = item.division || "-";
+  $("#detailDate").textContent = item.date || "-";
+  $("#detailLocation").textContent = item.place || "-";
+  $("#detailStatus").textContent = item.status || "-";
+  $("#detailCoordinates").textContent = formatCoordinates(item.coordinates);
+
+  const drive = $("#detailDriveLink");
+  if (item.folderUrl) {
+    drive.href = item.folderUrl;
+    drive.hidden = false;
+  } else {
+    drive.hidden = true;
+  }
+
+  switchView("detail");
+}
+
+function showSuccessScreen(item) {
+  lastSubmittedActivityId = item?.id || null;
+  $("#successActivityName").textContent = item?.name || "Aktivitas";
+  $("#successActivityMeta").textContent = [
+    item?.division || "-",
+    item?.place || "-",
+    item?.date || "-"
+  ].join(" • ");
+  $("#successPhotoCount").textContent = Number(item?.photos || 0);
+
+  const drive = $("#successDriveLink");
+  if (item?.folderUrl) {
+    drive.href = item.folderUrl;
+    drive.hidden = false;
+  } else {
+    drive.hidden = true;
+  }
+
+  switchView("success");
 }
 
 async function checkBackend() {
@@ -316,33 +392,48 @@ $("#documentationForm").addEventListener("submit", async event => {
 
   if (!name || !division || !location || !date) return;
 
+  const photoCountAtSubmit = selectedFiles.length;
   const payload = { name, division, date, location, description, coordinates };
 
   submitButton.disabled = true;
   submitButton.textContent = backendOnline ? "Mengirim..." : "Menyimpan...";
 
   try {
+    let savedActivity;
+
     if (backendOnline) {
-      await submitRemoteActivity(payload);
+      const created = await submitRemoteActivity(payload);
       await loadActivitiesFromApi();
-      showToast("Dokumentasi masuk Google Drive. HP Alif aman. 💜");
+      savedActivity = activities.find(item => String(item.id) === String(created.id)) || {
+        id: created.id,
+        name,
+        division,
+        place: location,
+        photos: photoCountAtSubmit,
+        status: photoCountAtSubmit >= 3 ? "Lengkap" : "Minim",
+        date: formatDate(date),
+        dateIso: date,
+        description,
+        coordinates,
+        folderUrl: created.folderUrl || ""
+      };
     } else {
-      const newActivity = {
+      savedActivity = {
         id: Date.now(),
         name,
         division,
         place: location,
-        photos: selectedFiles.length,
-        status: selectedFiles.length >= 3 ? "Lengkap" : "Minim",
+        photos: photoCountAtSubmit,
+        status: photoCountAtSubmit >= 3 ? "Lengkap" : "Minim",
         date: formatDate(date),
         dateIso: date,
         description,
-        coordinates
+        coordinates,
+        folderUrl: ""
       };
-      activities.unshift(newActivity);
+      activities.unshift(savedActivity);
       localStorage.setItem("si-alif-activities", JSON.stringify(activities));
       refreshLists();
-      showToast("Backend belum online — data sementara tersimpan lokal.");
     }
 
     event.target.reset();
@@ -351,10 +442,8 @@ $("#documentationForm").addEventListener("submit", async event => {
     $("#previewGrid").innerHTML = "";
     $("#gpsStatus").textContent = "Koordinat belum diambil.";
     $("#activityDate").value = new Date().toISOString().slice(0, 10);
-    setTimeout(() => {
-      resetUploadProgress();
-      switchView("dashboard");
-    }, 700);
+    resetUploadProgress();
+    showSuccessScreen(savedActivity);
   } catch (error) {
     showToast(`Upload gagal: ${error.message}`);
     setUploadProgress(0, 1, `Gagal: ${error.message}`);
@@ -362,6 +451,11 @@ $("#documentationForm").addEventListener("submit", async event => {
     submitButton.disabled = false;
     submitButton.textContent = "Kirim Dokumentasi";
   }
+});
+
+$("#successViewActivity").addEventListener("click", () => {
+  if (lastSubmittedActivityId) openActivityDetail(lastSubmittedActivityId);
+  else switchView("activities");
 });
 
 $("#resetButton").addEventListener("click", () => {

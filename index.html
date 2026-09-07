@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f766e" />
-  <meta name="description" content="SI ALIF — Sistem Informasi Agenda, Lokasi, Informasi, dan Foto" />
+  <meta name="description" content="SI ALIF — Sistem Informasi Aktivitas, Lokasi, Informasi, dan Foto" />
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
@@ -31,7 +31,7 @@
           <span>＋</span><span>Setor Dokumentasi</span>
         </button>
         <button class="nav-item" data-view="activities">
-          <span>▦</span><span>Kegiatan</span>
+          <span>▦</span><span>Aktivitas</span>
         </button>
         <button class="nav-item" data-view="gallery">
           <span>▧</span><span>Galeri</span>
@@ -42,16 +42,20 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 02.1</strong>
+        <strong>SI ALIF 03</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
 
     <main class="main">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">Sistem Informasi Agenda, Lokasi, Informasi, dan Foto</p>
-          <h1 id="pageTitle">Dashboard</h1>
+      <header class="topbar topbar-product">
+        <div class="product-heading">
+          <span class="product-office">DLH KABUPATEN MOJOKERTO</span>
+          <div class="product-title-row">
+            <h1 class="product-name">SI ALIF</h1>
+            <span class="page-chip" id="pageTitle">Dashboard</span>
+          </div>
+          <p class="product-expansion">Sistem Informasi Aktivitas, Lokasi, Informasi, dan Foto</p>
         </div>
         <div class="topbar-actions">
           <button class="status-pill" id="backendStatus" type="button" title="Status koneksi backend"><span class="status-dot"></span><span id="backendStatusText">Memeriksa Drive...</span></button>
@@ -109,17 +113,17 @@
             <div class="activity-list" id="recentActivities"></div>
           </article>
 
-          <aside class="panel">
+          <aside class="panel workflow-panel">
             <div class="panel-head">
               <div>
-                <span class="eyebrow">Agenda</span>
-                <h3>Mendatang</h3>
+                <span class="eyebrow">Aktivitas</span>
+                <h3>Alur SI ALIF</h3>
               </div>
             </div>
-            <div class="agenda-empty">
-              <div class="agenda-empty-icon">◷</div>
-              <strong>Belum ada agenda mendatang</strong>
-              <span>Agenda terjadwal akan tampil di sini ketika fitur Agenda mulai digunakan.</span>
+            <div class="workflow-list">
+              <div class="workflow-item"><span>1</span><div><strong>Setor dari HP</strong><small>Isi kegiatan dan pilih foto dari galeri.</small></div></div>
+              <div class="workflow-item"><span>2</span><div><strong>Tersimpan otomatis</strong><small>File asli langsung masuk Google Drive.</small></div></div>
+              <div class="workflow-item"><span>3</span><div><strong>Ambil saat perlu</strong><small>Cari aktivitasnya tanpa bongkar WhatsApp.</small></div></div>
             </div>
           </aside>
         </div>
@@ -217,15 +221,73 @@
         </div>
       </section>
 
+      <section class="view" id="view-success">
+        <div class="success-wrap">
+          <article class="panel success-card">
+            <div class="success-icon">✓</div>
+            <span class="eyebrow">Dokumentasi tersimpan</span>
+            <h2>Berhasil masuk SI ALIF</h2>
+            <p class="success-lead">File sudah tersimpan. Nggak perlu kirim ulang ke admin lewat WhatsApp. 💜</p>
+
+            <div class="success-summary">
+              <div class="success-summary-main">
+                <strong id="successActivityName">Aktivitas</strong>
+                <span id="successActivityMeta">-</span>
+              </div>
+              <div class="success-photo-count">
+                <strong id="successPhotoCount">0</strong>
+                <span>foto</span>
+              </div>
+            </div>
+
+            <div class="success-actions">
+              <button class="secondary" type="button" data-view="submit">＋ Setor Lagi</button>
+              <button class="primary" type="button" id="successViewActivity">Lihat Aktivitas</button>
+              <a class="button-link" id="successDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-detail">
+        <article class="panel detail-card">
+          <div class="detail-head">
+            <button class="secondary detail-back" type="button" data-view="activities">← Kembali</button>
+            <span class="eyebrow">Detail aktivitas</span>
+          </div>
+
+          <div class="detail-title-row">
+            <div>
+              <h2 id="detailName">Aktivitas</h2>
+              <p id="detailDescription">Belum ada keterangan.</p>
+            </div>
+            <div class="detail-photo-badge"><strong id="detailPhotoCount">0</strong><span>foto</span></div>
+          </div>
+
+          <div class="detail-grid">
+            <div class="detail-field"><span>Bidang</span><strong id="detailDivision">-</strong></div>
+            <div class="detail-field"><span>Tanggal</span><strong id="detailDate">-</strong></div>
+            <div class="detail-field"><span>Lokasi</span><strong id="detailLocation">-</strong></div>
+            <div class="detail-field"><span>Status</span><strong id="detailStatus">-</strong></div>
+            <div class="detail-field detail-field-wide"><span>Koordinat</span><strong id="detailCoordinates">Tidak disimpan</strong></div>
+          </div>
+
+          <div class="detail-actions">
+            <a class="button-link primary-link" id="detailDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
+            <button class="secondary" type="button" data-view="submit">＋ Setor Dokumentasi Baru</button>
+          </div>
+        </article>
+      </section>
+
       <section class="view" id="view-activities">
         <article class="panel">
           <div class="panel-head">
             <div>
-              <span class="eyebrow">Arsip kegiatan</span>
-              <h3>Daftar Kegiatan</h3>
+              <span class="eyebrow">Arsip aktivitas</span>
+              <h3>Daftar Aktivitas</h3>
             </div>
             <div class="filters">
-              <input id="searchActivity" placeholder="Cari kegiatan..." />
+              <input id="searchActivity" placeholder="Cari aktivitas..." />
               <select id="filterDivision">
                 <option value="">Semua bidang</option>
                 <option>Sekretariat</option>
@@ -250,8 +312,8 @@
       <section class="view" id="view-map">
         <article class="panel empty-state">
           <div class="empty-icon">⌖</div>
-          <h3>Peta Kegiatan</h3>
-          <p>Lokasi kegiatan yang memiliki koordinat akan dapat divisualisasikan pada peta kegiatan.</p>
+          <h3>Peta Aktivitas</h3>
+          <p>Lokasi aktivitas yang memiliki koordinat akan dapat divisualisasikan pada peta aktivitas.</p>
         </article>
       </section>
 
@@ -260,7 +322,7 @@
 
     <nav class="mobile-nav" aria-label="Navigasi mobile">
       <button class="mobile-item active" data-view="dashboard"><span>⌂</span><small>Beranda</small></button>
-      <button class="mobile-item" data-view="activities"><span>▦</span><small>Kegiatan</small></button>
+      <button class="mobile-item" data-view="activities"><span>▦</span><small>Aktivitas</small></button>
       <button class="mobile-add" data-view="submit" aria-label="Setor dokumentasi">＋</button>
       <button class="mobile-item" data-view="gallery"><span>▧</span><small>Galeri</small></button>
       <button class="mobile-item" data-view="map"><span>⌖</span><small>Peta</small></button>
