@@ -42,7 +42,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 03</strong>
+        <strong>SI ALIF 05.1</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -321,59 +321,82 @@
 
       <section class="view" id="view-gallery">
         <article class="panel gallery-panel">
-          <div class="gallery-head gallery-head-all">
-            <div>
-              <span class="eyebrow">Foto asli dari Google Drive</span>
-              <h3>Galeri SI ALIF</h3>
-              <p>Semua dokumentasi langsung tampil di sini, dikelompokkan per aktivitas. Tinggal pilih foto yang dibutuhkan.</p>
-              <div class="filter-summary gallery-filter-summary" id="galleryFilterResult">Semua dokumentasi</div>
-            </div>
-            <button class="secondary gallery-back-button" type="button" data-history-back>← Kembali</button>
-          </div>
 
-          <div class="smart-filter-bar gallery-filter-bar" data-filter-scope="gallery">
-            <label class="smart-filter-search">
-              <span>🔎</span>
-              <input data-filter="query" type="search" placeholder="Cari kegiatan, lokasi, atau keterangan..." autocomplete="off">
-            </label>
-            <select data-filter="division" aria-label="Filter bidang galeri">
-              <option value="">Semua bidang</option>
-              <option>Sekretariat</option>
-              <option>PSLB3</option>
-              <option>PPKL</option>
-              <option>Penaatan</option>
-              <option>UPTD Laboratorium Lingkungan</option>
-            </select>
-            <select data-filter="month" aria-label="Filter bulan galeri">
-              <option value="">Semua bulan</option>
-            </select>
-            <select data-filter="status" aria-label="Filter status galeri">
-              <option value="">Semua status</option>
-              <option value="Lengkap">🟢 Lengkap</option>
-              <option value="Minim">🟡 Minim</option>
-            </select>
-            <button class="secondary filter-reset" type="button" data-filter-reset>↺ Reset</button>
-          </div>
-
-          <div class="gallery-toolbar" id="galleryToolbar" hidden>
-            <div class="gallery-selection">
-              <strong id="gallerySelectedCount">0</strong>
-              <span>foto dipilih</span>
+          <div id="galleryFolderView">
+            <div class="gallery-head gallery-folder-head">
+              <div>
+                <span class="eyebrow">Dokumentasi berdasarkan aktivitas</span>
+                <h3>Galeri SI ALIF</h3>
+                <p>Pilih aktivitas seperti membuka folder. Setelah dibuka, semua foto kegiatan akan tampil di dalamnya.</p>
+                <div class="filter-summary gallery-filter-summary" id="galleryFilterResult">Semua folder</div>
+              </div>
             </div>
-            <div class="gallery-toolbar-actions">
-              <button class="secondary" id="gallerySelectAll" type="button">Pilih Semua</button>
-              <button class="secondary" id="galleryClearSelection" type="button">Kosongkan</button>
-              <button class="primary" id="galleryDownloadSelected" type="button" disabled>↓ Download Terpilih</button>
+
+            <div class="smart-filter-bar gallery-filter-bar" data-filter-scope="gallery">
+              <label class="smart-filter-search">
+                <span>🔎</span>
+                <input data-filter="query" type="search" placeholder="Cari kegiatan, lokasi, atau keterangan..." autocomplete="off">
+              </label>
+              <select data-filter="division" aria-label="Filter bidang galeri">
+                <option value="">Semua bidang</option>
+                <option>Sekretariat</option>
+                <option>PSLB3</option>
+                <option>PPKL</option>
+                <option>Penaatan</option>
+                <option>UPTD Laboratorium Lingkungan</option>
+              </select>
+              <select data-filter="month" aria-label="Filter bulan galeri">
+                <option value="">Semua bulan</option>
+              </select>
+              <select data-filter="status" aria-label="Filter status galeri">
+                <option value="">Semua status</option>
+                <option value="Lengkap">🟢 Lengkap</option>
+                <option value="Minim">🟡 Minim</option>
+              </select>
+              <button class="secondary filter-reset" type="button" data-filter-reset>↺ Reset</button>
+            </div>
+
+            <div class="gallery-folder-grid" id="galleryFolderGrid"></div>
+
+            <div class="gallery-state" id="galleryFolderState" hidden>
+              <div class="empty-icon">▧</div>
+              <h3>Belum ada dokumentasi</h3>
+              <p>Aktivitas yang memiliki foto akan tampil di sini.</p>
             </div>
           </div>
 
-          <div class="gallery-state" id="galleryState">
-            <div class="empty-icon gallery-spinner">◌</div>
-            <h3>Mengambil galeri...</h3>
-            <p>Membaca dokumentasi dari Google Drive.</p>
+          <div id="galleryPhotoView" hidden>
+            <div class="gallery-photo-header">
+              <button class="secondary gallery-photo-back" id="galleryBackFromFolder" type="button">← Kembali</button>
+              <div class="gallery-photo-heading">
+                <span class="eyebrow">Folder dokumentasi</span>
+                <h3 id="galleryFolderName">Aktivitas</h3>
+                <p id="galleryFolderMeta">-</p>
+              </div>
+              <a class="button-link" id="galleryFolderDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
+            </div>
+
+            <div class="gallery-toolbar" id="galleryToolbar" hidden>
+              <div class="gallery-selection">
+                <strong id="gallerySelectedCount">0</strong>
+                <span>foto dipilih</span>
+              </div>
+              <div class="gallery-toolbar-actions">
+                <button class="secondary" id="gallerySelectAll" type="button">Pilih Semua</button>
+                <button class="secondary" id="galleryClearSelection" type="button">Kosongkan</button>
+                <button class="primary" id="galleryDownloadSelected" type="button" disabled>↓ Download Terpilih</button>
+              </div>
+            </div>
+
+            <div class="gallery-state" id="galleryState">
+              <div class="empty-icon gallery-spinner">◌</div>
+              <h3>Mengambil foto...</h3>
+              <p>Membaca dokumentasi dari Google Drive.</p>
+            </div>
+
+            <div class="gallery-grid gallery-folder-photos" id="galleryGrid"></div>
           </div>
 
-          <div class="gallery-groups" id="galleryGroups"></div>
         </article>
       </section>
 

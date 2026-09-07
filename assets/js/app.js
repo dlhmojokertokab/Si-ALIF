@@ -22,10 +22,7 @@ let galleryActivityId = "";
 let galleryFiles = [];
 let gallerySelected = new Set();
 let galleryObjectUrls = new Map();
-let galleryLoaded = false;
 let galleryLoading = false;
-let galleryFocusActivityId = null;
-let galleryGroupsData = [];
 
 const filterState = {
   query: "",
@@ -41,7 +38,7 @@ let currentView = "dashboard";
 let handlingPopState = false;
 
 function switchView(view, options = {}) {
-  const { push = true } = options;
+  const { push = true, galleryFolderId = null } = options;
   const target = $(`#view-${view}`);
   if (!target) return;
 
@@ -57,11 +54,19 @@ function switchView(view, options = {}) {
   });
 
   if (view === "gallery") {
-    ensureAllGalleryReady();
+    if (galleryFolderId) {
+      openGalleryFolder(galleryFolderId, { pushHistory: false });
+    } else {
+      showGalleryFolders();
+    }
   }
 
   if (push && !handlingPopState && previousView !== view) {
-    history.pushState({ siAlifView: view }, "", window.location.href);
+    const state = { siAlifView: view };
+    if (view === "gallery" && galleryFolderId) {
+      state.galleryFolderId = String(galleryFolderId);
+    }
+    history.pushState(state, "", window.location.href);
   }
 
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -72,7 +77,10 @@ history.replaceState({ siAlifView: "dashboard" }, "", window.location.href);
 window.addEventListener("popstate", event => {
   handlingPopState = true;
   const targetView = event.state?.siAlifView || "dashboard";
-  switchView(targetView, { push: false });
+  switchView(targetView, {
+    push: false,
+    galleryFolderId: event.state?.galleryFolderId || null
+  });
   handlingPopState = false;
 });
 
@@ -150,9 +158,8 @@ function refreshLists() {
   applyActivityFilters();
   updateStats();
 
-  if (currentView === "gallery" && !galleryLoading) {
-    galleryLoaded = false;
-    ensureAllGalleryReady();
+  if (currentView === "gallery" && !galleryActivityId) {
+    applyGalleryFilters();
   } else {
     updateFilterSummaries();
   }
@@ -257,10 +264,13 @@ function updateFilterSummaries(activityCount = null, photoCount = null) {
 
   const galleryResult = $("#galleryFilterResult");
   if (galleryResult) {
-    const totalPhotos = photoCount ?? filtered.reduce((sum, item) => sum + Number(item.photos || 0), 0);
+    const galleryActivities = filtered.filter(item => Number(item.photos || 0) > 0);
+    const totalPhotos = photoCount ?? galleryActivities.reduce((sum, item) => sum + Number(item.photos || 0), 0);
+    const folderCount = activityCount ?? galleryActivities.length;
+
     galleryResult.textContent = filters
-      ? `${shownActivities} aktivitas • ${totalPhotos} foto • ${filters} filter aktif`
-      : `${activities.length} aktivitas • ${totalPhotos} foto`;
+      ? `${folderCount} folder • ${totalPhotos} foto • ${filters} filter aktif`
+      : `${galleryActivities.length} folder • ${totalPhotos} foto`;
   }
 }
 
@@ -271,16 +281,12 @@ function applyActivityFilters() {
 }
 
 function applyGalleryFilters() {
-  if (!galleryLoaded) {
-    updateFilterSummaries();
-    return;
-  }
-
-  const filteredGroups = galleryGroupsData.filter(group =>
-    group.files.length && activityMatchesFilters(group.activity)
+  const filtered = getFilteredActivities().filter(item => Number(item.photos || 0) > 0);
+  renderGalleryFolders(filtered);
+  updateFilterSummaries(
+    filtered.length,
+    filtered.reduce((sum, item) => sum + Number(item.photos || 0), 0)
   );
-
-  renderAllGalleryGroups(filteredGroups, { preserveSource: true });
 }
 
 function applyAllFilters() {
@@ -521,6 +527,81 @@ function formatFileSize(bytes) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function showGalleryFolders() {
+  galleryActivityId = "";
+  galleryFiles = [];
+  gallerySelected.clear();
+  cleanupGalleryObjectUrls();
+
+  $("#galleryPhotoView").hidden = true;
+  $("#galleryFolderView").hidden = false;
+  $("#galleryGrid").innerHTML = "";
+  $("#galleryToolbar").hidden = true;
+
+  applyGalleryFilters();
+}
+
+function renderGalleryFolders(items) {
+  const grid = $("#galleryFolderGrid");
+  const state = $("#galleryFolderState");
+  if (!grid || !state) return;
+
+  grid.innerHTML = "";
+
+  const folders = items.filter(item => Number(item.photos || 0) > 0);
+
+  if (!folders.length) {
+    state.hidden = false;
+    state.querySelector("h3").textContent =
+      activeFilterCount() ? "Tidak ada folder yang cocok" : "Belum ada dokumentasi";
+    state.querySelector("p").textContent =
+      activeFilterCount()
+        ? "Coba ubah atau reset filter."
+        : "Aktivitas yang memiliki foto akan tampil di sini.";
+    return;
+  }
+
+  state.hidden = true;
+
+  folders.forEach(item => {
+    const card = document.createElement("article");
+    card.className = "gallery-folder-card";
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `Buka folder ${item.name}`);
+
+    card.innerHTML = `
+      <div class="gallery-folder-visual">
+        <div class="gallery-folder-tab"></div>
+        <div class="gallery-folder-icon">▧</div>
+        <span class="gallery-folder-count">${Number(item.photos || 0)} foto</span>
+      </div>
+      <div class="gallery-folder-content">
+        <strong title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</strong>
+        <span>${escapeHtml(item.division)} • ${escapeHtml(item.date)}</span>
+        <span class="gallery-folder-location">📍 ${escapeHtml(item.place || "-")}</span>
+      </div>
+      <div class="gallery-folder-footer">
+        <span class="activity-status ${item.status === "Minim" ? "warn" : ""}">
+          ${item.status === "Minim" ? "🟡" : "🟢"} ${escapeHtml(item.status)}
+        </span>
+        <span class="gallery-folder-open">Buka →</span>
+      </div>
+    `;
+
+    const open = () => openGalleryFolder(item.id, { pushHistory: true });
+    card.addEventListener("click", open);
+    card.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        open();
+      }
+    });
+
+    grid.appendChild(card);
+  });
+}
+
 function updateGallerySelectionUi() {
   const count = gallerySelected.size;
   $("#gallerySelectedCount").textContent = count;
@@ -596,175 +677,84 @@ function createGalleryCard(file) {
   return card;
 }
 
-function renderAllGalleryGroups(groups, options = {}) {
-  const container = $("#galleryGroups");
-  container.innerHTML = "";
+function renderGalleryPhotos() {
+  const grid = $("#galleryGrid");
+  grid.innerHTML = "";
   cleanupGalleryObjectUrls();
   gallerySelected.clear();
 
-  const validGroups = groups.filter(group => group.files.length);
-
-  if (!options.preserveSource) {
-    galleryGroupsData = groups;
-  }
-
-  galleryFiles = validGroups.flatMap(group =>
-    group.files.map(file => ({
-      ...file,
-      activityId: group.activity.id,
-      activityName: group.activity.name
-    }))
-  );
-
   if (!galleryFiles.length) {
     $("#galleryToolbar").hidden = true;
-    const filtered = activeFilterCount() > 0;
-    setGalleryState(
-      "empty",
-      filtered ? "Tidak ada yang cocok" : "Belum ada foto",
-      filtered
-        ? "Coba ubah atau reset filter untuk melihat dokumentasi lain."
-        : "Setor dokumentasi dulu, nanti semua fotonya langsung muncul di sini."
-    );
-    updateFilterSummaries(0, 0);
+    setGalleryState("empty", "Folder ini kosong", "Belum ada file foto di aktivitas ini.");
     return;
   }
 
   $("#galleryState").hidden = true;
   $("#galleryToolbar").hidden = false;
 
-  validGroups.forEach(group => {
-    const section = document.createElement("section");
-    section.className = "gallery-group";
-    section.dataset.activityId = group.activity.id;
-
-    const folderLink = group.activity.folderUrl
-      ? `<a class="gallery-group-drive" href="${escapeHtml(group.activity.folderUrl)}" target="_blank" rel="noopener">Drive ↗</a>`
-      : "";
-
-    section.innerHTML = `
-      <div class="gallery-group-head">
-        <div>
-          <strong>${escapeHtml(group.activity.name)}</strong>
-          <span>${escapeHtml(group.activity.date)} • ${escapeHtml(group.activity.division)} • ${escapeHtml(group.activity.place)} • ${group.files.length} foto</span>
-        </div>
-        ${folderLink}
-      </div>
-      <div class="gallery-grid"></div>
-    `;
-
-    const grid = section.querySelector(".gallery-grid");
-    group.files.forEach(file => grid.appendChild(createGalleryCard(file)));
-    container.appendChild(section);
+  galleryFiles.forEach(file => {
+    grid.appendChild(createGalleryCard(file));
   });
 
   updateGallerySelectionUi();
-  updateFilterSummaries(
-    validGroups.length,
-    galleryFiles.length
-  );
-
-  if (galleryFocusActivityId) {
-    requestAnimationFrame(() => {
-      const target = container.querySelector(`[data-activity-id="${CSS.escape(String(galleryFocusActivityId))}"]`);
-      target?.scrollIntoView({ behavior: "smooth", block: "start" });
-      galleryFocusActivityId = null;
-    });
-  }
 }
 
-async function fetchGalleryActivityGroup(activity) {
-  if (!Number(activity.photos || 0)) {
-    return { activity, files: [] };
+async function openGalleryFolder(activityId, options = {}) {
+  const { pushHistory = false } = options;
+  const activity = activities.find(item => String(item.id) === String(activityId));
+
+  if (!activity) {
+    showToast("Aktivitas tidak ditemukan.");
+    return;
+  }
+
+  galleryActivityId = String(activity.id);
+  galleryFiles = [];
+  gallerySelected.clear();
+  cleanupGalleryObjectUrls();
+
+  $("#galleryFolderView").hidden = true;
+  $("#galleryPhotoView").hidden = false;
+  $("#galleryToolbar").hidden = true;
+  $("#galleryGrid").innerHTML = "";
+
+  $("#galleryFolderName").textContent = activity.name || "Aktivitas";
+  $("#galleryFolderMeta").textContent =
+    `${activity.division} • ${activity.place} • ${activity.date} • ${activity.photos} foto`;
+
+  const drive = $("#galleryFolderDriveLink");
+  if (activity.folderUrl) {
+    drive.href = activity.folderUrl;
+    drive.hidden = false;
+  } else {
+    drive.hidden = true;
+  }
+
+  setGalleryState("loading", "Membuka folder...", "Mengambil thumbnail dari Google Drive.");
+
+  if (pushHistory && !handlingPopState) {
+    history.pushState(
+      { siAlifView: "gallery", galleryFolderId: galleryActivityId },
+      "",
+      window.location.href
+    );
   }
 
   try {
     const result = await apiFetch(`/api/activities/${encodeURIComponent(activity.id)}/files`);
-    return { activity, files: result.files || [] };
+    galleryFiles = result.files || [];
+    renderGalleryPhotos();
   } catch (error) {
-    console.warn(`Galeri ${activity.name} gagal dimuat:`, error);
-    return { activity, files: [] };
-  }
-}
-
-async function mapWithConcurrency(items, concurrency, worker) {
-  const results = new Array(items.length);
-  let cursor = 0;
-
-  async function runner() {
-    while (cursor < items.length) {
-      const index = cursor++;
-      results[index] = await worker(items[index], index);
-    }
-  }
-
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, items.length) }, () => runner())
-  );
-
-  return results;
-}
-
-async function loadAllGallery() {
-  if (galleryLoading) return;
-
-  galleryLoading = true;
-  galleryLoaded = false;
-  galleryFiles = [];
-  gallerySelected.clear();
-  cleanupGalleryObjectUrls();
-  $("#galleryGroups").innerHTML = "";
-  $("#galleryToolbar").hidden = true;
-
-  const withPhotos = activities.filter(item => Number(item.photos || 0) > 0);
-
-  if (!withPhotos.length) {
-    galleryGroupsData = [];
-    galleryLoading = false;
-    galleryLoaded = true;
-    setGalleryState("empty", "Belum ada foto", "Setor dokumentasi dulu, nanti semua fotonya langsung muncul di sini.");
-    updateFilterSummaries(0, 0);
-    return;
-  }
-
-  setGalleryState(
-    "loading",
-    "Mengambil galeri...",
-    `Membaca ${withPhotos.length} aktivitas dari Google Drive.`
-  );
-
-  try {
-    const groups = await mapWithConcurrency(withPhotos, 4, fetchGalleryActivityGroup);
-    galleryGroupsData = groups;
-    galleryLoaded = true;
-    const filteredGroups = galleryGroupsData.filter(group =>
-      group.files.length && activityMatchesFilters(group.activity)
-    );
-    renderAllGalleryGroups(filteredGroups, { preserveSource: true });
-  } catch (error) {
-    setGalleryState("error", "Galeri gagal dimuat", error.message);
-  } finally {
-    galleryLoading = false;
-  }
-}
-
-function ensureAllGalleryReady() {
-  if (!galleryLoaded && !galleryLoading) {
-    loadAllGallery();
-  } else if (galleryFocusActivityId) {
-    requestAnimationFrame(() => {
-      const target = $("#galleryGroups")?.querySelector(
-        `[data-activity-id="${CSS.escape(String(galleryFocusActivityId))}"]`
-      );
-      target?.scrollIntoView({ behavior: "smooth", block: "start" });
-      galleryFocusActivityId = null;
-    });
+    setGalleryState("error", "Folder gagal dibuka", error.message);
   }
 }
 
 function openActivityGallery(activityId) {
-  galleryFocusActivityId = activityId || null;
-  switchView("gallery");
+  if (currentView === "gallery") {
+    openGalleryFolder(activityId, { pushHistory: true });
+  } else {
+    switchView("gallery", { galleryFolderId: activityId });
+  }
 }
 
 async function downloadGalleryFile(file, index, total) {
@@ -992,8 +982,6 @@ $("#documentationForm").addEventListener("submit", async event => {
     $("#gpsStatus").textContent = "Koordinat belum diambil.";
     $("#activityDate").value = new Date().toISOString().slice(0, 10);
     resetUploadProgress();
-    galleryLoaded = false;
-    galleryGroupsData = [];
     showSuccessScreen(savedActivity);
   } catch (error) {
     showToast(`Upload gagal: ${error.message}`);
@@ -1001,6 +989,14 @@ $("#documentationForm").addEventListener("submit", async event => {
   } finally {
     submitButton.disabled = false;
     submitButton.textContent = "Kirim Dokumentasi";
+  }
+});
+
+$("#galleryBackFromFolder").addEventListener("click", () => {
+  if (history.state?.galleryFolderId) {
+    history.back();
+  } else {
+    showGalleryFolders();
   }
 });
 
