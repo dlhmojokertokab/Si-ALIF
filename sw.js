@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-1-admin-todo";
+const CACHE = "si-alif-06-1-1-gallery-first";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0610",
-  "./assets/js/config.js?v=0610",
-  "./assets/js/app.js?v=0610",
+  "./assets/css/style.css?v=0611",
+  "./assets/js/config.js?v=0611",
+  "./assets/js/app.js?v=0611",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

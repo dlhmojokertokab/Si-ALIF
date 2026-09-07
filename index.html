@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0610" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0611" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -35,9 +35,6 @@
         <button class="nav-item" data-view="submit">
           <span>＋</span><span>Setor Dokumentasi</span>
         </button>
-        <button class="nav-item" data-view="activities">
-          <span>▦</span><span>Aktivitas</span>
-        </button>
         <button class="nav-item" data-view="gallery">
           <span>▧</span><span>Galeri</span>
         </button>
@@ -48,7 +45,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.1</strong>
+        <strong>SI ALIF 06.1.1</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -114,7 +111,7 @@
                 <span class="eyebrow">Terbaru</span>
                 <h3>Dokumentasi Kegiatan</h3>
               </div>
-              <button class="link-button" data-view="activities">Lihat semua</button>
+              <button class="link-button" data-view="gallery">Lihat semua di Galeri</button>
             </div>
             <div class="activity-list" id="recentActivities"></div>
           </article>
@@ -317,8 +314,8 @@
 
             <div class="success-actions">
               <button class="secondary" type="button" data-view="submit">＋ Setor Lagi</button>
-              <button class="primary" type="button" id="successViewActivity">Lihat Aktivitas</button>
-              <button class="secondary" type="button" id="successViewGallery">▧ Lihat Foto</button>
+              <button class="primary" type="button" id="successViewGallery">▧ Buka Galeri</button>
+              
               <a class="button-link" id="successDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
             </div>
           </article>
@@ -356,49 +353,8 @@
             <button class="primary" type="button" id="detailOpenGallery">▧ Lihat Galeri Foto</button>
             <a class="button-link" id="detailDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
             <button class="secondary" type="button" data-view="submit">＋ Setor Dokumentasi Baru</button>
-            <button class="danger-button" type="button" id="deleteActivityFromDrive">🗑 Hapus Aktivitas dari Drive</button>
+            
           </div>
-        </article>
-      </section>
-
-      <section class="view" id="view-activities">
-        <article class="panel">
-          <div class="panel-head">
-            <div>
-              <span class="eyebrow">Arsip aktivitas</span>
-              <h3>Daftar Aktivitas</h3>
-            </div>
-            <div class="activity-head-actions">
-              <div class="filter-summary" id="activityFilterResult">Semua aktivitas</div>
-              <button class="danger-ghost" id="emptySiAlifTrash" type="button">🗑 Kosongkan Trash SI ALIF</button>
-            </div>
-          </div>
-
-          <div class="smart-filter-bar" data-filter-scope="activity">
-            <label class="smart-filter-search">
-              <span>🔎</span>
-              <input data-filter="query" type="search" placeholder="Cari kegiatan, lokasi, atau keterangan..." autocomplete="off">
-            </label>
-            <select data-filter="division" aria-label="Filter bidang">
-              <option value="">Semua bidang</option>
-              <option>Sekretariat</option>
-              <option>PSLB3</option>
-              <option>PPKL</option>
-              <option>Penaatan</option>
-              <option>UPTD Laboratorium Lingkungan</option>
-            </select>
-            <select data-filter="month" aria-label="Filter bulan">
-              <option value="">Semua bulan</option>
-            </select>
-            <select data-filter="status" aria-label="Filter status">
-              <option value="">Semua status</option>
-              <option value="Lengkap">🟢 Lengkap</option>
-              <option value="Minim">🟡 Minim</option>
-            </select>
-            <button class="secondary filter-reset" type="button" data-filter-reset>↺ Reset</button>
-          </div>
-
-          <div class="activity-list" id="allActivities"></div>
         </article>
       </section>
 
@@ -408,11 +364,12 @@
           <div id="galleryFolderView">
             <div class="gallery-head gallery-folder-head">
               <div>
-                <span class="eyebrow">Dokumentasi berdasarkan aktivitas</span>
+                <span class="eyebrow">Dokumentasi berdasarkan kegiatan</span>
                 <h3>Galeri SI ALIF</h3>
-                <p>Pilih aktivitas seperti membuka folder. Setelah dibuka, semua foto kegiatan akan tampil di dalamnya.</p>
+                <p>Semua kegiatan tersimpan sebagai folder. Buka folder untuk melihat foto, video, dan detail dokumentasi.</p>
                 <div class="filter-summary gallery-filter-summary" id="galleryFilterResult">Semua folder</div>
               </div>
+              <button class="danger-ghost gallery-trash-action" id="emptySiAlifTrash" type="button">🗑 Kosongkan Trash SI ALIF</button>
             </div>
 
             <div class="smart-filter-bar gallery-filter-bar" data-filter-scope="gallery">
@@ -456,7 +413,10 @@
                 <h3 id="galleryFolderName">Aktivitas</h3>
                 <p id="galleryFolderMeta">-</p>
               </div>
-              <a class="button-link" id="galleryFolderDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
+              <div class="gallery-photo-header-actions">
+                <a class="button-link" id="galleryFolderDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
+                <button class="danger-button" type="button" id="deleteGalleryFolder">🗑 Hapus Folder</button>
+              </div>
             </div>
 
             <div class="gallery-toolbar" id="galleryToolbar" hidden>
@@ -511,7 +471,6 @@
 
     <nav class="mobile-nav" aria-label="Navigasi mobile">
       <button class="mobile-item active" data-view="dashboard"><span>⌂</span><small>Beranda</small></button>
-      <button class="mobile-item" data-view="activities"><span>▦</span><small>Aktivitas</small></button>
       <button class="mobile-add" data-view="submit" aria-label="Setor dokumentasi">＋</button>
       <button class="mobile-item" data-view="gallery"><span>▧</span><small>Galeri</small></button>
       <button class="mobile-item mobile-orders" data-view="orders">
@@ -520,7 +479,7 @@
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0610"></script>
-  <script src="./assets/js/app.js?v=0610"></script>
+  <script src="./assets/js/config.js?v=0611"></script>
+  <script src="./assets/js/app.js?v=0611"></script>
 </body>
 </html>

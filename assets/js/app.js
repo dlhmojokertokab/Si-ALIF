@@ -1,7 +1,6 @@
 const titleMap = {
   dashboard: "Dashboard",
   submit: "Setor Dokumentasi",
-  activities: "Aktivitas",
   gallery: "Galeri",
   orders: "Pesanan Medsos",
   success: "Tersimpan",
@@ -52,7 +51,6 @@ function routeHash(view, options = {}) {
   const allowed = new Set([
     "dashboard",
     "submit",
-    "activities",
     "gallery",
     "orders",
     "success",
@@ -76,7 +74,11 @@ function parseRouteHash() {
     return { view, activityId: id || null };
   }
 
-  if (["dashboard", "submit", "activities", "orders"].includes(view)) {
+  if (view === "activities") {
+    return { view: "gallery" };
+  }
+
+  if (["dashboard", "submit", "orders"].includes(view)) {
     return { view };
   }
 
@@ -222,7 +224,7 @@ function applyRouteFromHash() {
         renderDetailForActivity(item);
       } else if (activities.length) {
         showToast("Aktivitas tidak ditemukan.");
-        navigateTo("activities", { replace: true });
+        navigateTo("gallery", { replace: true });
       } else {
         showView("detail");
       }
@@ -341,7 +343,7 @@ function renderActivities(target, list) {
 
     const open = event => {
       if (event?.target?.closest?.("a")) return;
-      openActivityDetail(item.id);
+      navigateTo("gallery", { galleryFolderId: item.id });
     };
     row.addEventListener("click", open);
     row.addEventListener("keydown", event => {
@@ -358,7 +360,6 @@ function refreshLists() {
   renderActivities("#recentActivities", activities.slice(0, 4));
   populateMonthFilters();
   syncFilterControls();
-  applyActivityFilters();
   updateStats();
 
   if (currentView === "gallery" && !galleryActivityId) {
@@ -481,7 +482,6 @@ function updateFilterSummaries(activityCount = null, photoCount = null) {
 
 function applyActivityFilters() {
   const filtered = getFilteredActivities();
-  renderActivities("#allActivities", filtered);
   updateFilterSummaries(filtered.length);
 }
 
@@ -1085,10 +1085,10 @@ async function adminApiFetch(path, options = {}) {
   return payload;
 }
 
-async function deleteCurrentActivity() {
-  const item = activities.find(activity => String(activity.id) === String(currentDetailActivityId));
+async function deleteCurrentGalleryFolder() {
+  const item = activities.find(activity => String(activity.id) === String(galleryActivityId));
   if (!item) {
-    showToast("Aktivitas tidak ditemukan.");
+    showToast("Folder kegiatan tidak ditemukan.");
     return;
   }
 
@@ -1096,11 +1096,11 @@ async function deleteCurrentActivity() {
   if (!unlocked) return;
 
   const ok = window.confirm(
-    `Hapus aktivitas "${item.name}" dari SI ALIF dan pindahkan foldernya ke Trash Google Drive?\n\nFile belum dihapus permanen sampai Trash SI ALIF dikosongkan.`
+    `Hapus folder "${item.name}" dari SI ALIF dan pindahkan ke Trash Google Drive?\n\nSeluruh dokumentasi kegiatan di folder ini ikut masuk Trash.`
   );
   if (!ok) return;
 
-  const button = $("#deleteActivityFromDrive");
+  const button = $("#deleteGalleryFolder");
   const original = button.textContent;
   button.disabled = true;
   button.textContent = "Menghapus...";
@@ -1111,14 +1111,17 @@ async function deleteCurrentActivity() {
     });
 
     await loadActivitiesFromApi();
-    showToast("Aktivitas dipindahkan ke Trash SI ALIF.");
-    navigateTo("activities", { replace: true });
+    galleryActivityId = "";
+    galleryFiles = [];
+    showToast("Folder dipindahkan ke Trash SI ALIF.");
+    navigateTo("gallery", { replace: true });
   } catch (error) {
     showToast(`Gagal menghapus: ${error.message}`);
     button.disabled = false;
     button.textContent = original;
   }
 }
+
 
 async function emptyTrashSiAlif() {
   const unlocked = await ensureAdminUnlock();
@@ -1831,7 +1834,7 @@ $("#successViewOrder").addEventListener("click", () => {
   navigateTo("orders");
 });
 
-$("#deleteActivityFromDrive").addEventListener("click", deleteCurrentActivity);
+$("#deleteGalleryFolder").addEventListener("click", deleteCurrentGalleryFolder);
 $("#emptySiAlifTrash").addEventListener("click", emptyTrashSiAlif);
 
 $("#galleryBackFromFolder").addEventListener("click", () => {
@@ -1865,13 +1868,11 @@ $("#detailOpenGallery").addEventListener("click", () => {
 });
 
 $("#successViewGallery").addEventListener("click", () => {
-  if (lastSubmittedActivityId) openActivityGallery(lastSubmittedActivityId);
-  else switchView("gallery");
-});
-
-$("#successViewActivity").addEventListener("click", () => {
-  if (lastSubmittedActivityId) openActivityDetail(lastSubmittedActivityId);
-  else switchView("activities");
+  if (lastSubmittedActivityId) {
+    navigateTo("gallery", { galleryFolderId: lastSubmittedActivityId });
+  } else {
+    navigateTo("gallery");
+  }
 });
 
 $("#resetButton").addEventListener("click", () => {

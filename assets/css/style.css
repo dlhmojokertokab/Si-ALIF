@@ -2787,3 +2787,49 @@ body.route-pending .route-boot {
     grid-column: 1 / -1;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.1.1 — GALERI JADI PUSAT UTAMA
+   ========================= */
+
+.gallery-folder-head {
+  grid-template-columns: 1fr auto;
+  align-items: start;
+}
+
+.gallery-trash-action {
+  align-self: start;
+  white-space: nowrap;
+}
+
+.gallery-photo-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.gallery-photo-header-actions .button-link,
+.gallery-photo-header-actions .danger-button {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .gallery-folder-head {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-trash-action,
+  .gallery-photo-header-actions,
+  .gallery-photo-header-actions .button-link,
+  .gallery-photo-header-actions .danger-button {
+    width: 100%;
+  }
+
+  .gallery-photo-header-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
