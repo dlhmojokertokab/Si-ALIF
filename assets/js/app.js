@@ -796,17 +796,39 @@ function renderGalleryFolders(items) {
         <span class="activity-status ${item.status === "Minim" ? "warn" : ""}">
           ${item.status === "Minim" ? "🟡" : "🟢"} ${escapeHtml(item.status)}
         </span>
-        <span class="gallery-folder-open">Buka →</span>
+        <div class="gallery-folder-actions">
+          <button
+            class="gallery-folder-delete"
+            type="button"
+            title="Hapus folder"
+            aria-label="Hapus folder ${escapeHtml(item.name)}"
+            data-delete-folder="${escapeHtml(item.id)}"
+          >🗑</button>
+          <span class="gallery-folder-open">Buka →</span>
+        </div>
       </div>
     `;
 
     const open = () => navigateTo("gallery", { galleryFolderId: item.id });
-    card.addEventListener("click", open);
+
+    card.addEventListener("click", event => {
+      if (event.target.closest("[data-delete-folder]")) return;
+      open();
+    });
+
     card.addEventListener("keydown", event => {
+      if (event.target.closest?.("[data-delete-folder]")) return;
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         open();
       }
+    });
+
+    const deleteButton = card.querySelector("[data-delete-folder]");
+    deleteButton.addEventListener("click", async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      await deleteGalleryFolderById(item.id, deleteButton);
     });
 
     grid.appendChild(card);
@@ -1085,8 +1107,8 @@ async function adminApiFetch(path, options = {}) {
   return payload;
 }
 
-async function deleteCurrentGalleryFolder() {
-  const item = activities.find(activity => String(activity.id) === String(galleryActivityId));
+async function deleteGalleryFolderById(activityId, button) {
+  const item = activities.find(activity => String(activity.id) === String(activityId));
   if (!item) {
     showToast("Folder kegiatan tidak ditemukan.");
     return;
@@ -1096,14 +1118,13 @@ async function deleteCurrentGalleryFolder() {
   if (!unlocked) return;
 
   const ok = window.confirm(
-    `Hapus folder "${item.name}" dari SI ALIF dan pindahkan ke Trash Google Drive?\n\nSeluruh dokumentasi kegiatan di folder ini ikut masuk Trash.`
+    `Hapus folder "${item.name}" dari Galeri SI ALIF?\n\nFolder beserta seluruh foto/video di dalamnya akan dipindahkan ke Trash Google Drive.`
   );
   if (!ok) return;
 
-  const button = $("#deleteGalleryFolder");
   const original = button.textContent;
   button.disabled = true;
-  button.textContent = "Menghapus...";
+  button.textContent = "…";
 
   try {
     await adminApiFetch(`/api/activities/${encodeURIComponent(item.id)}`, {
@@ -1111,10 +1132,7 @@ async function deleteCurrentGalleryFolder() {
     });
 
     await loadActivitiesFromApi();
-    galleryActivityId = "";
-    galleryFiles = [];
-    showToast("Folder dipindahkan ke Trash SI ALIF.");
-    navigateTo("gallery", { replace: true });
+    showToast(`"${item.name}" dipindahkan ke Trash SI ALIF.`);
   } catch (error) {
     showToast(`Gagal menghapus: ${error.message}`);
     button.disabled = false;
@@ -1128,7 +1146,7 @@ async function emptyTrashSiAlif() {
   if (!unlocked) return;
 
   const ok = window.confirm(
-    "Kosongkan Trash SI ALIF?\n\nHanya folder aktivitas SI ALIF yang sudah berada di Trash yang akan dihapus PERMANEN. File Trash Google Drive lain tidak disentuh."
+    "Kosongkan Trash SI ALIF?\n\nSemua folder SI ALIF yang sudah kamu hapus dari Galeri akan dihapus PERMANEN. File lain di Trash Google Drive tidak disentuh."
   );
   if (!ok) return;
 
@@ -1834,7 +1852,6 @@ $("#successViewOrder").addEventListener("click", () => {
   navigateTo("orders");
 });
 
-$("#deleteGalleryFolder").addEventListener("click", deleteCurrentGalleryFolder);
 $("#emptySiAlifTrash").addEventListener("click", emptyTrashSiAlif);
 
 $("#galleryBackFromFolder").addEventListener("click", () => {

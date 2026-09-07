@@ -2833,3 +2833,51 @@ body.route-pending .route-boot {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.1.2 — DELETE LANGSUNG DARI GALERI
+   ========================= */
+
+.gallery-folder-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.gallery-folder-delete {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #efc8cf;
+  border-radius: 9px;
+  background: #fff;
+  color: #a43e50;
+  cursor: pointer;
+  font-size: 13px;
+  transition: .16s ease;
+}
+
+.gallery-folder-delete:hover {
+  border-color: #dfa5b0;
+  background: #fff0f2;
+  transform: translateY(-1px);
+}
+
+.gallery-folder-delete:disabled {
+  opacity: .5;
+  cursor: wait;
+  transform: none;
+}
+
+.gallery-folder-card:has(.gallery-folder-delete:hover) {
+  transform: none;
+}
+
+@media (max-width: 760px) {
+  .gallery-folder-delete {
+    width: 34px;
+    height: 34px;
+  }
+}
