@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0630" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0640" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -45,7 +45,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.3</strong>
+        <strong>SI ALIF 06.4</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -158,7 +158,16 @@
               </div>
 
               <div class="existing-activity-picker" id="existingActivitySection" hidden>
-                <label class="field field-wide">
+                <div class="shared-contribution-banner" id="sharedContributionBanner" hidden>
+                  <span class="shared-contribution-icon">🔗</span>
+                  <div>
+                    <small>Tambahkan dokumentasi ke</small>
+                    <strong id="sharedContributionName">Kegiatan</strong>
+                    <span id="sharedContributionMeta">Folder sudah dipilih dari link yang dibagikan.</span>
+                  </div>
+                </div>
+
+                <label class="field field-wide" id="existingActivityChooser">
                   <span>Pilih kegiatan yang sudah ada</span>
                   <select id="existingActivitySelect">
                     <option value="">Pilih folder kegiatan</option>
@@ -336,6 +345,7 @@
             <div class="success-actions">
               <button class="secondary" type="button" data-view="submit">＋ Setor Lagi</button>
               <button class="primary" type="button" id="successViewGallery">▧ Buka Folder di Galeri</button>
+              <button class="secondary" type="button" id="successShareContribution">🔗 Bagikan Link Tambah Dokumentasi</button>
               
               <a class="button-link" id="successDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
             </div>
@@ -436,6 +446,7 @@
               </div>
               <div class="gallery-photo-header-actions">
                 <button class="primary" id="galleryAddMaterial" type="button">＋ Tambah Bahan</button>
+                <button class="secondary" id="galleryShareContribution" type="button">🔗 Bagikan</button>
                 <button class="secondary" id="galleryEditInfo" type="button">✎ Edit Info</button>
                 <a class="button-link" id="galleryFolderDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
                 
@@ -586,7 +597,7 @@
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0630"></script>
-  <script src="./assets/js/app.js?v=0630"></script>
+  <script src="./assets/js/config.js?v=0640"></script>
+  <script src="./assets/js/app.js?v=0640"></script>
 </body>
 </html>

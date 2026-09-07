@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-3-add-material-edit-info";
+const CACHE = "si-alif-06-4-share-contribution";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0630",
-  "./assets/js/config.js?v=0630",
-  "./assets/js/app.js?v=0630",
+  "./assets/css/style.css?v=0640",
+  "./assets/js/config.js?v=0640",
+  "./assets/js/app.js?v=0640",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

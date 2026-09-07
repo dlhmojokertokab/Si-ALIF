@@ -32,6 +32,7 @@ let lightboxObjectUrl = "";
 let documentationMode = "new";
 let selectedExistingActivityId = "";
 let successContext = "new";
+let sharedContributionMode = false;
 
 const filterState = {
   query: "",
@@ -50,7 +51,9 @@ let handlingRoute = false;
 function routeHash(view, options = {}) {
   const activityId = options.activityId ? encodeURIComponent(String(options.activityId)) : "";
   const galleryFolderId = options.galleryFolderId ? encodeURIComponent(String(options.galleryFolderId)) : "";
+  const submitActivityId = options.submitActivityId ? encodeURIComponent(String(options.submitActivityId)) : "";
 
+  if (view === "submit" && submitActivityId) return `#submit/${submitActivityId}`;
   if (view === "gallery" && galleryFolderId) return `#gallery/${galleryFolderId}`;
   if (view === "detail" && activityId) return `#detail/${activityId}`;
   if (view === "success" && activityId) return `#success/${activityId}`;
@@ -73,6 +76,10 @@ function parseRouteHash() {
   const view = parts[0] || "dashboard";
   const id = parts[1] ? decodeURIComponent(parts.slice(1).join("/")) : "";
 
+  if (view === "submit") {
+    return { view: "submit", submitActivityId: id || null };
+  }
+
   if (view === "gallery") {
     return { view: "gallery", galleryFolderId: id || null };
   }
@@ -85,7 +92,7 @@ function parseRouteHash() {
     return { view: "gallery" };
   }
 
-  if (["dashboard", "submit", "orders"].includes(view)) {
+  if (["dashboard", "orders"].includes(view)) {
     return { view };
   }
 
@@ -224,6 +231,18 @@ function applyRouteFromHash() {
 
   try {
     const route = parseRouteHash();
+
+    if (route.view === "submit") {
+      showView("submit");
+
+      if (route.submitActivityId) {
+        applySharedContributionTarget(route.submitActivityId);
+      } else {
+        clearSharedContributionTarget();
+        setDocumentationMode("new");
+      }
+      return;
+    }
 
     if (route.view === "gallery") {
       showView("gallery");
@@ -378,6 +397,113 @@ function renderActivities(target, list) {
 }
 
 
+
+function buildContributionLink(activityId) {
+  const base = `${window.location.origin}${window.location.pathname}`;
+  return `${base}#submit/${encodeURIComponent(String(activityId))}`;
+}
+
+async function copyTextFallback(text) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  const ok = document.execCommand("copy");
+  textarea.remove();
+
+  if (!ok) throw new Error("Clipboard tidak tersedia.");
+}
+
+async function shareContributionLink(activityId) {
+  const item = activities.find(
+    activity => String(activity.id) === String(activityId)
+  );
+
+  if (!item) {
+    showToast("Kegiatan tidak ditemukan.");
+    return;
+  }
+
+  const url = buildContributionLink(item.id);
+  const title = `Tambah dokumentasi — ${item.name}`;
+  const text =
+    `Tambahkan foto/video dokumentasi untuk kegiatan "${item.name}" melalui SI ALIF.`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text, url });
+      return;
+    } catch (error) {
+      if (error?.name === "AbortError") return;
+      console.warn("Web Share gagal, fallback ke clipboard:", error);
+    }
+  }
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(url);
+    } else {
+      await copyTextFallback(url);
+    }
+
+    showToast("Link tambah dokumentasi disalin. Tinggal kirim ke WhatsApp/grup.");
+  } catch (error) {
+    window.prompt("Salin link tambah dokumentasi:", url);
+  }
+}
+
+function updateSharedContributionBanner(activityId) {
+  const item = activities.find(
+    activity => String(activity.id) === String(activityId)
+  );
+
+  if (!item) {
+    $("#sharedContributionName").textContent = "Memuat kegiatan...";
+    $("#sharedContributionMeta").textContent =
+      "Menunggu data kegiatan dari SI ALIF.";
+    return;
+  }
+
+  $("#sharedContributionName").textContent = item.name;
+  $("#sharedContributionMeta").textContent =
+    `${item.division} • ${item.place} • ${item.date}`;
+}
+
+function applySharedContributionTarget(activityId) {
+  sharedContributionMode = true;
+  selectedExistingActivityId = String(activityId || "");
+
+  setDocumentationMode("existing", selectedExistingActivityId);
+
+  $(".documentation-mode").hidden = true;
+  $("#existingActivityChooser").hidden = true;
+  $("#sharedContributionBanner").hidden = false;
+
+  updateSharedContributionBanner(selectedExistingActivityId);
+
+  if (activities.length) {
+    const exists = activities.some(
+      item => String(item.id) === String(selectedExistingActivityId)
+    );
+
+    if (!exists) {
+      showToast("Kegiatan dari link ini tidak ditemukan.");
+      navigateTo("gallery", { replace: true });
+    }
+  }
+}
+
+function clearSharedContributionTarget() {
+  sharedContributionMode = false;
+  $(".documentation-mode").hidden = false;
+  $("#existingActivityChooser").hidden = false;
+  $("#sharedContributionBanner").hidden = true;
+}
+
 function populateExistingActivitySelect() {
   const select = $("#existingActivitySelect");
   if (!select) return;
@@ -394,6 +520,10 @@ function populateExistingActivitySelect() {
 
   if (current && activities.some(item => String(item.id) === String(current))) {
     select.value = current;
+  }
+
+  if (sharedContributionMode && selectedExistingActivityId) {
+    updateSharedContributionBanner(selectedExistingActivityId);
   }
 }
 
@@ -431,8 +561,7 @@ function setDocumentationMode(mode, activityId = "") {
 
 function openAddMaterialForActivity(activityId) {
   selectedExistingActivityId = String(activityId || "");
-  setDocumentationMode("existing", selectedExistingActivityId);
-  navigateTo("submit");
+  navigateTo("submit", { submitActivityId: selectedExistingActivityId });
 }
 
 function refreshLists() {
@@ -940,19 +1069,28 @@ function renderGalleryFolders(items) {
         <span class="activity-status ${item.status === "Minim" ? "warn" : ""}">
           ${item.status === "Minim" ? "🟡" : "🟢"} ${escapeHtml(item.status)}
         </span>
-        <span class="gallery-folder-open">Buka →</span>
+        <div class="gallery-folder-footer-actions">
+          <button
+            class="gallery-folder-share"
+            type="button"
+            title="Bagikan link tambah dokumentasi"
+            aria-label="Bagikan link tambah dokumentasi ${escapeHtml(item.name)}"
+            data-share-folder="${escapeHtml(item.id)}"
+          >🔗 Bagikan</button>
+          <span class="gallery-folder-open">Buka →</span>
+        </div>
       </div>
     `;
 
     const open = () => navigateTo("gallery", { galleryFolderId: item.id });
 
     card.addEventListener("click", event => {
-      if (event.target.closest("[data-delete-folder]")) return;
+      if (event.target.closest("[data-delete-folder], [data-share-folder]")) return;
       open();
     });
 
     card.addEventListener("keydown", event => {
-      if (event.target.closest?.("[data-delete-folder]")) return;
+      if (event.target.closest?.("[data-delete-folder], [data-share-folder]")) return;
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         open();
@@ -964,6 +1102,13 @@ function renderGalleryFolders(items) {
       event.preventDefault();
       event.stopPropagation();
       await deleteGalleryFolderById(item.id, deleteButton);
+    });
+
+    const shareButton = card.querySelector("[data-share-folder]");
+    shareButton.addEventListener("click", async event => {
+      event.preventDefault();
+      event.stopPropagation();
+      await shareContributionLink(item.id);
     });
 
     grid.appendChild(card);
@@ -2202,7 +2347,9 @@ $("#documentationForm").addEventListener("submit", async event => {
   const description = $("#description").value.trim();
 
   if (isExisting) {
-    selectedExistingActivityId = $("#existingActivitySelect").value;
+    if (!sharedContributionMode) {
+      selectedExistingActivityId = $("#existingActivitySelect").value;
+    }
 
     if (!selectedExistingActivityId) {
       showToast("Pilih kegiatan yang mau ditambahi bahan.");
@@ -2336,6 +2483,7 @@ $("#documentationForm").addEventListener("submit", async event => {
     selectedFiles = [];
     coordinates = null;
     selectedExistingActivityId = "";
+    clearSharedContributionTarget();
     $("#previewGrid").innerHTML = "";
     document.querySelector(".direct-video-note")?.remove();
     $("#gpsStatus").textContent = "Koordinat belum diambil.";
@@ -2370,6 +2518,7 @@ $("#successViewOrder").addEventListener("click", () => {
 
 $$("[data-documentation-mode]").forEach(button => {
   button.addEventListener("click", () => {
+    clearSharedContributionTarget();
     setDocumentationMode(button.dataset.documentationMode);
   });
 });
@@ -2380,6 +2529,10 @@ $("#existingActivitySelect").addEventListener("change", event => {
 
 $("#galleryAddMaterial").addEventListener("click", () => {
   if (galleryActivityId) openAddMaterialForActivity(galleryActivityId);
+});
+
+$("#galleryShareContribution").addEventListener("click", () => {
+  if (galleryActivityId) shareContributionLink(galleryActivityId);
 });
 
 $("#galleryEditInfo").addEventListener("click", openEditActivityModal);
@@ -2439,6 +2592,12 @@ $("#detailOpenGallery").addEventListener("click", () => {
   if (currentDetailActivityId) openActivityGallery(currentDetailActivityId);
 });
 
+$("#successShareContribution").addEventListener("click", () => {
+  if (lastSubmittedActivityId) {
+    shareContributionLink(lastSubmittedActivityId);
+  }
+});
+
 $("#successViewGallery").addEventListener("click", () => {
   if (lastSubmittedActivityId) {
     navigateTo("gallery", { galleryFolderId: lastSubmittedActivityId });
@@ -2459,6 +2618,7 @@ $("#resetButton").addEventListener("click", () => {
   const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
   if (postType) postType.checked = true;
   selectedExistingActivityId = "";
+  clearSharedContributionTarget();
   setDocumentationMode("new");
   syncPublicationUi();
 
