@@ -537,7 +537,15 @@ function populateExistingActivitySelect() {
 function setDocumentationMode(mode, activityId = "") {
   documentationMode = mode === "existing" ? "existing" : "new";
 
-  $$("[data-documentation-mode]").forEach(button => {
+  $$("[data-dashboard-existing]").forEach(button => {
+  button.addEventListener("click", () => {
+    clearSharedContributionTarget();
+    setDocumentationMode("existing");
+    navigateTo("submit");
+  });
+});
+
+$$("[data-documentation-mode]").forEach(button => {
     button.classList.toggle("active", button.dataset.documentationMode === documentationMode);
   });
 
@@ -571,12 +579,84 @@ function openAddMaterialForActivity(activityId) {
   navigateTo("submit", { submitActivityId: selectedExistingActivityId });
 }
 
+
+function renderDashboardOrdersPreview() {
+  const box = $("#dashboardOrdersPreview");
+  if (!box) return;
+
+  const orders = requestedOrders().slice(0, 3);
+  box.innerHTML = "";
+
+  if (!orders.length) {
+    box.innerHTML = `
+      <div class="dashboard-clear-state">
+        <span>✓</span>
+        <div>
+          <strong>To do list aman.</strong>
+          <small>Belum ada pesanan medsos yang menunggu.</small>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  orders.forEach(item => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "dashboard-order-row";
+
+    const typeIcon = item.publication?.type === "instagram_reels" ? "▶" : "▧";
+    const requester = item.publication?.requesterName || "Pemesan";
+
+    row.innerHTML = `
+      <span class="dashboard-order-type">${typeIcon}</span>
+      <div>
+        <strong>${escapeHtml(item.name)}</strong>
+        <span>${escapeHtml(publicationTypeLabel(item.publication?.type))} • ${escapeHtml(requester)}</span>
+      </div>
+      <span class="dashboard-order-arrow">→</span>
+    `;
+
+    row.addEventListener("click", () => navigateTo("orders"));
+    box.appendChild(row);
+  });
+}
+
+function updateDashboardSummary() {
+  const galleryActivities = activities.filter(activityHasMedia);
+  const totalMedia = galleryActivities.reduce(
+    (sum, item) => sum + activityMediaCount(item),
+    0
+  );
+  const activeOrders = requestedOrders().length;
+
+  const orderCount = $("#dashOrderCount");
+  const orderLabel = $("#dashOrderLabel");
+  const folderCount = $("#dashFolderCount");
+  const mediaCount = $("#dashMediaCount");
+
+  if (orderCount) orderCount.textContent = activeOrders;
+  if (folderCount) folderCount.textContent = galleryActivities.length;
+  if (mediaCount) mediaCount.textContent = totalMedia;
+
+  if (orderLabel) {
+    orderLabel.textContent = activeOrders
+      ? `${activeOrders} perlu diselesaikan`
+      : "tidak ada yang menunggu";
+  }
+
+  renderDashboardOrdersPreview();
+}
+
 function refreshLists() {
-  renderActivities("#recentActivities", activities.slice(0, 4));
+  renderActivities(
+    "#recentActivities",
+    activities.filter(activityHasMedia).slice(0, 4)
+  );
   populateMonthFilters();
   populateExistingActivitySelect();
   syncFilterControls();
-  updateStats();
+  updateDashboardSummary();
 
   if (currentView === "gallery" && !galleryActivityId) {
     applyGalleryFilters();
@@ -755,25 +835,7 @@ $$("[data-filter-reset]").forEach(button => {
 
 
 function updateStats() {
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-  const dateKey = now.toISOString().slice(0, 10);
-
-  const todayCount = activities.filter(a => a.dateIso === dateKey).length;
-  const monthCount = activities.filter(a => {
-    if (!a.dateIso) return false;
-    const d = new Date(`${a.dateIso}T00:00:00`);
-    return d.getMonth() === month && d.getFullYear() === year;
-  }).length;
-  const totalPhotos = activities.reduce((sum, a) => sum + Number(a.photos || 0), 0);
-  const complete = activities.filter(a => Number(a.photos || 0) >= 3).length;
-  const completeness = activities.length ? Math.round((complete / activities.length) * 100) : 0;
-
-  $("#statToday").textContent = todayCount;
-  $("#statMonth").textContent = monthCount;
-  $("#statPhotos").textContent = totalPhotos;
-  $("#statCompleteness").textContent = `${completeness}%`;
+  updateDashboardSummary();
 }
 
 function setBackendStatus(mode, text) {

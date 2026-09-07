@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0642" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0650" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -45,7 +45,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.4.2</strong>
+        <strong>SI ALIF 06.5</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -67,69 +67,113 @@
       </header>
 
       <section class="view active" id="view-dashboard">
-        <div class="section-accent"></div>
-        <div class="hero-card">
+        <div class="dashboard-hero">
           <div>
-            <span class="hero-badge">✦ Dokumentasi Lapangan DLH</span>
-            <h2>Foto kegiatan jangan berhenti di WhatsApp.</h2>
-            <p>Setor sekali, simpan terstruktur, cari lagi kapan pun dibutuhkan.</p>
+            <span class="eyebrow">Pusat Kerja SI ALIF</span>
+            <h2>Yang perlu dilihat hari ini.</h2>
+            <p>Setor dokumentasi, cek pesanan, atau buka bahan terbaru tanpa muter-muter menu.</p>
           </div>
-          <button class="primary big" data-view="submit">＋ Setor Dokumentasi</button>
+          <div class="dashboard-hero-actions">
+            <button class="primary big" type="button" data-view="submit">＋ Setor Dokumentasi</button>
+            <button class="secondary big" type="button" data-dashboard-existing>↳ Tambah ke Kegiatan Lama</button>
+          </div>
         </div>
 
-        <div class="stats-grid">
-          <article class="stat-card">
-            <div class="stat-icon">◷</div>
-            <span class="stat-label">Hari ini</span>
-            <strong id="statToday">0</strong>
-            <span class="stat-foot">kegiatan</span>
-          </article>
-          <article class="stat-card">
-            <div class="stat-icon">▦</div>
-            <span class="stat-label">Bulan ini</span>
-            <strong id="statMonth">0</strong>
-            <span class="stat-foot">kegiatan</span>
-          </article>
-          <article class="stat-card">
-            <div class="stat-icon">▧</div>
-            <span class="stat-label">Dokumentasi</span>
-            <strong id="statPhotos">0</strong>
-            <span class="stat-foot">foto tersimpan</span>
-          </article>
-          <article class="stat-card">
-            <div class="stat-icon">✓</div>
-            <span class="stat-label">Kelengkapan</span>
-            <strong id="statCompleteness">0%</strong>
-            <span class="stat-foot">kegiatan lengkap</span>
-          </article>
+        <div class="dashboard-summary-grid">
+          <button class="dashboard-summary-card dashboard-summary-attention" type="button" data-view="orders">
+            <span class="dashboard-summary-icon">✦</span>
+            <div>
+              <small>Pesanan Medsos</small>
+              <strong id="dashOrderCount">0</strong>
+              <span id="dashOrderLabel">tidak ada yang menunggu</span>
+            </div>
+          </button>
+
+          <button class="dashboard-summary-card" type="button" data-view="gallery">
+            <span class="dashboard-summary-icon">▧</span>
+            <div>
+              <small>Folder Galeri</small>
+              <strong id="dashFolderCount">0</strong>
+              <span>kegiatan aktif</span>
+            </div>
+          </button>
+
+          <button class="dashboard-summary-card" type="button" data-view="gallery">
+            <span class="dashboard-summary-icon">▦</span>
+            <div>
+              <small>Media Tersimpan</small>
+              <strong id="dashMediaCount">0</strong>
+              <span>foto + video</span>
+            </div>
+          </button>
         </div>
 
-        <div class="content-grid">
-          <article class="panel">
+        <div class="dashboard-work-grid">
+          <article class="panel dashboard-todo-panel">
             <div class="panel-head">
               <div>
-                <span class="eyebrow">Terbaru</span>
-                <h3>Dokumentasi Kegiatan</h3>
+                <span class="eyebrow">Perlu Dikerjakan</span>
+                <h3>Pesanan Medsos</h3>
               </div>
-              <button class="link-button" data-view="gallery">Lihat semua di Galeri</button>
+              <button class="link-button" type="button" data-view="orders">Buka To Do List</button>
             </div>
-            <div class="activity-list" id="recentActivities"></div>
+            <div class="dashboard-orders-preview" id="dashboardOrdersPreview"></div>
           </article>
 
-          <aside class="panel workflow-panel">
+          <article class="panel dashboard-recent-panel">
             <div class="panel-head">
               <div>
-                <span class="eyebrow">Aktivitas</span>
-                <h3>Alur SI ALIF</h3>
+                <span class="eyebrow">Baru Masuk</span>
+                <h3>Dokumentasi Terbaru</h3>
               </div>
+              <button class="link-button" type="button" data-view="gallery">Lihat Galeri</button>
             </div>
-            <div class="workflow-list">
-              <div class="workflow-item"><span>1</span><div><strong>Setor dari HP</strong><small>Isi kegiatan dan pilih foto dari galeri.</small></div></div>
-              <div class="workflow-item"><span>2</span><div><strong>Tersimpan otomatis</strong><small>File asli langsung masuk Google Drive.</small></div></div>
-              <div class="workflow-item"><span>3</span><div><strong>Ambil saat perlu</strong><small>Cari aktivitasnya tanpa bongkar WhatsApp.</small></div></div>
-            </div>
-          </aside>
+            <div class="activity-list dashboard-recent-list" id="recentActivities"></div>
+          </article>
         </div>
+
+        <article class="panel dashboard-quick-panel">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Akses Cepat</span>
+              <h3>Mau ngapain?</h3>
+            </div>
+          </div>
+
+          <div class="dashboard-quick-grid">
+            <button class="dashboard-quick-action" type="button" data-view="submit">
+              <span>＋</span>
+              <div>
+                <strong>Setor Baru</strong>
+                <small>Buat kegiatan baru.</small>
+              </div>
+            </button>
+
+            <button class="dashboard-quick-action" type="button" data-dashboard-existing>
+              <span>↳</span>
+              <div>
+                <strong>Tambah Bahan</strong>
+                <small>Masukkan foto/video ke kegiatan lama.</small>
+              </div>
+            </button>
+
+            <button class="dashboard-quick-action" type="button" data-view="gallery">
+              <span>▧</span>
+              <div>
+                <strong>Buka Galeri</strong>
+                <small>Cari folder dan media.</small>
+              </div>
+            </button>
+
+            <button class="dashboard-quick-action" type="button" data-view="orders">
+              <span>✦</span>
+              <div>
+                <strong>Pesanan Medsos</strong>
+                <small>Lihat yang belum selesai.</small>
+              </div>
+            </button>
+          </div>
+        </article>
       </section>
 
       <section class="view" id="view-submit">
@@ -597,7 +641,7 @@
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0642"></script>
-  <script src="./assets/js/app.js?v=0642"></script>
+  <script src="./assets/js/config.js?v=0650"></script>
+  <script src="./assets/js/app.js?v=0650"></script>
 </body>
 </html>
