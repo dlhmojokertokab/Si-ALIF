@@ -243,6 +243,7 @@
             <div class="success-actions">
               <button class="secondary" type="button" data-view="submit">＋ Setor Lagi</button>
               <button class="primary" type="button" id="successViewActivity">Lihat Aktivitas</button>
+              <button class="secondary" type="button" id="successViewGallery">▧ Lihat Foto</button>
               <a class="button-link" id="successDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
             </div>
           </article>
@@ -273,7 +274,8 @@
           </div>
 
           <div class="detail-actions">
-            <a class="button-link primary-link" id="detailDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
+            <button class="primary" type="button" id="detailOpenGallery">▧ Lihat Galeri Foto</button>
+            <a class="button-link" id="detailDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
             <button class="secondary" type="button" data-view="submit">＋ Setor Dokumentasi Baru</button>
           </div>
         </article>
@@ -302,10 +304,48 @@
       </section>
 
       <section class="view" id="view-gallery">
-        <article class="panel empty-state">
-          <div class="empty-icon">▧</div>
-          <h3>Galeri Terstruktur</h3>
-          <p>Galeri terstruktur akan menampilkan foto berdasarkan kegiatan agar admin cukup mengambil file yang benar-benar dibutuhkan.</p>
+        <article class="panel gallery-panel">
+          <div class="gallery-head">
+            <div>
+              <span class="eyebrow">Foto asli dari Google Drive</span>
+              <h3>Galeri Aktivitas</h3>
+              <p>Pilih aktivitas, centang foto yang dibutuhkan, lalu unduh tanpa mengambil seluruh folder.</p>
+            </div>
+            <div class="gallery-picker">
+              <label for="galleryActivitySelect">Aktivitas</label>
+              <select id="galleryActivitySelect">
+                <option value="">Pilih aktivitas</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="gallery-activity-bar" id="galleryActivityBar" hidden>
+            <div class="gallery-activity-info">
+              <strong id="galleryActivityName">Aktivitas</strong>
+              <span id="galleryActivityMeta">-</span>
+            </div>
+            <a class="button-link" id="galleryDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
+          </div>
+
+          <div class="gallery-toolbar" id="galleryToolbar" hidden>
+            <div class="gallery-selection">
+              <strong id="gallerySelectedCount">0</strong>
+              <span>foto dipilih</span>
+            </div>
+            <div class="gallery-toolbar-actions">
+              <button class="secondary" id="gallerySelectAll" type="button">Pilih Semua</button>
+              <button class="secondary" id="galleryClearSelection" type="button">Kosongkan</button>
+              <button class="primary" id="galleryDownloadSelected" type="button" disabled>↓ Download Terpilih</button>
+            </div>
+          </div>
+
+          <div class="gallery-state" id="galleryState">
+            <div class="empty-icon">▧</div>
+            <h3>Pilih aktivitas dulu</h3>
+            <p>Foto kegiatan akan muncul sebagai thumbnail di sini.</p>
+          </div>
+
+          <div class="gallery-grid" id="galleryGrid"></div>
         </article>
       </section>
 

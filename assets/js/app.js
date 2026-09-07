@@ -17,6 +17,11 @@ let coordinates = null;
 let backendOnline = false;
 let apiPin = localStorage.getItem("si-alif-api-pin") || "";
 let lastSubmittedActivityId = null;
+let currentDetailActivityId = null;
+let galleryActivityId = "";
+let galleryFiles = [];
+let gallerySelected = new Set();
+let galleryObjectUrls = new Map();
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -29,6 +34,11 @@ function switchView(view) {
   $$(".nav-item, .mobile-item").forEach(el => {
     el.classList.toggle("active", el.dataset.view === view);
   });
+
+  if (view === "gallery") {
+    refreshGalleryActivityOptions();
+  }
+
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -93,6 +103,7 @@ function refreshLists() {
   renderActivities("#recentActivities", activities.slice(0, 4));
   renderActivities("#allActivities", activities);
   updateStats();
+  refreshGalleryActivityOptions();
 }
 
 function filterActivities() {
@@ -177,6 +188,38 @@ async function apiFetch(path, options = {}, canRetryPin = true) {
   return type.includes("application/json") ? response.json() : response.text();
 }
 
+
+async function apiFetchBlob(path, options = {}, canRetryPin = true) {
+  if (!API_BASE_URL) throw new Error("API_BASE_URL belum diatur di assets/js/config.js");
+
+  const headers = new Headers(options.headers || {});
+  if (apiPin) headers.set("X-SI-ALIF-PIN", apiPin);
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers
+  });
+
+  if (response.status === 401 && canRetryPin) {
+    const entered = window.prompt("Masukkan PIN SI ALIF:", apiPin || "");
+    if (entered === null) throw new Error("Akses dibatalkan.");
+    apiPin = entered.trim();
+    localStorage.setItem("si-alif-api-pin", apiPin);
+    return apiFetchBlob(path, options, false);
+  }
+
+  if (!response.ok) {
+    let message = `HTTP ${response.status}`;
+    try {
+      const payload = await response.json();
+      message = payload.error || payload.message || message;
+    } catch (_) {}
+    throw new Error(message);
+  }
+
+  return response.blob();
+}
+
 function formatDate(dateIso) {
   if (!dateIso) return "-";
   const d = new Date(`${dateIso}T00:00:00`);
@@ -217,6 +260,7 @@ function openActivityDetail(activityId) {
     return;
   }
 
+  currentDetailActivityId = item.id;
   $("#detailName").textContent = item.name || "Aktivitas";
   $("#detailDescription").textContent = item.description || "Belum ada keterangan singkat.";
   $("#detailPhotoCount").textContent = Number(item.photos || 0);
@@ -256,6 +300,241 @@ function showSuccessScreen(item) {
   }
 
   switchView("success");
+}
+
+
+function cleanupGalleryObjectUrls() {
+  galleryObjectUrls.forEach(url => URL.revokeObjectURL(url));
+  galleryObjectUrls.clear();
+}
+
+function refreshGalleryActivityOptions() {
+  const select = $("#galleryActivitySelect");
+  if (!select) return;
+
+  const previous = galleryActivityId || select.value;
+  select.innerHTML = `<option value="">Pilih aktivitas</option>`;
+
+  activities.forEach(item => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = `${item.date} — ${item.name} (${item.photos} foto)`;
+    select.appendChild(option);
+  });
+
+  if (previous && activities.some(item => String(item.id) === String(previous))) {
+    select.value = previous;
+  }
+}
+
+function setGalleryState(kind, title, message) {
+  const state = $("#galleryState");
+  if (!state) return;
+
+  state.hidden = false;
+  const icon = kind === "loading" ? "◌" : kind === "error" ? "!" : "▧";
+  state.innerHTML = `
+    <div class="empty-icon ${kind === "loading" ? "gallery-spinner" : ""}">${icon}</div>
+    <h3>${escapeHtml(title)}</h3>
+    <p>${escapeHtml(message)}</p>
+  `;
+}
+
+function formatFileSize(bytes) {
+  const value = Number(bytes || 0);
+  if (!value) return "";
+  if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function updateGallerySelectionUi() {
+  const count = gallerySelected.size;
+  $("#gallerySelectedCount").textContent = count;
+  $("#galleryDownloadSelected").disabled = count === 0;
+  $("#gallerySelectAll").textContent =
+    galleryFiles.length > 0 && count === galleryFiles.length ? "Semua Dipilih" : "Pilih Semua";
+
+  $$(".gallery-card").forEach(card => {
+    const selected = gallerySelected.has(card.dataset.fileId);
+    card.classList.toggle("selected", selected);
+    const checkbox = card.querySelector(".gallery-check");
+    if (checkbox) checkbox.textContent = selected ? "✓" : "";
+  });
+}
+
+function toggleGalleryFile(fileId) {
+  if (gallerySelected.has(fileId)) gallerySelected.delete(fileId);
+  else gallerySelected.add(fileId);
+  updateGallerySelectionUi();
+}
+
+async function loadGalleryThumbnail(file, img) {
+  try {
+    const blob = await apiFetchBlob(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
+    const objectUrl = URL.createObjectURL(blob);
+    galleryObjectUrls.set(file.id, objectUrl);
+    img.src = objectUrl;
+    img.classList.add("loaded");
+  } catch (error) {
+    img.alt = "Thumbnail gagal dimuat";
+    img.closest(".gallery-photo-frame")?.classList.add("thumbnail-error");
+  }
+}
+
+function renderGalleryFiles() {
+  const grid = $("#galleryGrid");
+  grid.innerHTML = "";
+  gallerySelected.clear();
+  cleanupGalleryObjectUrls();
+
+  if (!galleryFiles.length) {
+    $("#galleryToolbar").hidden = true;
+    setGalleryState("empty", "Belum ada foto", "Aktivitas ini belum memiliki file foto.");
+    return;
+  }
+
+  $("#galleryState").hidden = true;
+  $("#galleryToolbar").hidden = false;
+
+  galleryFiles.forEach(file => {
+    const card = document.createElement("article");
+    card.className = "gallery-card";
+    card.dataset.fileId = file.id;
+    card.tabIndex = 0;
+    card.setAttribute("role", "checkbox");
+    card.setAttribute("aria-checked", "false");
+
+    const dimension =
+      file.width && file.height ? `${file.width}×${file.height}` : "";
+    const detail = [dimension, formatFileSize(file.size)].filter(Boolean).join(" • ");
+
+    card.innerHTML = `
+      <div class="gallery-photo-frame">
+        <div class="gallery-image-skeleton">SI</div>
+        <img alt="${escapeHtml(file.name)}" loading="lazy">
+        <span class="gallery-check"></span>
+      </div>
+      <div class="gallery-card-info">
+        <strong title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</strong>
+        <span>${escapeHtml(detail || "Foto")}</span>
+      </div>
+    `;
+
+    const toggle = event => {
+      if (event?.target?.closest?.("a,button")) return;
+      toggleGalleryFile(file.id);
+      card.setAttribute("aria-checked", String(gallerySelected.has(file.id)));
+    };
+
+    card.addEventListener("click", toggle);
+    card.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle(event);
+      }
+    });
+
+    grid.appendChild(card);
+    loadGalleryThumbnail(file, card.querySelector("img"));
+  });
+
+  updateGallerySelectionUi();
+}
+
+async function loadGalleryForActivity(activityId) {
+  if (!activityId) {
+    galleryActivityId = "";
+    galleryFiles = [];
+    gallerySelected.clear();
+    cleanupGalleryObjectUrls();
+    $("#galleryGrid").innerHTML = "";
+    $("#galleryToolbar").hidden = true;
+    $("#galleryActivityBar").hidden = true;
+    setGalleryState("empty", "Pilih aktivitas dulu", "Foto kegiatan akan muncul sebagai thumbnail di sini.");
+    return;
+  }
+
+  const activity = activities.find(item => String(item.id) === String(activityId));
+  if (!activity) {
+    setGalleryState("error", "Aktivitas tidak ditemukan", "Refresh SI ALIF lalu coba lagi.");
+    return;
+  }
+
+  galleryActivityId = String(activity.id);
+  $("#galleryActivitySelect").value = galleryActivityId;
+  $("#galleryActivityName").textContent = activity.name;
+  $("#galleryActivityMeta").textContent =
+    `${activity.division} • ${activity.place} • ${activity.date} • ${activity.photos} foto`;
+
+  const driveLink = $("#galleryDriveLink");
+  if (activity.folderUrl) {
+    driveLink.href = activity.folderUrl;
+    driveLink.hidden = false;
+  } else {
+    driveLink.hidden = true;
+  }
+
+  $("#galleryActivityBar").hidden = false;
+  $("#galleryToolbar").hidden = true;
+  $("#galleryGrid").innerHTML = "";
+  gallerySelected.clear();
+  cleanupGalleryObjectUrls();
+  setGalleryState("loading", "Mengambil foto...", "Membaca thumbnail dari Google Drive.");
+
+  try {
+    const result = await apiFetch(`/api/activities/${encodeURIComponent(activity.id)}/files`);
+    galleryFiles = result.files || [];
+    renderGalleryFiles();
+  } catch (error) {
+    galleryFiles = [];
+    setGalleryState("error", "Galeri gagal dimuat", error.message);
+  }
+}
+
+function openActivityGallery(activityId) {
+  galleryActivityId = String(activityId || "");
+  switchView("gallery");
+  refreshGalleryActivityOptions();
+  $("#galleryActivitySelect").value = galleryActivityId;
+  loadGalleryForActivity(galleryActivityId);
+}
+
+async function downloadGalleryFile(file, index, total) {
+  const button = $("#galleryDownloadSelected");
+  button.textContent = `↓ Mengunduh ${index}/${total}...`;
+
+  const blob = await apiFetchBlob(`/api/files/${encodeURIComponent(file.id)}/download`);
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = file.name || `foto-${index}.jpg`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+}
+
+async function downloadSelectedGalleryFiles() {
+  const chosen = galleryFiles.filter(file => gallerySelected.has(file.id));
+  if (!chosen.length) return;
+
+  const button = $("#galleryDownloadSelected");
+  const original = button.textContent;
+  button.disabled = true;
+
+  try {
+    for (let i = 0; i < chosen.length; i++) {
+      await downloadGalleryFile(chosen[i], i + 1, chosen.length);
+      if (chosen.length > 1) await new Promise(resolve => setTimeout(resolve, 250));
+    }
+    showToast(`${chosen.length} foto dikirim ke download browser.`);
+  } catch (error) {
+    showToast(`Download gagal: ${error.message}`);
+  } finally {
+    button.textContent = original;
+    button.disabled = false;
+    updateGallerySelectionUi();
+  }
 }
 
 async function checkBackend() {
@@ -451,6 +730,35 @@ $("#documentationForm").addEventListener("submit", async event => {
     submitButton.disabled = false;
     submitButton.textContent = "Kirim Dokumentasi";
   }
+});
+
+$("#galleryActivitySelect").addEventListener("change", event => {
+  loadGalleryForActivity(event.target.value);
+});
+
+$("#gallerySelectAll").addEventListener("click", () => {
+  if (galleryFiles.length && gallerySelected.size === galleryFiles.length) {
+    gallerySelected.clear();
+  } else {
+    gallerySelected = new Set(galleryFiles.map(file => file.id));
+  }
+  updateGallerySelectionUi();
+});
+
+$("#galleryClearSelection").addEventListener("click", () => {
+  gallerySelected.clear();
+  updateGallerySelectionUi();
+});
+
+$("#galleryDownloadSelected").addEventListener("click", downloadSelectedGalleryFiles);
+
+$("#detailOpenGallery").addEventListener("click", () => {
+  if (currentDetailActivityId) openActivityGallery(currentDetailActivityId);
+});
+
+$("#successViewGallery").addEventListener("click", () => {
+  if (lastSubmittedActivityId) openActivityGallery(lastSubmittedActivityId);
+  else switchView("gallery");
 });
 
 $("#successViewActivity").addEventListener("click", () => {
