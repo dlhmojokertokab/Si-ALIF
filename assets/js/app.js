@@ -334,11 +334,18 @@ function renderSuccessForActivity(item) {
     $("#successEyebrow").textContent = "Bahan ditambahkan";
     $("#successTitle").textContent = "Berhasil gabung ke folder";
     $("#successLead").textContent = "Foto/video tambahan sudah masuk ke kegiatan yang sama. Nggak bikin folder kembar. 💜";
+  } else if (successContext === "merged") {
+    $("#successEyebrow").textContent = "Anti-tubrukan bekerja";
+    $("#successTitle").textContent = "Kegiatan yang sama sudah ditemukan";
+    $("#successLead").textContent = "Dokumentasimu otomatis digabung ke folder yang sudah lebih dulu dibuat. Tidak lahir folder kembar. 💜";
   } else {
     $("#successEyebrow").textContent = "Dokumentasi tersimpan";
     $("#successTitle").textContent = "Berhasil masuk SI ALIF";
     $("#successLead").textContent = "Dokumentasi asli sudah tersimpan rapi di Google Drive. 💜";
   }
+
+  const mergeNote = $("#successMergeNote");
+  if (mergeNote) mergeNote.hidden = successContext !== "merged";
 
   $("#successActivityName").textContent = item.name || "Aktivitas";
   $("#successActivityMeta").textContent = [
@@ -350,7 +357,9 @@ function renderSuccessForActivity(item) {
 
   const publicationBox = $("#successPublication");
   const publicationText = $("#successPublicationText");
-  if (item.publication?.requested) {
+  if (successContext === "merged") {
+    publicationBox.hidden = true;
+  } else if (item.publication?.requested) {
     publicationBox.hidden = false;
     publicationText.textContent = [
       publicationTypeLabel(item.publication.type),
@@ -2967,7 +2976,7 @@ $("#documentationForm").addEventListener("submit", async event => {
     } else if (backendOnline) {
       const created = await submitRemoteActivity(payload);
 
-      if (publication.requested) {
+      if (publication.requested && !created.reusedExisting) {
         try {
           await apiFetch(`/api/activities/${encodeURIComponent(created.id)}/publication/notify`, {
             method: "POST"
@@ -2996,7 +3005,11 @@ $("#documentationForm").addEventListener("submit", async event => {
         folderUrl: created.folderUrl || ""
       };
 
-      successContext = "new";
+      successContext = created.reusedExisting ? "merged" : "new";
+
+      if (created.reusedExisting) {
+        showToast("Kegiatan identik ditemukan — dokumentasi otomatis digabung.");
+      }
     } else {
       savedActivity = {
         id: Date.now(),

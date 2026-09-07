@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-6-1-bounded-navigation";
+const CACHE = "si-alif-06-7-anti-collision";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0661",
-  "./assets/js/config.js?v=0661",
-  "./assets/js/app.js?v=0661",
+  "./assets/css/style.css?v=0670",
+  "./assets/js/config.js?v=0670",
+  "./assets/js/app.js?v=0670",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

@@ -4326,3 +4326,59 @@ body.trash-modal-open {
    SI ALIF 06.6.1 — APP-LIKE BACK NAVIGATION
    Routing only; no visual changes.
    ========================= */
+
+
+/* =========================
+   SI ALIF 06.7 — ANTI-TUBRUKAN FEEDBACK
+   ========================= */
+
+.success-merge-note {
+  max-width: 720px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 12px auto 0;
+  padding: 11px 12px;
+  border: 1px solid #d4c4eb;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f6f0ff, #fdfbff);
+  text-align: left;
+}
+
+.success-merge-note[hidden] {
+  display: none !important;
+}
+
+.success-merge-note > span {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--primary-strong);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.success-merge-note > div {
+  display: grid;
+  gap: 3px;
+}
+
+.success-merge-note strong {
+  font-size: 10px;
+}
+
+.success-merge-note small {
+  color: var(--text-soft);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .success-merge-note {
+    align-items: flex-start;
+  }
+}
