@@ -4577,3 +4577,321 @@ body.trash-modal-open {
     width: 100%;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.8.1 — MOBILE FORM COMPACT POLISH
+   ========================= */
+
+.publication-tabs {
+  padding: 3px;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: #f7f4fb;
+}
+
+.publication-tab {
+  min-height: 40px;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
+.publication-tab:hover {
+  border-color: transparent;
+}
+
+.publication-tab.active {
+  border-color: transparent;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(76,54,111,.09);
+}
+
+.publication-tab strong {
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.optional-details {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: #fbf9fe;
+}
+
+.optional-details summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  color: var(--primary-strong);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.optional-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.optional-details summary span {
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.optional-details summary small {
+  color: var(--text-faint);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+.optional-details[open] summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.optional-details-body {
+  padding: 10px 12px 12px;
+}
+
+@media (max-width: 760px) {
+  /* Form shell lebih padat */
+  #view-submit .form-panel {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  #view-submit .panel-head {
+    margin-bottom: 10px;
+  }
+
+  #view-submit .title-with-icon {
+    gap: 10px;
+  }
+
+  #view-submit .title-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 18px;
+  }
+
+  #view-submit .title-with-icon h3 {
+    font-size: 19px;
+  }
+
+  #view-submit .title-with-icon .eyebrow {
+    font-size: 8px;
+  }
+
+  /* Kegiatan Baru / Tambah Bahan = segmented dua kolom */
+  .documentation-mode {
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin-bottom: 9px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    background: #f7f4fb;
+  }
+
+  .documentation-mode-card {
+    min-height: 40px;
+    align-content: center;
+    padding: 8px 7px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    text-align: center;
+    box-shadow: none;
+  }
+
+  .documentation-mode-card.active {
+    border-color: transparent;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(76,54,111,.09);
+  }
+
+  .documentation-mode-card strong {
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  .documentation-mode-card span {
+    display: none;
+  }
+
+  /* Core metadata: Bidang + Tanggal sejajar */
+  #documentationForm .field-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  #documentationForm .field-wide,
+  #documentationForm .optional-details {
+    grid-column: 1 / -1;
+  }
+
+  #documentationForm .field {
+    gap: 5px;
+    font-size: 10px;
+  }
+
+  #documentationForm .field > span {
+    font-size: 10px;
+  }
+
+  #documentationForm .field input,
+  #documentationForm .field select,
+  #documentationForm .field textarea {
+    min-height: 43px;
+    padding: 9px 10px;
+    border-radius: 11px;
+    font-size: 11px;
+  }
+
+  #documentationForm .field textarea {
+    min-height: 68px;
+  }
+
+  /* Tujuan setor = tab compact */
+  .publication-field {
+    gap: 6px;
+  }
+
+  .publication-choice-grid.publication-tabs {
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+
+  .publication-tab {
+    min-height: 39px;
+    padding: 7px 6px;
+  }
+
+  .publication-tab strong {
+    font-size: 8.5px;
+  }
+
+  /* Kalau pilih Pesanan Medsos, opsinya tetap ringkas */
+  .publication-options {
+    padding: 10px;
+    border-radius: 13px;
+  }
+
+  .publication-options-head {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 7px;
+  }
+
+  .publication-options-head strong {
+    font-size: 9px;
+  }
+
+  .publication-options-head small {
+    font-size: 7px;
+  }
+
+  .publication-type-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .publication-type {
+    gap: 6px;
+    padding: 8px;
+    border-radius: 11px;
+  }
+
+  .publication-type > span {
+    width: 27px;
+    height: 27px;
+    border-radius: 8px;
+    font-size: 10px;
+  }
+
+  .publication-type strong {
+    font-size: 8px;
+  }
+
+  .publication-type small {
+    display: none;
+  }
+
+  .publication-warning {
+    padding: 8px 9px;
+    border-radius: 10px;
+  }
+
+  .publication-warning strong {
+    font-size: 8px;
+  }
+
+  .publication-warning span {
+    font-size: 7px;
+  }
+
+  /* Optional detail compact */
+  .optional-details summary {
+    padding: 9px 10px;
+  }
+
+  .optional-details summary span {
+    font-size: 9px;
+  }
+
+  .optional-details summary small {
+    font-size: 7px;
+  }
+
+  /* Upload adalah tujuan akhir, jadi dibuat cepat terlihat */
+  .upload-box {
+    padding: 16px 12px;
+    border-radius: 13px;
+  }
+
+  .upload-copy strong {
+    font-size: 10px;
+  }
+
+  .upload-copy span {
+    font-size: 7px;
+    line-height: 1.45;
+  }
+
+  #documentationForm .form-actions {
+    gap: 7px;
+    margin-top: 10px;
+  }
+
+  #documentationForm .form-actions button {
+    min-height: 43px;
+    padding: 9px 10px;
+    font-size: 10px;
+  }
+
+  .existing-activity-picker {
+    margin-bottom: 9px;
+    padding: 10px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 390px) {
+  .documentation-mode-card strong,
+  .publication-tab strong {
+    font-size: 8px;
+  }
+
+  #documentationForm .field input,
+  #documentationForm .field select {
+    font-size: 10px;
+  }
+}

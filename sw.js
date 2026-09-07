@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-8-upload-queue-retry";
+const CACHE = "si-alif-06-8-1-mobile-form-compact";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0680",
-  "./assets/js/config.js?v=0680",
-  "./assets/js/app.js?v=0680",
+  "./assets/css/style.css?v=0681",
+  "./assets/js/config.js?v=0681",
+  "./assets/js/app.js?v=0681",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

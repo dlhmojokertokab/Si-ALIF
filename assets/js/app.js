@@ -2558,32 +2558,6 @@ syncPublicationUi();
 const today = new Date();
 $("#activityDate").value = today.toISOString().slice(0, 10);
 
-$("#gpsButton").addEventListener("click", () => {
-  const status = $("#gpsStatus");
-  if (!navigator.geolocation) {
-    status.textContent = "Perangkat/browser tidak mendukung geolocation.";
-    return;
-  }
-
-  status.textContent = "Mengambil lokasi...";
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      coordinates = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude
-      };
-      status.textContent = `GPS tersimpan: ${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}`;
-      if (!$("#locationText").value) {
-        $("#locationText").value = `${coordinates.lat.toFixed(6)}, ${coordinates.lng.toFixed(6)}`;
-      }
-    },
-    err => {
-      status.textContent = `GPS gagal: ${err.message}`;
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
-});
-
 function createUploadKey(file, index) {
   const randomPart = crypto.randomUUID
     ? crypto.randomUUID()
@@ -3162,10 +3136,12 @@ async function finalizeSuccessfulUploadSession() {
   $("#photoInput").value = "";
   $("#previewGrid").innerHTML = "";
   document.querySelector(".direct-video-note")?.remove();
-  $("#gpsStatus").textContent = "Koordinat belum diambil.";
   $("#activityDate").value = new Date().toISOString().slice(0, 10);
   $("#publicationRequester").value = "";
   $("#publicationNote").value = "";
+
+  const optionalDetails = $("#activityOptionalDetails");
+  if (optionalDetails) optionalDetails.open = false;
 
   const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
   if (docMode) docMode.checked = true;
@@ -3512,8 +3488,10 @@ $("#resetButton").addEventListener("click", () => {
   coordinates = null;
   resetUploadQueueState();
   $("#previewGrid").innerHTML = "";
-  $("#gpsStatus").textContent = "Koordinat belum diambil.";
   resetUploadProgress();
+
+  const optionalDetails = $("#activityOptionalDetails");
+  if (optionalDetails) optionalDetails.open = false;
 
   const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
   if (docMode) docMode.checked = true;

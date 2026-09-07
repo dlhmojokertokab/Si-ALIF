@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0680" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0681" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -45,7 +45,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.8</strong>
+        <strong>SI ALIF 06.8.1</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -196,7 +196,7 @@
                   <span>Buat folder kegiatan baru.</span>
                 </button>
                 <button class="documentation-mode-card" type="button" data-documentation-mode="existing">
-                  <strong>↳ Tambah ke Kegiatan Lama</strong>
+                  <strong>↳ Tambah Bahan</strong>
                   <span>Gabungkan bahan dari orang lain ke folder yang sama.</span>
                 </button>
               </div>
@@ -244,44 +244,40 @@
                 </label>
 
                 <label class="field field-wide new-activity-only">
-                  <span>Lokasi</span>
-                  <div class="input-action">
-                    <input id="locationText" required placeholder="Desa/Kecamatan atau nama lokasi" />
-                    <button type="button" class="secondary" id="gpsButton">⌖ Ambil GPS</button>
-                  </div>
-                  <small id="gpsStatus">Koordinat belum diambil.</small>
+                  <span>Tempat kegiatan</span>
+                  <input id="locationText" required placeholder="Contoh: SDN Kemlagi / Desa Kesiman" />
                 </label>
 
-                <label class="field field-wide new-activity-only">
-                  <span>Keterangan singkat</span>
-                  <textarea id="description" rows="3" maxlength="300" placeholder="Apa yang dilakukan / hasil singkat kegiatan"></textarea>
-                </label>
+                <details class="optional-details field-wide new-activity-only" id="activityOptionalDetails">
+                  <summary>
+                    <span>＋ Tambahan opsional</span>
+                    <small>Keterangan kegiatan</small>
+                  </summary>
+                  <label class="field optional-details-body">
+                    <span>Keterangan singkat</span>
+                    <textarea id="description" rows="2" maxlength="300" placeholder="Apa yang dilakukan / hasil singkat kegiatan"></textarea>
+                  </label>
+                </details>
 
                 <div class="field field-wide publication-field new-activity-only">
-                  <span>Tujuan dokumentasi</span>
+                  <span>Tujuan setor</span>
 
-                  <div class="publication-choice-grid">
-                    <label class="publication-choice active">
+                  <div class="publication-choice-grid publication-tabs">
+                    <label class="publication-choice publication-tab active">
                       <input type="radio" name="publicationMode" value="documentation" checked>
-                      <div>
-                        <strong>📁 Dokumentasi saja</strong>
-                        <small>Simpan kegiatan dan bahan dokumentasi ke SI ALIF.</small>
-                      </div>
+                      <strong>📁 Dokumentasi</strong>
                     </label>
 
-                    <label class="publication-choice">
+                    <label class="publication-choice publication-tab">
                       <input type="radio" name="publicationMode" value="request">
-                      <div>
-                        <strong>📣 Ajukan publikasi media sosial</strong>
-                        <small>Masuk ke daftar Pesanan Medsos setelah dokumentasi terkirim.</small>
-                      </div>
+                      <strong>📣 Pesanan Medsos</strong>
                     </label>
                   </div>
 
                   <div class="publication-options" id="publicationOptions" hidden>
                     <div class="publication-options-head">
                       <strong>Bentuk konten</strong>
-                      <small>Pilih sesuai bahan yang disetor.</small>
+                      <small>Pilih bentuk konten.</small>
                     </div>
 
                     <div class="publication-type-grid">
@@ -362,7 +358,7 @@
             <ul class="check-list">
               <li>Foto tetap milik kegiatan.</li>
               <li>Metadata dicatat saat masih segar.</li>
-              <li>Lokasi dapat diambil dari perangkat.</li>
+              <li>Tempat kegiatan cukup ditulis singkat dan jelas.</li>
               <li>Admin tinggal mencari ketika butuh.</li>
             </ul>
           </aside>
@@ -435,7 +431,7 @@
           <div class="detail-grid">
             <div class="detail-field"><span>Bidang</span><strong id="detailDivision">-</strong></div>
             <div class="detail-field"><span>Tanggal</span><strong id="detailDate">-</strong></div>
-            <div class="detail-field"><span>Lokasi</span><strong id="detailLocation">-</strong></div>
+            <div class="detail-field"><span>Tempat</span><strong id="detailLocation">-</strong></div>
             <div class="detail-field"><span>Status</span><strong id="detailStatus">-</strong></div>
             <div class="detail-field detail-field-wide"><span>Koordinat</span><strong id="detailCoordinates">Tidak disimpan</strong></div>
             <div class="detail-field detail-field-wide" id="detailPublicationField" hidden>
@@ -605,7 +601,7 @@
               </label>
 
               <label class="field field-wide">
-                <span>Lokasi</span>
+                <span>Tempat kegiatan</span>
                 <input id="editActivityLocation" required maxlength="180">
               </label>
 
@@ -695,7 +691,7 @@
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0680"></script>
-  <script src="./assets/js/app.js?v=0680"></script>
+  <script src="./assets/js/config.js?v=0681"></script>
+  <script src="./assets/js/app.js?v=0681"></script>
 </body>
 </html>
