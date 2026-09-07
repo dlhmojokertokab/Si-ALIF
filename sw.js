@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-7-anti-collision";
+const CACHE = "si-alif-06-8-upload-queue-retry";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0670",
-  "./assets/js/config.js?v=0670",
-  "./assets/js/app.js?v=0670",
+  "./assets/css/style.css?v=0680",
+  "./assets/js/config.js?v=0680",
+  "./assets/js/app.js?v=0680",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

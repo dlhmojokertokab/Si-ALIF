@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0670" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0680" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -45,7 +45,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.7</strong>
+        <strong>SI ALIF 06.8</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -331,6 +331,19 @@
                       <strong id="uploadProgressValue">0%</strong>
                     </div>
                     <div class="upload-progress-track"><span id="uploadProgressBar"></span></div>
+                  </div>
+
+                  <div class="upload-queue" id="uploadQueue" hidden>
+                    <div class="upload-queue-head">
+                      <div>
+                        <strong id="uploadQueueSummary">0 file</strong>
+                        <small id="uploadQueueSubtext">Menunggu upload.</small>
+                      </div>
+                      <button class="secondary upload-retry-button" id="retryFailedUploads" type="button" hidden>
+                        ↻ Coba Lagi yang Gagal
+                      </button>
+                    </div>
+                    <div class="upload-queue-list" id="uploadQueueList"></div>
                   </div>
                 </label>
               </div>
@@ -682,7 +695,7 @@
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0670"></script>
-  <script src="./assets/js/app.js?v=0670"></script>
+  <script src="./assets/js/config.js?v=0680"></script>
+  <script src="./assets/js/app.js?v=0680"></script>
 </body>
 </html>

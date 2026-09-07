@@ -12,6 +12,9 @@ const API_BASE_URL = String(config.API_BASE_URL || "").replace(/\/$/, "");
 
 let activities = [];
 let selectedFiles = [];
+let uploadQueueEntries = [];
+let activeUploadSession = null;
+let uploadQueueRunning = false;
 let coordinates = null;
 let backendOnline = false;
 let telegramConfigured = false;
@@ -2581,8 +2584,133 @@ $("#gpsButton").addEventListener("click", () => {
   );
 });
 
-$("#photoInput").addEventListener("change", event => {
-  selectedFiles = [...event.target.files];
+function createUploadKey(file, index) {
+  const randomPart = crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  const safeName = String(file.name || "media")
+    .replace(/[^A-Za-z0-9._-]+/g, "_")
+    .slice(0, 50);
+
+  return `sialif:${randomPart}:${index}:${file.size}:${file.lastModified}:${safeName}`;
+}
+
+function makeUploadQueue(files) {
+  uploadQueueEntries = files.map((file, index) => ({
+    id: createUploadKey(file, index),
+    uploadKey: createUploadKey(file, index + 1000),
+    file,
+    status: "pending",
+    progress: 0,
+    error: "",
+    result: null
+  }));
+}
+
+function queueStatusLabel(entry) {
+  if (entry.status === "success") return "Berhasil";
+  if (entry.status === "uploading") return `Mengunggah ${Math.round(entry.progress || 0)}%`;
+  if (entry.status === "failed") return "Gagal";
+  return "Menunggu";
+}
+
+function queueStatusIcon(entry) {
+  if (entry.status === "success") return "✓";
+  if (entry.status === "uploading") return "↑";
+  if (entry.status === "failed") return "!";
+  return "•";
+}
+
+function uploadQueueStats() {
+  const total = uploadQueueEntries.length;
+  const success = uploadQueueEntries.filter(entry => entry.status === "success").length;
+  const failed = uploadQueueEntries.filter(entry => entry.status === "failed").length;
+  const uploading = uploadQueueEntries.filter(entry => entry.status === "uploading").length;
+  const pending = total - success - failed - uploading;
+
+  return { total, success, failed, uploading, pending };
+}
+
+function renderUploadQueue() {
+  const box = $("#uploadQueue");
+  const list = $("#uploadQueueList");
+  const summary = $("#uploadQueueSummary");
+  const subtext = $("#uploadQueueSubtext");
+  const retry = $("#retryFailedUploads");
+
+  if (!box || !list) return;
+
+  if (!uploadQueueEntries.length) {
+    box.hidden = true;
+    list.innerHTML = "";
+    retry.hidden = true;
+    return;
+  }
+
+  box.hidden = false;
+  list.innerHTML = "";
+
+  const stats = uploadQueueStats();
+  summary.textContent = `${stats.success}/${stats.total} berhasil`;
+
+  if (stats.failed) {
+    subtext.textContent = `${stats.failed} gagal • file yang sudah berhasil tidak akan diupload ulang.`;
+  } else if (stats.uploading) {
+    subtext.textContent = "Upload sedang berjalan...";
+  } else if (stats.success === stats.total) {
+    subtext.textContent = "Semua file sudah aman di Google Drive.";
+  } else {
+    subtext.textContent = `${stats.pending} file menunggu upload.`;
+  }
+
+  retry.hidden = stats.failed === 0;
+  retry.disabled = uploadQueueRunning;
+
+  uploadQueueEntries.forEach(entry => {
+    const row = document.createElement("div");
+    row.className = `upload-queue-item status-${entry.status}`;
+
+    const isVideo = entry.file.type.startsWith("video/");
+    const detail = [
+      isVideo ? "Video" : "Foto",
+      formatFileSize(entry.file.size)
+    ].join(" • ");
+
+    row.innerHTML = `
+      <span class="upload-queue-status">${queueStatusIcon(entry)}</span>
+      <div class="upload-queue-file">
+        <strong title="${escapeHtml(entry.file.name)}">${escapeHtml(entry.file.name)}</strong>
+        <span>${escapeHtml(detail)}</span>
+        ${entry.error ? `<small>${escapeHtml(entry.error)}</small>` : ""}
+      </div>
+      <div class="upload-queue-state">
+        <strong>${escapeHtml(queueStatusLabel(entry))}</strong>
+        <span class="upload-queue-mini-track">
+          <i style="width:${Math.max(0, Math.min(100, Number(entry.progress || 0)))}%"></i>
+        </span>
+      </div>
+    `;
+
+    list.appendChild(row);
+  });
+}
+
+function resetUploadQueueState({ keepFiles = false } = {}) {
+  uploadQueueEntries = [];
+  activeUploadSession = null;
+  uploadQueueRunning = false;
+
+  if (!keepFiles) {
+    selectedFiles = [];
+    const input = $("#photoInput");
+    if (input) input.value = "";
+  }
+
+  renderUploadQueue();
+}
+
+function renderSelectedFilePreview() {
   const grid = $("#previewGrid");
   grid.innerHTML = "";
   document.querySelector(".direct-video-note")?.remove();
@@ -2626,6 +2754,28 @@ $("#photoInput").addEventListener("change", event => {
     note.innerHTML = `<strong>🎬 ${videoCount} video</strong><span>Video akan dikirim bertahap per chunk agar lebih stabil.</span>`;
     grid.insertAdjacentElement("afterend", note);
   }
+}
+
+$("#photoInput").addEventListener("change", event => {
+  selectedFiles = [...event.target.files];
+
+  if (activeUploadSession) {
+    showToast("Pilihan file diganti. File yang sudah berhasil tetap aman di Drive.");
+  }
+
+  activeUploadSession = null;
+  makeUploadQueue(selectedFiles);
+  renderSelectedFilePreview();
+  renderUploadQueue();
+  resetUploadProgress();
+
+  const submitButton = $("#submitDocumentation");
+  if (submitButton) {
+    submitButton.disabled = false;
+    submitButton.textContent = documentationMode === "existing"
+      ? "Tambahkan Bahan"
+      : "Kirim Dokumentasi";
+  }
 });
 
 function setUploadProgress(done, total, text) {
@@ -2663,7 +2813,7 @@ function resetUploadProgress() {
 
 const VIDEO_CHUNK_SIZE = 4 * 1024 * 1024; // 4 MB, kelipatan 256 KB
 
-async function createVideoUploadSession(activityId, file) {
+async function createVideoUploadSession(activityId, file, uploadKey) {
   return apiFetch(
     `/api/activities/${encodeURIComponent(activityId)}/uploads/resumable`,
     {
@@ -2672,7 +2822,8 @@ async function createVideoUploadSession(activityId, file) {
       body: JSON.stringify({
         name: file.name,
         mimeType: file.type || "application/octet-stream",
-        size: file.size
+        size: file.size,
+        uploadKey
       })
     }
   );
@@ -2740,8 +2891,25 @@ function uploadChunkViaWorker(activityId, uploadUrl, chunk, contentRange, onProg
   });
 }
 
-async function uploadVideoChunked(activityId, file, fileIndex, totalFiles) {
-  const session = await createVideoUploadSession(activityId, file);
+async function uploadVideoChunked(activityId, entry, onProgress) {
+  const file = entry.file;
+  const session = await createVideoUploadSession(activityId, file, entry.uploadKey);
+
+  // Request sebelumnya mungkin sudah selesai di Drive tetapi respons ke HP putus.
+  // Worker menemukan uploadKey yang sama; cukup finalize counter dan anggap sukses.
+  if (session?.alreadyUploaded && session?.file?.id) {
+    const completed = await apiFetch(
+      `/api/activities/${encodeURIComponent(activityId)}/uploads/complete`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId: session.file.id })
+      }
+    );
+
+    onProgress?.(1);
+    return completed;
+  }
 
   if (!session?.uploadUrl) {
     throw new Error("Tiket upload Google Drive tidak tersedia.");
@@ -2756,9 +2924,6 @@ async function uploadVideoChunked(activityId, file, fileIndex, totalFiles) {
     const endInclusive = endExclusive - 1;
     const chunk = file.slice(start, endExclusive, file.type || "application/octet-stream");
 
-    const chunkNumber = Math.floor(start / VIDEO_CHUNK_SIZE) + 1;
-    const chunkTotal = Math.ceil(totalBytes / VIDEO_CHUNK_SIZE);
-
     const result = await uploadChunkViaWorker(
       activityId,
       session.uploadUrl,
@@ -2767,12 +2932,7 @@ async function uploadVideoChunked(activityId, file, fileIndex, totalFiles) {
       chunkRatio => {
         const uploadedWithinFile = start + (chunk.size * chunkRatio);
         const fileRatio = totalBytes ? uploadedWithinFile / totalBytes : 0;
-        const overallPercent = overallUploadPercent(fileIndex, totalFiles, fileRatio);
-
-        setUploadProgressPercent(
-          overallPercent,
-          `🎬 ${fileIndex + 1}/${totalFiles} • ${file.name} • chunk ${chunkNumber}/${chunkTotal} • ${Math.round(fileRatio * 100)}%`
-        );
+        onProgress?.(fileRatio);
       }
     );
 
@@ -2789,7 +2949,7 @@ async function uploadVideoChunked(activityId, file, fileIndex, totalFiles) {
     throw new Error("Google Drive belum mengembalikan ID video setelah semua chunk dikirim.");
   }
 
-  await apiFetch(
+  const completed = await apiFetch(
     `/api/activities/${encodeURIComponent(activityId)}/uploads/complete`,
     {
       method: "POST",
@@ -2798,95 +2958,295 @@ async function uploadVideoChunked(activityId, file, fileIndex, totalFiles) {
     }
   );
 
-  return finalFile;
+  onProgress?.(1);
+  return completed;
 }
 
-async function uploadSelectedFilesToActivity(activityId) {
-  const total = selectedFiles.length;
+function calculateQueueOverallPercent() {
+  if (!uploadQueueEntries.length) return 100;
 
-  for (let i = 0; i < total; i++) {
-    const file = selectedFiles[i];
-    const isVideo = file.type.startsWith("video/");
+  const totalProgress = uploadQueueEntries.reduce((sum, entry) => {
+    if (entry.status === "success") return sum + 1;
+    if (entry.status === "uploading") return sum + Math.max(0, Math.min(1, (entry.progress || 0) / 100));
+    return sum;
+  }, 0);
 
-    if (isVideo) {
-      setUploadProgressPercent(
-        overallUploadPercent(i, total, 0),
-        `Menyiapkan upload video ${i + 1}/${total}: ${file.name}`
+  return (totalProgress / uploadQueueEntries.length) * 100;
+}
+
+function updateQueueEntry(entry, patch) {
+  Object.assign(entry, patch);
+  renderUploadQueue();
+
+  const stats = uploadQueueStats();
+  const percent = calculateQueueOverallPercent();
+
+  const text = stats.failed
+    ? `${stats.success}/${stats.total} berhasil • ${stats.failed} gagal`
+    : stats.uploading
+      ? `${stats.success}/${stats.total} berhasil • sedang mengunggah`
+      : `${stats.success}/${stats.total} berhasil`;
+
+  setUploadProgressPercent(percent, text);
+}
+
+async function uploadOneQueueEntry(activityId, entry) {
+  updateQueueEntry(entry, {
+    status: "uploading",
+    progress: 0,
+    error: ""
+  });
+
+  try {
+    let result;
+
+    if (entry.file.type.startsWith("video/")) {
+      result = await uploadVideoChunked(
+        activityId,
+        entry,
+        ratio => {
+          entry.progress = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+          renderUploadQueue();
+          setUploadProgressPercent(
+            calculateQueueOverallPercent(),
+            `🎬 ${entry.file.name} • ${entry.progress}%`
+          );
+        }
       );
+    } else {
+      const data = new FormData();
+      data.append("file", entry.file, entry.file.name);
+      data.append("uploadKey", entry.uploadKey);
 
-      await uploadVideoChunked(activityId, file, i, total);
-
-      setUploadProgressPercent(
-        overallUploadPercent(i, total, 1),
-        `🎬 Video ${i + 1}/${total} tersimpan utuh di Google Drive.`
+      result = await apiFetch(
+        `/api/activities/${encodeURIComponent(activityId)}/files`,
+        {
+          method: "POST",
+          body: data
+        }
       );
-      continue;
     }
 
-    setUploadProgressPercent(
-      overallUploadPercent(i, total, 0),
-      `📷 Mengunggah ${i + 1}/${total}: ${file.name}`
-    );
+    updateQueueEntry(entry, {
+      status: "success",
+      progress: 100,
+      error: "",
+      result
+    });
 
-    const data = new FormData();
-    data.append("file", file, file.name);
+    return { ok: true, entry };
+  } catch (error) {
+    updateQueueEntry(entry, {
+      status: "failed",
+      progress: 0,
+      error: error?.message || "Upload gagal."
+    });
 
-    await apiFetch(
-      `/api/activities/${encodeURIComponent(activityId)}/files`,
-      {
-        method: "POST",
-        body: data
-      }
-    );
-
-    setUploadProgressPercent(
-      overallUploadPercent(i, total, 1),
-      `📷 Foto ${i + 1}/${total} tersimpan.`
-    );
+    return { ok: false, entry, error };
   }
-
-  return total;
 }
 
-async function submitRemoteActivity(payload) {
+async function processUploadQueue(activityId, { retryFailedOnly = false } = {}) {
+  if (uploadQueueRunning) {
+    return uploadQueueStats();
+  }
+
+  uploadQueueRunning = true;
+  renderUploadQueue();
+
+  try {
+    const targets = uploadQueueEntries.filter(entry =>
+      retryFailedOnly
+        ? entry.status === "failed"
+        : entry.status !== "success"
+    );
+
+    for (const entry of targets) {
+      await uploadOneQueueEntry(activityId, entry);
+    }
+  } finally {
+    uploadQueueRunning = false;
+    renderUploadQueue();
+  }
+
+  return uploadQueueStats();
+}
+
+async function createRemoteActivity(payload) {
   setUploadProgress(
     0,
-    Math.max(selectedFiles.length, 1),
-    "Membuat folder kegiatan di Google Drive..."
+    Math.max(uploadQueueEntries.length, 1),
+    "Membuat / mencari folder kegiatan di Google Drive..."
   );
 
-  const activity = await apiFetch("/api/activities", {
+  return apiFetch("/api/activities", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
-
-  await uploadSelectedFilesToActivity(activity.id);
-
-  if (!selectedFiles.length) {
-    setUploadProgress(1, 1, "Kegiatan tersimpan tanpa media.");
-  }
-
-  return activity;
 }
 
-async function submitAdditionalMedia(activityId) {
-  if (!selectedFiles.length) {
-    throw new Error("Pilih minimal satu foto atau video untuk ditambahkan.");
-  }
+function makeSavedActivityFallback(session) {
+  const payload = session.payload || {};
+  const successEntries = uploadQueueEntries.filter(entry => entry.status === "success");
+  const photoCount = successEntries.filter(entry => entry.file.type.startsWith("image/")).length;
+  const videoCount = successEntries.filter(entry => entry.file.type.startsWith("video/")).length;
 
-  setUploadProgress(
-    0,
-    selectedFiles.length,
-    "Menambahkan bahan ke folder kegiatan..."
+  return {
+    id: session.activityId,
+    name: payload.name || session.created?.name || "Kegiatan",
+    division: payload.division || session.created?.division || "-",
+    place: payload.location || session.created?.location || "-",
+    photos: photoCount,
+    videos: videoCount,
+    media: successEntries.length,
+    publication: session.created?.publication || payload.publication || { requested: false },
+    status: photoCount >= 3 ? "Lengkap" : "Minim",
+    date: payload.date ? formatDate(payload.date) : (session.created?.date || "-"),
+    dateIso: payload.date || session.created?.date || "",
+    description: payload.description || "",
+    coordinates: payload.coordinates || null,
+    folderUrl: session.created?.folderUrl || ""
+  };
+}
+
+async function finalizeSuccessfulUploadSession() {
+  const session = activeUploadSession;
+  if (!session) return;
+
+  galleryFolderFilesCache.delete(String(session.activityId));
+  await loadActivitiesFromApi();
+
+  let savedActivity = activities.find(
+    item => String(item.id) === String(session.activityId)
   );
 
-  await uploadSelectedFilesToActivity(activityId);
-  return { id: activityId };
+  if (!savedActivity) {
+    savedActivity = makeSavedActivityFallback(session);
+  }
+
+  if (
+    session.kind === "new" &&
+    session.publicationRequested &&
+    !session.created?.reusedExisting &&
+    !session.notificationSent
+  ) {
+    try {
+      await apiFetch(
+        `/api/activities/${encodeURIComponent(session.activityId)}/publication/notify`,
+        { method: "POST" }
+      );
+      session.notificationSent = true;
+    } catch (notifyError) {
+      console.warn("Notifikasi bot belum terkirim:", notifyError.message);
+    }
+  }
+
+  if (session.kind === "existing") {
+    successContext = "existing";
+  } else {
+    successContext = session.created?.reusedExisting ? "merged" : "new";
+
+    if (session.created?.reusedExisting) {
+      showToast("Kegiatan identik ditemukan — dokumentasi otomatis digabung.");
+    }
+  }
+
+  const form = $("#documentationForm");
+  form.reset();
+
+  selectedFiles = [];
+  coordinates = null;
+  selectedExistingActivityId = "";
+  clearSharedContributionTarget();
+  $("#photoInput").value = "";
+  $("#previewGrid").innerHTML = "";
+  document.querySelector(".direct-video-note")?.remove();
+  $("#gpsStatus").textContent = "Koordinat belum diambil.";
+  $("#activityDate").value = new Date().toISOString().slice(0, 10);
+  $("#publicationRequester").value = "";
+  $("#publicationNote").value = "";
+
+  const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
+  if (docMode) docMode.checked = true;
+
+  const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
+  if (postType) postType.checked = true;
+
+  const submitButton = $("#submitDocumentation");
+  submitButton.disabled = false;
+
+  resetUploadProgress();
+  resetUploadQueueState();
+  setDocumentationMode("new");
+  syncPublicationUi();
+
+  showSuccessScreen(savedActivity);
 }
+
+async function handleQueueResult() {
+  const stats = uploadQueueStats();
+  const submitButton = $("#submitDocumentation");
+
+  if (!stats.failed && stats.success === stats.total) {
+    await finalizeSuccessfulUploadSession();
+    return true;
+  }
+
+  submitButton.disabled = true;
+  submitButton.textContent = `${stats.failed} Upload Gagal`;
+
+  setUploadProgressPercent(
+    calculateQueueOverallPercent(),
+    `${stats.success} berhasil • ${stats.failed} gagal — coba lagi yang gagal saja.`
+  );
+
+  showToast(
+    `${stats.success} berhasil • ${stats.failed} gagal. File sukses nggak akan diupload ulang.`
+  );
+
+  renderUploadQueue();
+  return false;
+}
+
+async function retryFailedQueueEntries() {
+  if (!activeUploadSession || uploadQueueRunning) return;
+
+  const failed = uploadQueueEntries.filter(entry => entry.status === "failed");
+  if (!failed.length) {
+    showToast("Nggak ada file gagal yang perlu dicoba lagi.");
+    return;
+  }
+
+  const retryButton = $("#retryFailedUploads");
+  const submitButton = $("#submitDocumentation");
+  retryButton.disabled = true;
+  submitButton.disabled = true;
+
+  try {
+    await processUploadQueue(activeUploadSession.activityId, {
+      retryFailedOnly: true
+    });
+
+    await handleQueueResult();
+  } finally {
+    if (activeUploadSession) {
+      retryButton.disabled = false;
+    }
+  }
+}
+
+$("#retryFailedUploads").addEventListener("click", retryFailedQueueEntries);
 
 $("#documentationForm").addEventListener("submit", async event => {
   event.preventDefault();
+
+  if (uploadQueueRunning) return;
+
+  if (activeUploadSession && uploadQueueEntries.some(entry => entry.status === "failed")) {
+    showToast("Masih ada file gagal. Pakai tombol 'Coba Lagi yang Gagal'.");
+    return;
+  }
 
   const submitButton = $("#submitDocumentation");
   const isExisting = documentationMode === "existing";
@@ -2914,10 +3274,6 @@ $("#documentationForm").addEventListener("submit", async event => {
   } else if (!name || !division || !location || !date) {
     return;
   }
-
-  const photoCountAtSubmit = selectedFiles.filter(file => file.type.startsWith("image/")).length;
-  const videoCountAtSubmit = selectedFiles.filter(file => file.type.startsWith("video/")).length;
-  const mediaCountAtSubmit = selectedFiles.length;
 
   const publicationMode =
     document.querySelector('input[name="publicationMode"]:checked')?.value || "documentation";
@@ -2947,80 +3303,55 @@ $("#documentationForm").addEventListener("submit", async event => {
     publication
   };
 
+  // File dipilih sebelum queue 06.8 dibuat? Sinkronkan sekarang.
+  if (selectedFiles.length && uploadQueueEntries.length !== selectedFiles.length) {
+    makeUploadQueue(selectedFiles);
+    renderUploadQueue();
+  }
+
   submitButton.disabled = true;
-  submitButton.textContent = isExisting
-    ? "Menambahkan..."
-    : (backendOnline ? "Mengirim..." : "Menyimpan...");
+  submitButton.textContent = isExisting ? "Menambahkan..." : "Mengirim...";
 
   try {
-    let savedActivity;
-
     if (isExisting) {
       if (!backendOnline) {
         throw new Error("Tambah ke kegiatan lama membutuhkan koneksi ke SI ALIF.");
       }
 
-      await submitAdditionalMedia(selectedExistingActivityId);
-      galleryFolderFilesCache.delete(String(selectedExistingActivityId));
-      await loadActivitiesFromApi();
-
-      savedActivity = activities.find(
-        item => String(item.id) === String(selectedExistingActivityId)
-      );
-
-      if (!savedActivity) {
-        throw new Error("Kegiatan tujuan tidak ditemukan setelah upload.");
-      }
-
-      successContext = "existing";
-    } else if (backendOnline) {
-      const created = await submitRemoteActivity(payload);
-
-      if (publication.requested && !created.reusedExisting) {
-        try {
-          await apiFetch(`/api/activities/${encodeURIComponent(created.id)}/publication/notify`, {
-            method: "POST"
-          });
-        } catch (notifyError) {
-          console.warn("Notifikasi bot belum terkirim:", notifyError.message);
-        }
-      }
-
-      await loadActivitiesFromApi();
-
-      savedActivity = activities.find(item => String(item.id) === String(created.id)) || {
-        id: created.id,
-        name,
-        division,
-        place: location,
-        photos: photoCountAtSubmit,
-        videos: videoCountAtSubmit,
-        media: mediaCountAtSubmit,
-        publication,
-        status: photoCountAtSubmit >= 3 ? "Lengkap" : "Minim",
-        date: formatDate(date),
-        dateIso: date,
-        description,
-        coordinates,
-        folderUrl: created.folderUrl || ""
+      activeUploadSession = {
+        kind: "existing",
+        activityId: selectedExistingActivityId,
+        payload: null,
+        created: null,
+        publicationRequested: false,
+        notificationSent: false
       };
+    } else if (backendOnline) {
+      const created = await createRemoteActivity(payload);
 
-      successContext = created.reusedExisting ? "merged" : "new";
-
-      if (created.reusedExisting) {
-        showToast("Kegiatan identik ditemukan — dokumentasi otomatis digabung.");
-      }
+      activeUploadSession = {
+        kind: "new",
+        activityId: created.id,
+        payload,
+        created,
+        publicationRequested: Boolean(publication.requested),
+        notificationSent: false
+      };
     } else {
-      savedActivity = {
+      // Fallback lama tetap dipertahankan untuk kondisi backend offline.
+      const photoCount = selectedFiles.filter(file => file.type.startsWith("image/")).length;
+      const videoCount = selectedFiles.filter(file => file.type.startsWith("video/")).length;
+
+      const savedActivity = {
         id: Date.now(),
         name,
         division,
         place: location,
-        photos: photoCountAtSubmit,
-        videos: videoCountAtSubmit,
-        media: mediaCountAtSubmit,
+        photos: photoCount,
+        videos: videoCount,
+        media: selectedFiles.length,
         publication,
-        status: photoCountAtSubmit >= 3 ? "Lengkap" : "Minim",
+        status: photoCount >= 3 ? "Lengkap" : "Minim",
         date: formatDate(date),
         dateIso: date,
         description,
@@ -3032,38 +3363,43 @@ $("#documentationForm").addEventListener("submit", async event => {
       localStorage.setItem("si-alif-activities", JSON.stringify(activities));
       refreshLists();
       successContext = "new";
+      showSuccessScreen(savedActivity);
+      submitButton.disabled = false;
+      submitButton.textContent = "Kirim Dokumentasi";
+      return;
     }
 
-    event.target.reset();
-    selectedFiles = [];
-    coordinates = null;
-    selectedExistingActivityId = "";
-    clearSharedContributionTarget();
-    $("#previewGrid").innerHTML = "";
-    document.querySelector(".direct-video-note")?.remove();
-    $("#gpsStatus").textContent = "Koordinat belum diambil.";
-    $("#activityDate").value = new Date().toISOString().slice(0, 10);
-    $("#publicationRequester").value = "";
-    $("#publicationNote").value = "";
+    if (!uploadQueueEntries.length) {
+      await finalizeSuccessfulUploadSession();
+      return;
+    }
 
-    const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
-    if (docMode) docMode.checked = true;
-
-    const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
-    if (postType) postType.checked = true;
-
-    setDocumentationMode("new");
-    syncPublicationUi();
-    resetUploadProgress();
-    showSuccessScreen(savedActivity);
+    await processUploadQueue(activeUploadSession.activityId);
+    await handleQueueResult();
   } catch (error) {
     showToast(`Upload gagal: ${error.message}`);
     setUploadProgress(0, 1, `Gagal: ${error.message}`);
-  } finally {
-    submitButton.disabled = false;
-    submitButton.textContent = documentationMode === "existing"
-      ? "Tambahkan Bahan"
-      : "Kirim Dokumentasi";
+
+    // Kalau folder belum berhasil dibuat, aman untuk mencoba submit lagi.
+    if (!activeUploadSession) {
+      submitButton.disabled = false;
+      submitButton.textContent = isExisting
+        ? "Tambahkan Bahan"
+        : "Kirim Dokumentasi";
+    } else {
+      // Folder sudah ada, tapi error pipeline global. Jadikan entry yang belum
+      // sukses sebagai failed agar retry tidak membuat folder baru.
+      uploadQueueEntries.forEach(entry => {
+        if (entry.status !== "success") {
+          entry.status = "failed";
+          entry.progress = 0;
+          entry.error = entry.error || error.message;
+        }
+      });
+      renderUploadQueue();
+      submitButton.disabled = true;
+      submitButton.textContent = "Ada Upload Gagal";
+    }
   }
 });
 
@@ -3174,6 +3510,7 @@ $("#successViewGallery").addEventListener("click", () => {
 $("#resetButton").addEventListener("click", () => {
   selectedFiles = [];
   coordinates = null;
+  resetUploadQueueState();
   $("#previewGrid").innerHTML = "";
   $("#gpsStatus").textContent = "Koordinat belum diambil.";
   resetUploadProgress();

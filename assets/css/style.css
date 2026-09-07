@@ -4382,3 +4382,198 @@ body.trash-modal-open {
     align-items: flex-start;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.8 — UPLOAD QUEUE + RETRY
+   ========================= */
+
+.upload-queue {
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.upload-queue[hidden] {
+  display: none !important;
+}
+
+.upload-queue-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 11px;
+  border-bottom: 1px solid var(--border);
+  background: #fbf9fe;
+}
+
+.upload-queue-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.upload-queue-head strong {
+  font-size: 9px;
+}
+
+.upload-queue-head small {
+  color: var(--text-faint);
+  font-size: 7px;
+  line-height: 1.4;
+}
+
+.upload-retry-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 7px 9px;
+  font-size: 8px;
+}
+
+.upload-queue-list {
+  max-height: 235px;
+  overflow: auto;
+  padding: 7px;
+}
+
+.upload-queue-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(78px, auto);
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  border-radius: 10px;
+}
+
+.upload-queue-item + .upload-queue-item {
+  margin-top: 4px;
+}
+
+.upload-queue-item.status-failed {
+  background: #fff6f7;
+}
+
+.upload-queue-item.status-success {
+  background: #f8fbf8;
+}
+
+.upload-queue-item.status-uploading {
+  background: #faf7ff;
+}
+
+.upload-queue-status {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #f0ebf8;
+  color: var(--primary-strong);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.status-success .upload-queue-status {
+  background: #e9f5ec;
+  color: #367047;
+}
+
+.status-failed .upload-queue-status {
+  background: #fde7ea;
+  color: #a33c4e;
+}
+
+.upload-queue-file {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.upload-queue-file strong {
+  overflow: hidden;
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-queue-file span,
+.upload-queue-file small {
+  color: var(--text-faint);
+  font-size: 7px;
+}
+
+.upload-queue-file small {
+  color: #a33c4e;
+  line-height: 1.35;
+}
+
+.upload-queue-state {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.upload-queue-state strong {
+  font-size: 7px;
+  white-space: nowrap;
+}
+
+.upload-queue-mini-track {
+  width: 72px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ece8f2;
+}
+
+.upload-queue-mini-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width .12s linear;
+}
+
+.status-success .upload-queue-mini-track i {
+  background: #5d8a69;
+}
+
+.status-failed .upload-queue-mini-track i {
+  background: #b54f60;
+}
+
+@media (max-width: 760px) {
+  .upload-queue-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .upload-retry-button {
+    width: 100%;
+  }
+
+  .upload-queue-list {
+    max-height: 210px;
+  }
+
+  .upload-queue-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .upload-queue-state {
+    grid-column: 2;
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .upload-queue-state strong {
+    text-align: right;
+  }
+
+  .upload-queue-mini-track {
+    width: 100%;
+  }
+}
