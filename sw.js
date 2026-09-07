@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-5-1-lock-delete-order";
+const CACHE = "si-alif-06-5-2-mobile-pin-polish";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0651",
-  "./assets/js/config.js?v=0651",
-  "./assets/js/app.js?v=0651",
+  "./assets/css/style.css?v=0652",
+  "./assets/js/config.js?v=0652",
+  "./assets/js/app.js?v=0652",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

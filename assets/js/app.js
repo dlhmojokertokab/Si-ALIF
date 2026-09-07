@@ -1977,12 +1977,15 @@ function renderOrders() {
 }
 
 async function completeOrder(activityId, button) {
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
   const original = button.textContent;
   button.disabled = true;
   button.textContent = "Menyimpan...";
 
   try {
-    await apiFetch(`/api/activities/${encodeURIComponent(activityId)}/publication`, {
+    await adminApiFetch(`/api/activities/${encodeURIComponent(activityId)}/publication`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "selesai" })

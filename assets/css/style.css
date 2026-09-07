@@ -3866,3 +3866,180 @@ body.edit-modal-open {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.5.2 — MOBILE DASHBOARD + BALANCED NAV
+   ========================= */
+
+@media (max-width: 760px) {
+  .main {
+    padding-bottom: 86px;
+  }
+
+  /* Dashboard hero: lebih pendek dan nggak makan satu layar */
+  .dashboard-hero {
+    gap: 15px;
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .dashboard-hero h2 {
+    margin: 4px 0 7px;
+    font-size: 25px;
+    line-height: 1.08;
+  }
+
+  .dashboard-hero p {
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .dashboard-hero-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .dashboard-hero-actions button,
+  .dashboard-hero-actions .big {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 8px;
+    font-size: 10px;
+    border-radius: 12px;
+  }
+
+  /* Tiga angka penting cukup satu baris, bukan tiga kartu raksasa */
+  .dashboard-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    margin-top: 10px;
+  }
+
+  .dashboard-summary-card {
+    min-width: 0;
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 11px 6px;
+    border-radius: 14px;
+    text-align: center;
+  }
+
+  .dashboard-summary-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  .dashboard-summary-card div {
+    width: 100%;
+    justify-items: center;
+    gap: 2px;
+  }
+
+  .dashboard-summary-card small {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 7px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dashboard-summary-card strong {
+    font-size: 21px;
+  }
+
+  .dashboard-summary-card span:last-child {
+    font-size: 7px;
+    line-height: 1.25;
+  }
+
+  .dashboard-work-grid {
+    margin-top: 10px;
+    gap: 10px;
+  }
+
+  .dashboard-quick-panel {
+    margin-top: 10px;
+  }
+
+  .dashboard-quick-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+
+  .dashboard-quick-action {
+    padding: 10px;
+  }
+
+  /* Bottom nav: 4 tombol, 4 kolom. Tidak ada plus yang nyelonong sendiri. */
+  .mobile-nav {
+    grid-template-columns: repeat(4, 1fr);
+    align-items: stretch;
+    gap: 0;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .mobile-item {
+    position: relative;
+    min-height: 54px;
+    align-content: center;
+    gap: 2px;
+    padding: 5px 4px;
+    border-radius: 12px;
+  }
+
+  .mobile-item span {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    font-size: 18px;
+  }
+
+  .mobile-item small {
+    font-size: 8px;
+  }
+
+  .mobile-item.active span {
+    background: var(--primary-soft);
+    color: var(--primary);
+  }
+
+  .mobile-submit span {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 5px 12px rgba(123,97,181,.2);
+  }
+
+  .mobile-submit.active span {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .mobile-count {
+    top: 4px;
+    right: calc(50% - 24px);
+  }
+}
+
+@media (max-width: 390px) {
+  .dashboard-hero h2 {
+    font-size: 23px;
+  }
+
+  .dashboard-summary-card {
+    padding-inline: 4px;
+  }
+
+  .dashboard-summary-card small,
+  .dashboard-summary-card span:last-child {
+    font-size: 6.5px;
+  }
+}

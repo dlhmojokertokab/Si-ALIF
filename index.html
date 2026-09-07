@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0651" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0652" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -45,7 +45,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.5.1</strong>
+        <strong>SI ALIF 06.5.2</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -74,8 +74,8 @@
             <p>Setor dokumentasi, cek pesanan, atau buka bahan terbaru tanpa muter-muter menu.</p>
           </div>
           <div class="dashboard-hero-actions">
-            <button class="primary big" type="button" data-view="submit">＋ Setor Dokumentasi</button>
-            <button class="secondary big" type="button" data-dashboard-existing>↳ Tambah ke Kegiatan Lama</button>
+            <button class="primary big" type="button" data-view="submit">＋ Setor Baru</button>
+            <button class="secondary big" type="button" data-dashboard-existing>↳ Tambah Bahan</button>
           </div>
         </div>
 
@@ -632,16 +632,22 @@
     </main>
 
     <nav class="mobile-nav" aria-label="Navigasi mobile">
-      <button class="mobile-item active" data-view="dashboard"><span>⌂</span><small>Beranda</small></button>
-      <button class="mobile-add" data-view="submit" aria-label="Setor dokumentasi">＋</button>
-      <button class="mobile-item" data-view="gallery"><span>▧</span><small>Galeri</small></button>
+      <button class="mobile-item active" data-view="dashboard">
+        <span>⌂</span><small>Beranda</small>
+      </button>
+      <button class="mobile-item mobile-submit" data-view="submit">
+        <span>＋</span><small>Setor</small>
+      </button>
+      <button class="mobile-item" data-view="gallery">
+        <span>▧</span><small>Galeri</small>
+      </button>
       <button class="mobile-item mobile-orders" data-view="orders">
         <span>✦</span><small>Pesanan</small><b class="mobile-count" id="ordersMobileCount" hidden>0</b>
       </button>
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0651"></script>
-  <script src="./assets/js/app.js?v=0651"></script>
+  <script src="./assets/js/config.js?v=0652"></script>
+  <script src="./assets/js/app.js?v=0652"></script>
 </body>
 </html>
