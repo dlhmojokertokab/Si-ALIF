@@ -1,10 +1,10 @@
-const CACHE = "si-alif-07-2-readability-polish";
+const CACHE = "si-alif-07-3-admin-workspace";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0720",
-  "./assets/js/config.js?v=0720",
-  "./assets/js/app.js?v=0720",
+  "./assets/css/style.css?v=0730",
+  "./assets/js/config.js?v=0730",
+  "./assets/js/app.js?v=0730",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg",
   "./assets/brand/si-alif-doodle-logo.png",

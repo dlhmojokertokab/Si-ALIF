@@ -20,6 +20,7 @@ let backendOnline = false;
 let telegramConfigured = false;
 let adminDeleteConfigured = false;
 let adminToken = sessionStorage.getItem("si-alif-admin-token") || "";
+let adminMode = Boolean(adminToken);
 let apiPin = localStorage.getItem("si-alif-api-pin") || "";
 let lastSubmittedActivityId = null;
 let currentDetailActivityId = null;
@@ -51,16 +52,31 @@ const filterState = {
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
-let currentView = "dashboard";
+let currentView = adminMode ? "dashboard" : "submit";
 let routingReady = false;
 let handlingRoute = false;
 
-const SI_ALIF_NAV_VERSION = 661;
+const SI_ALIF_NAV_VERSION = 730;
 let currentNavLevel = 0;
 let pendingBoundedNavigation = null;
 let skippingOldHistory = false;
 
+function workspaceHomeHash() {
+  return adminMode ? "#dashboard" : "#submit";
+}
+
+function isAdminOnlyView(view) {
+  return view === "dashboard" || view === "orders";
+}
+
+function sanitizeWorkspaceView(view) {
+  if (!adminMode && isAdminOnlyView(view)) return "submit";
+  return view;
+}
+
 function routeHash(view, options = {}) {
+  view = sanitizeWorkspaceView(view);
+
   const activityId = options.activityId ? encodeURIComponent(String(options.activityId)) : "";
   const galleryFolderId = options.galleryFolderId ? encodeURIComponent(String(options.galleryFolderId)) : "";
   const submitActivityId = options.submitActivityId ? encodeURIComponent(String(options.submitActivityId)) : "";
@@ -83,10 +99,12 @@ function routeHash(view, options = {}) {
 }
 
 function parseRouteValue(hashValue = window.location.hash) {
-  const raw = String(hashValue || "#dashboard").replace(/^#/, "");
+  const raw = String(hashValue || workspaceHomeHash()).replace(/^#/, "");
   const parts = raw.split("/").filter(Boolean);
-  const view = parts[0] || "dashboard";
+  let view = parts[0] || workspaceHomeHash().replace(/^#/, "");
   const id = parts[1] ? decodeURIComponent(parts.slice(1).join("/")) : "";
+
+  view = sanitizeWorkspaceView(view);
 
   if (view === "submit") {
     return { view: "submit", submitActivityId: id || null };
@@ -108,7 +126,7 @@ function parseRouteValue(hashValue = window.location.hash) {
     return { view };
   }
 
-  return { view: "dashboard" };
+  return { view: adminMode ? "dashboard" : "submit" };
 }
 
 function parseRouteHash() {
@@ -118,7 +136,11 @@ function parseRouteHash() {
 function routeLevel(hashValue) {
   const route = parseRouteValue(hashValue);
 
-  if (route.view === "dashboard") return 0;
+  const isHome =
+    (adminMode && route.view === "dashboard") ||
+    (!adminMode && route.view === "submit" && !route.submitActivityId);
+
+  if (isHome) return 0;
 
   if (
     (route.view === "gallery" && route.galleryFolderId) ||
@@ -128,7 +150,6 @@ function routeLevel(hashValue) {
     return 2;
   }
 
-  // success dianggap satu langkah dari Dashboard.
   return 1;
 }
 
@@ -139,7 +160,7 @@ function parentHashFor(hashValue) {
   if (route.view === "submit" && route.submitActivityId) return "#submit";
   if (route.view === "detail") return "#gallery";
 
-  return "#dashboard";
+  return workspaceHomeHash();
 }
 
 function makeNavState(hashValue, level = routeLevel(hashValue)) {
@@ -197,7 +218,7 @@ function buildTargetFromDashboard(hashValue) {
   const level = routeLevel(hashValue);
 
   if (level === 0) {
-    replaceBoundedState("#dashboard", 0);
+    replaceBoundedState(workspaceHomeHash(), 0);
     applyRouteFromHash();
     return;
   }
@@ -221,7 +242,7 @@ function runPendingBoundedNavigation() {
   pendingBoundedNavigation = null;
 
   // Kita seharusnya sudah kembali ke Dashboard sentinel.
-  replaceBoundedState("#dashboard", 0);
+  replaceBoundedState(workspaceHomeHash(), 0);
   buildTargetFromDashboard(target);
   return true;
 }
@@ -231,7 +252,7 @@ function goBackToDashboardThen(targetHash = null) {
     if (targetHash) {
       buildTargetFromDashboard(targetHash);
     } else {
-      replaceBoundedState("#dashboard", 0);
+      replaceBoundedState(workspaceHomeHash(), 0);
       applyRouteFromHash();
     }
     return;
@@ -402,7 +423,7 @@ function renderDetailForActivity(item) {
   $("#detailCoordinates").textContent = formatCoordinates(item.coordinates);
 
   const publicationField = $("#detailPublicationField");
-  if (item.publication?.requested) {
+  if (adminMode && item.publication?.requested) {
     publicationField.hidden = false;
     $("#detailPublication").textContent =
       `${publicationTypeLabel(item.publication.type)} • Pemesan: ${item.publication.requesterName || "-"} • ${publicationStatusLabel(item.publication.status)}`;
@@ -493,9 +514,16 @@ function applyRouteFromHash() {
 
 function initializeRouting() {
   const savedRoute = sessionStorage.getItem("si-alif-route");
-  const requestedHash =
+  const rawRequestedHash =
     window.location.hash ||
-    (savedRoute && savedRoute.startsWith("#") ? savedRoute : "#dashboard");
+    (savedRoute && savedRoute.startsWith("#") ? savedRoute : workspaceHomeHash());
+
+  const parsedRequested = parseRouteValue(rawRequestedHash);
+  const requestedHash = routeHash(parsedRequested.view, {
+    activityId: parsedRequested.activityId,
+    galleryFolderId: parsedRequested.galleryFolderId,
+    submitActivityId: parsedRequested.submitActivityId
+  });
 
   routingReady = true;
 
@@ -514,14 +542,14 @@ function initializeRouting() {
   // current entry dijadikan sentinel Dashboard,
   // lalu route yang diminta dibangun maksimal 2 lapis di atasnya.
   history.replaceState(
-    makeNavState("#dashboard", 0),
+    makeNavState(workspaceHomeHash(), 0),
     "",
-    "#dashboard"
+    workspaceHomeHash()
   );
   currentNavLevel = 0;
-  syncSavedRoute("#dashboard");
+  syncSavedRoute(workspaceHomeHash());
 
-  if (requestedHash !== "#dashboard") {
+  if (requestedHash !== workspaceHomeHash()) {
     buildTargetFromDashboard(requestedHash);
   } else {
     applyRouteFromHash();
@@ -1393,7 +1421,7 @@ function renderGalleryFolders(items) {
         <span class="gallery-folder-count">${activityMediaCount(item)} media</span>
 
         <button
-          class="gallery-folder-delete gallery-folder-delete-top"
+          class="gallery-folder-delete gallery-folder-delete-top admin-only"
           type="button"
           title="Hapus folder"
           aria-label="Hapus folder ${escapeHtml(item.name)}"
@@ -1729,7 +1757,7 @@ function createGalleryCard(file, index) {
       ${isVideo ? `<span class="gallery-video-badge">▶ VIDEO</span>` : ""}
       <button class="gallery-check" type="button" aria-label="Pilih ${escapeHtml(file.name)}"></button>
       <button
-        class="gallery-media-delete"
+        class="gallery-media-delete admin-only"
         type="button"
         title="Hapus media"
         aria-label="Hapus ${escapeHtml(file.name)}"
@@ -2332,6 +2360,87 @@ async function saveEditedActivity(event) {
   }
 }
 
+function updateAdminWorkspaceUi() {
+  document.body.classList.toggle("admin-mode", adminMode);
+
+  const button = $("#adminWorkspaceButton");
+  const icon = $("#adminWorkspaceIcon");
+  const text = $("#adminWorkspaceText");
+
+  if (button) {
+    button.classList.toggle("active", adminMode);
+    button.title = adminMode
+      ? "Mode Admin aktif — klik untuk mengunci"
+      : "Buka mode Admin";
+  }
+
+  if (icon) icon.textContent = adminMode ? "🔓" : "🔒";
+  if (text) text.textContent = adminMode ? "Admin Aktif" : "Admin";
+}
+
+function clearAdminSession() {
+  adminToken = "";
+  adminMode = false;
+  sessionStorage.removeItem("si-alif-admin-token");
+  updateAdminWorkspaceUi();
+}
+
+function resetWorkspaceRoute() {
+  const home = workspaceHomeHash();
+
+  history.replaceState(
+    makeNavState(home, 0),
+    "",
+    home
+  );
+
+  currentNavLevel = 0;
+  syncSavedRoute(home);
+
+  if (routingReady) {
+    applyRouteFromHash();
+  }
+}
+
+async function activateAdminWorkspace() {
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return false;
+
+  try {
+    const result = await adminApiFetch("/api/admin/activities", {
+      method: "GET"
+    });
+
+    activities = (result.activities || []).map(normalizeRemoteActivity);
+    adminMode = true;
+    updateAdminWorkspaceUi();
+    refreshLists();
+    resetWorkspaceRoute();
+    showToast("Mode Admin aktif. Dashboard & Pesanan dibuka.");
+    return true;
+  } catch (error) {
+    clearAdminSession();
+    showToast(`Mode Admin gagal dibuka: ${error.message}`);
+    return false;
+  }
+}
+
+async function lockAdminWorkspace() {
+  if (!adminMode) return;
+
+  const ok = window.confirm("Kunci mode Admin dan kembali ke tampilan pegawai?");
+  if (!ok) return;
+
+  clearAdminSession();
+
+  try {
+    await loadActivitiesFromApi({ forcePublic: true });
+  } catch (_) {}
+
+  resetWorkspaceRoute();
+  showToast("Mode Admin dikunci. Tampilan kembali ke Setor + Galeri.");
+}
+
 async function ensureAdminUnlock() {
   if (!adminDeleteConfigured) {
     showToast("ADMIN_DELETE_PIN belum dikonfigurasi di Worker.");
@@ -2377,8 +2486,11 @@ async function adminApiFetch(path, options = {}) {
   });
 
   if (response.status === 403) {
-    adminToken = "";
-    sessionStorage.removeItem("si-alif-admin-token");
+    clearAdminSession();
+
+    if (routingReady && isAdminOnlyView(currentView)) {
+      resetWorkspaceRoute();
+    }
   }
 
   let payload = {};
@@ -2453,10 +2565,14 @@ function renderSiAlifTrash() {
 
   list.innerHTML = "";
   count.textContent = `${siAlifTrashItems.length} item`;
-  empty.hidden = siAlifTrashItems.length > 0;
-  emptyButton.disabled = siAlifTrashItems.length === 0;
+  const isEmpty = siAlifTrashItems.length === 0;
 
-  if (!siAlifTrashItems.length) return;
+  list.hidden = isEmpty;
+  empty.hidden = !isEmpty;
+  emptyButton.disabled = isEmpty;
+  $("#siAlifTrashModal").classList.toggle("trash-empty-state", isEmpty);
+
+  if (isEmpty) return;
 
   siAlifTrashItems.forEach(item => {
     const row = document.createElement("article");
@@ -2524,6 +2640,8 @@ function renderSiAlifTrash() {
 
 async function loadSiAlifTrash() {
   const list = $("#siAlifTrashList");
+  list.hidden = false;
+  $("#siAlifTrashModal").classList.remove("trash-empty-state");
   list.innerHTML = `
     <div class="trash-loading">
       <span class="gallery-spinner">◌</span>
@@ -2862,24 +2980,48 @@ async function checkBackend() {
     updateBotStatus();
     setBackendStatus("online", "Google Drive terhubung");
     await loadActivitiesFromApi();
+    updateAdminWorkspaceUi();
   } catch (error) {
     backendOnline = false;
     telegramConfigured = false;
     updateBotStatus();
     setBackendStatus("offline", "Mode lokal");
     console.warn("SI ALIF backend offline:", error.message);
+    adminMode = false;
+    updateAdminWorkspaceUi();
     activities = JSON.parse(localStorage.getItem("si-alif-activities") || "null") || [];
     refreshLists();
   }
 }
 
-async function loadActivitiesFromApi() {
-  const result = await apiFetch("/api/activities");
+async function loadActivitiesFromApi(options = {}) {
+  const forcePublic = Boolean(options.forcePublic);
+  const wantAdmin = !forcePublic && adminMode && Boolean(adminToken);
+
+  let result;
+
+  if (wantAdmin) {
+    try {
+      result = await adminApiFetch("/api/admin/activities", {
+        method: "GET"
+      });
+    } catch (error) {
+      clearAdminSession();
+      result = await apiFetch("/api/activities");
+    }
+  } else {
+    result = await apiFetch("/api/activities");
+  }
+
   activities = (result.activities || []).map(normalizeRemoteActivity);
   refreshLists();
 
   if (routingReady) {
-    applyRouteFromHash();
+    if (!adminMode && isAdminOnlyView(currentView)) {
+      resetWorkspaceRoute();
+    } else {
+      applyRouteFromHash();
+    }
   }
 }
 
@@ -4026,6 +4168,14 @@ $("#backendStatus").addEventListener("click", async () => {
   await checkBackend();
 });
 
+$("#adminWorkspaceButton").addEventListener("click", async () => {
+  if (adminMode) {
+    await lockAdminWorkspace();
+  } else {
+    await activateAdminWorkspace();
+  }
+});
+
 function showToast(message) {
   const toast = $("#toast");
   toast.textContent = message;
@@ -4034,11 +4184,12 @@ function showToast(message) {
   showToast._timer = setTimeout(() => toast.classList.remove("show"), 3600);
 }
 
+updateAdminWorkspaceUi();
 refreshLists();
 setDocumentationMode("new");
 
-// Baca URL lebih dulu supaya refresh tidak sempat menampilkan Dashboard.
-// Data Google Drive dimuat setelah view yang benar sudah terpilih.
+// Role diambil dari token sesi bila ada; backend akan memverifikasi token itu
+// saat data dimuat. Staff tanpa Admin selalu beranda di Setor.
 initializeRouting();
 checkBackend();
 

@@ -7,11 +7,11 @@
   <meta name="description" content="SI ALIF — Sistem Informasi Aktivitas, Lokasi, Informasi, dan Foto" />
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" href="./assets/icons/favicon.ico?v=0720" sizes="any" />
-  <link rel="icon" href="./assets/icons/si-alif-favicon-32.png?v=0720" type="image/png" sizes="32x32" />
-  <link rel="icon" href="./assets/icons/si-alif-favicon-192.png?v=0720" type="image/png" sizes="192x192" />
-  <link rel="apple-touch-icon" href="./assets/icons/si-alif-favicon-180.png?v=0720" sizes="180x180" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0720" />
+  <link rel="icon" href="./assets/icons/favicon.ico?v=0730" sizes="any" />
+  <link rel="icon" href="./assets/icons/si-alif-favicon-32.png?v=0730" type="image/png" sizes="32x32" />
+  <link rel="icon" href="./assets/icons/si-alif-favicon-192.png?v=0730" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="./assets/icons/si-alif-favicon-180.png?v=0730" sizes="180x180" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0730" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -32,7 +32,7 @@
       </div>
 
       <nav class="side-nav">
-        <button class="nav-item active" data-view="dashboard">
+        <button class="nav-item active admin-nav-only" data-view="dashboard">
           <span>⌂</span><span>Dashboard</span>
         </button>
         <button class="nav-item" data-view="submit">
@@ -41,14 +41,14 @@
         <button class="nav-item" data-view="gallery">
           <span>▧</span><span>Galeri</span>
         </button>
-        <button class="nav-item nav-orders" data-view="orders">
+        <button class="nav-item nav-orders admin-nav-only" data-view="orders">
           <span>✦</span><span>Pesanan Medsos</span>
           <b class="nav-count" id="ordersNavCount" hidden>0</b>
         </button>
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 07.2</strong>
+        <strong>SI ALIF 07.3</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -73,6 +73,10 @@
         </div>
         <div class="topbar-actions">
           <button class="status-pill" id="backendStatus" type="button" title="Status koneksi backend"><span class="status-dot"></span><span id="backendStatusText">Memeriksa Drive...</span></button>
+          <button class="admin-workspace-button" id="adminWorkspaceButton" type="button" title="Buka mode Admin">
+            <span id="adminWorkspaceIcon">🔒</span>
+            <span id="adminWorkspaceText">Admin</span>
+          </button>
         </div>
       </header>
 
@@ -470,7 +474,7 @@
                 <p>Semua kegiatan tersimpan sebagai folder. Buka folder untuk melihat foto, video, dan detail dokumentasi.</p>
                 <div class="filter-summary gallery-filter-summary" id="galleryFilterResult">Semua folder</div>
               </div>
-              <button class="secondary gallery-trash-action" id="openSiAlifTrash" type="button">🗑 Trash SI ALIF</button>
+              <button class="secondary gallery-trash-action admin-only" id="openSiAlifTrash" type="button">🗑 Trash SI ALIF</button>
             </div>
 
             <div class="smart-filter-bar gallery-filter-bar" data-filter-scope="gallery">
@@ -517,8 +521,8 @@
               <div class="gallery-photo-header-actions">
                 <button class="primary" id="galleryAddMaterial" type="button">＋ Tambah Bahan</button>
                 <button class="secondary" id="galleryShareContribution" type="button">🔗 Bagikan</button>
-                <button class="secondary" id="galleryEditInfo" type="button">✎ Edit Info</button>
-                <button class="secondary" id="galleryMergeActivity" type="button">⇄ Gabungkan</button>
+                <button class="secondary admin-only" id="galleryEditInfo" type="button">✎ Edit Info</button>
+                <button class="secondary admin-only" id="galleryMergeActivity" type="button">⇄ Gabungkan</button>
                 <a class="button-link" id="galleryFolderDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
                 
               </div>
@@ -533,8 +537,8 @@
                 <button class="secondary" id="gallerySelectAll" type="button">Pilih Semua</button>
                 <button class="secondary" id="galleryClearSelection" type="button">Kosongkan</button>
                 <button class="primary" id="galleryDownloadSelected" type="button" disabled>↓ Download Terpilih</button>
-                <button class="secondary" id="galleryMoveSelected" type="button" disabled>⇄ Pindahkan</button>
-                <button class="danger-button" id="galleryDeleteSelected" type="button" disabled>🗑 Hapus Terpilih</button>
+                <button class="secondary admin-only" id="galleryMoveSelected" type="button" disabled>⇄ Pindahkan</button>
+                <button class="danger-button admin-only" id="galleryDeleteSelected" type="button" disabled>🗑 Hapus Terpilih</button>
               </div>
             </div>
 
@@ -717,7 +721,7 @@
           <div class="media-lightbox-actions">
             <button class="secondary" id="lightboxDownload" type="button">↓ Download</button>
             <a class="button-link" id="lightboxDrive" href="#" target="_blank" rel="noopener">Drive ↗</a>
-            <button class="danger-button" id="lightboxDelete" type="button">🗑 Hapus Media</button>
+            <button class="danger-button admin-only" id="lightboxDelete" type="button">🗑 Hapus Media</button>
           </div>
         </div>
       </div>
@@ -749,7 +753,7 @@
     </main>
 
     <nav class="mobile-nav" aria-label="Navigasi mobile">
-      <button class="mobile-item active" data-view="dashboard">
+      <button class="mobile-item active admin-nav-only" data-view="dashboard">
         <span>⌂</span><small>Beranda</small>
       </button>
       <button class="mobile-item mobile-submit" data-view="submit">
@@ -758,13 +762,13 @@
       <button class="mobile-item" data-view="gallery">
         <span>▧</span><small>Galeri</small>
       </button>
-      <button class="mobile-item mobile-orders" data-view="orders">
+      <button class="mobile-item mobile-orders admin-nav-only" data-view="orders">
         <span>✦</span><small>Pesanan</small><b class="mobile-count" id="ordersMobileCount" hidden>0</b>
       </button>
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0720"></script>
-  <script src="./assets/js/app.js?v=0720"></script>
+  <script src="./assets/js/config.js?v=0730"></script>
+  <script src="./assets/js/app.js?v=0730"></script>
 </body>
 </html>
