@@ -1,4 +1,4 @@
-const CACHE = "si-alif-04-1-history-instant-gallery";
+const CACHE = "si-alif-04-2-all-photo-gallery";
 const ASSETS = [
   "./",
   "./index.html",

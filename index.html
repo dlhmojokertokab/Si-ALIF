@@ -305,26 +305,13 @@
 
       <section class="view" id="view-gallery">
         <article class="panel gallery-panel">
-          <div class="gallery-head">
+          <div class="gallery-head gallery-head-all">
             <div>
               <span class="eyebrow">Foto asli dari Google Drive</span>
-              <h3>Galeri Aktivitas</h3>
-              <p>Aktivitas terbaru langsung terbuka. Tinggal centang foto yang dibutuhkan atau ganti aktivitas.</p>
+              <h3>Galeri SI ALIF</h3>
+              <p>Semua dokumentasi langsung tampil di sini, dikelompokkan per aktivitas. Tinggal pilih foto yang dibutuhkan.</p>
             </div>
-            <div class="gallery-picker">
-              <label for="galleryActivitySelect">Ganti Aktivitas</label>
-              <select id="galleryActivitySelect">
-                <option value="">Aktivitas terbaru</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="gallery-activity-bar" id="galleryActivityBar" hidden>
-            <div class="gallery-activity-info">
-              <strong id="galleryActivityName">Aktivitas</strong>
-              <span id="galleryActivityMeta">-</span>
-            </div>
-            <a class="button-link" id="galleryDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
+            <button class="secondary gallery-back-button" type="button" data-history-back>← Kembali</button>
           </div>
 
           <div class="gallery-toolbar" id="galleryToolbar" hidden>
@@ -340,12 +327,12 @@
           </div>
 
           <div class="gallery-state" id="galleryState">
-            <div class="empty-icon">▧</div>
-            <h3>Pilih aktivitas dulu</h3>
-            <p>Foto kegiatan akan muncul sebagai thumbnail di sini.</p>
+            <div class="empty-icon gallery-spinner">◌</div>
+            <h3>Mengambil galeri...</h3>
+            <p>Membaca dokumentasi dari Google Drive.</p>
           </div>
 
-          <div class="gallery-grid" id="galleryGrid"></div>
+          <div class="gallery-groups" id="galleryGroups"></div>
         </article>
       </section>
 
