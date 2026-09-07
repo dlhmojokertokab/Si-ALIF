@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0622" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0630" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -45,7 +45,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.2.2</strong>
+        <strong>SI ALIF 06.3</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -146,13 +146,34 @@
             </div>
 
             <form id="documentationForm">
-              <div class="field-grid">
+              <div class="documentation-mode">
+                <button class="documentation-mode-card active" type="button" data-documentation-mode="new">
+                  <strong>＋ Kegiatan Baru</strong>
+                  <span>Buat folder kegiatan baru.</span>
+                </button>
+                <button class="documentation-mode-card" type="button" data-documentation-mode="existing">
+                  <strong>↳ Tambah ke Kegiatan Lama</strong>
+                  <span>Gabungkan bahan dari orang lain ke folder yang sama.</span>
+                </button>
+              </div>
+
+              <div class="existing-activity-picker" id="existingActivitySection" hidden>
                 <label class="field field-wide">
+                  <span>Pilih kegiatan yang sudah ada</span>
+                  <select id="existingActivitySelect">
+                    <option value="">Pilih folder kegiatan</option>
+                  </select>
+                  <small>Foto/video baru akan masuk ke folder ini tanpa membuat kegiatan duplikat.</small>
+                </label>
+              </div>
+
+              <div class="field-grid">
+                <label class="field field-wide new-activity-only">
                   <span>Nama kegiatan</span>
                   <input id="activityName" required placeholder="Contoh: Pembinaan TPS3R Desa Kesiman" />
                 </label>
 
-                <label class="field">
+                <label class="field new-activity-only">
                   <span>Bidang</span>
                   <select id="division" required>
                     <option value="">Pilih bidang</option>
@@ -164,12 +185,12 @@
                   </select>
                 </label>
 
-                <label class="field">
+                <label class="field new-activity-only">
                   <span>Tanggal</span>
                   <input id="activityDate" type="date" required />
                 </label>
 
-                <label class="field field-wide">
+                <label class="field field-wide new-activity-only">
                   <span>Lokasi</span>
                   <div class="input-action">
                     <input id="locationText" required placeholder="Desa/Kecamatan atau nama lokasi" />
@@ -178,12 +199,12 @@
                   <small id="gpsStatus">Koordinat belum diambil.</small>
                 </label>
 
-                <label class="field field-wide">
+                <label class="field field-wide new-activity-only">
                   <span>Keterangan singkat</span>
                   <textarea id="description" rows="3" maxlength="300" placeholder="Apa yang dilakukan / hasil singkat kegiatan"></textarea>
                 </label>
 
-                <div class="field field-wide publication-field">
+                <div class="field field-wide publication-field new-activity-only">
                   <span>Tujuan dokumentasi</span>
 
                   <div class="publication-choice-grid">
@@ -286,9 +307,9 @@
         <div class="success-wrap">
           <article class="panel success-card">
             <div class="success-icon">✓</div>
-            <span class="eyebrow">Dokumentasi tersimpan</span>
-            <h2>Berhasil masuk SI ALIF</h2>
-            <p class="success-lead">Dokumentasi asli sudah tersimpan rapi di Google Drive. 💜</p>
+            <span class="eyebrow" id="successEyebrow">Dokumentasi tersimpan</span>
+            <h2 id="successTitle">Berhasil masuk SI ALIF</h2>
+            <p class="success-lead" id="successLead">Dokumentasi asli sudah tersimpan rapi di Google Drive. 💜</p>
 
             <div class="success-summary">
               <div class="success-summary-main">
@@ -297,7 +318,7 @@
               </div>
               <div class="success-photo-count">
                 <strong id="successPhotoCount">0</strong>
-                <span>foto</span>
+                <span>media</span>
               </div>
             </div>
 
@@ -414,6 +435,8 @@
                 <p id="galleryFolderMeta">-</p>
               </div>
               <div class="gallery-photo-header-actions">
+                <button class="primary" id="galleryAddMaterial" type="button">＋ Tambah Bahan</button>
+                <button class="secondary" id="galleryEditInfo" type="button">✎ Edit Info</button>
                 <a class="button-link" id="galleryFolderDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
                 
               </div>
@@ -442,6 +465,60 @@
 
         </article>
       </section>
+
+      <div class="edit-activity-modal" id="editActivityModal" hidden>
+        <div class="edit-activity-backdrop" data-edit-close></div>
+        <div class="edit-activity-dialog" role="dialog" aria-modal="true" aria-labelledby="editActivityTitle">
+          <div class="edit-activity-head">
+            <div>
+              <span class="eyebrow">Admin</span>
+              <h3 id="editActivityTitle">Edit Info Kegiatan</h3>
+            </div>
+            <button class="lightbox-close" type="button" data-edit-close aria-label="Tutup">×</button>
+          </div>
+
+          <form id="editActivityForm">
+            <div class="field-grid">
+              <label class="field field-wide">
+                <span>Nama kegiatan</span>
+                <input id="editActivityName" required maxlength="180">
+              </label>
+
+              <label class="field">
+                <span>Bidang</span>
+                <select id="editActivityDivision" required>
+                  <option value="">Pilih bidang</option>
+                  <option>Sekretariat</option>
+                  <option>PSLB3</option>
+                  <option>PPKL</option>
+                  <option>Penaatan</option>
+                  <option>UPTD Laboratorium Lingkungan</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Tanggal</span>
+                <input id="editActivityDate" type="date" required>
+              </label>
+
+              <label class="field field-wide">
+                <span>Lokasi</span>
+                <input id="editActivityLocation" required maxlength="180">
+              </label>
+
+              <label class="field field-wide">
+                <span>Keterangan singkat</span>
+                <textarea id="editActivityDescription" rows="3" maxlength="300"></textarea>
+              </label>
+            </div>
+
+            <div class="form-actions edit-activity-actions">
+              <button class="secondary" type="button" data-edit-close>Batal</button>
+              <button class="primary" id="saveActivityInfo" type="submit">Simpan Perubahan</button>
+            </div>
+          </form>
+        </div>
+      </div>
 
       <div class="media-lightbox" id="mediaLightbox" hidden>
         <div class="media-lightbox-backdrop" data-lightbox-close></div>
@@ -509,7 +586,7 @@
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0622"></script>
-  <script src="./assets/js/app.js?v=0622"></script>
+  <script src="./assets/js/config.js?v=0630"></script>
+  <script src="./assets/js/app.js?v=0630"></script>
 </body>
 </html>

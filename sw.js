@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-2-2-direct-media-delete";
+const CACHE = "si-alif-06-3-add-material-edit-info";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0622",
-  "./assets/js/config.js?v=0622",
-  "./assets/js/app.js?v=0622",
+  "./assets/css/style.css?v=0630",
+  "./assets/js/config.js?v=0630",
+  "./assets/js/app.js?v=0630",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

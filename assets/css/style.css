@@ -3292,3 +3292,134 @@ body.lightbox-open {
     right: 7px;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.3 — TAMBAH BAHAN + EDIT INFO
+   ========================= */
+
+.documentation-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 13px;
+}
+
+.documentation-mode-card {
+  display: grid;
+  gap: 4px;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: #fff;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.documentation-mode-card strong {
+  font-size: 12px;
+}
+
+.documentation-mode-card span {
+  color: var(--text-faint);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.documentation-mode-card.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: 0 0 0 2px rgba(123,97,181,.08);
+}
+
+.existing-activity-picker {
+  margin-bottom: 13px;
+  padding: 13px;
+  border: 1px solid #d9cbed;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #f7f2ff, #fcfbff);
+}
+
+body.edit-modal-open {
+  overflow: hidden;
+}
+
+.edit-activity-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.edit-activity-modal[hidden] {
+  display: none;
+}
+
+.edit-activity-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(25,18,34,.68);
+  backdrop-filter: blur(8px);
+}
+
+.edit-activity-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(680px, 94vw);
+  max-height: 90dvh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(40,25,60,.24);
+}
+
+.edit-activity-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 16px 17px;
+  border-bottom: 1px solid var(--border);
+}
+
+.edit-activity-head h3 {
+  margin: 2px 0 0;
+  font-size: 18px;
+}
+
+.edit-activity-dialog form {
+  padding: 16px 17px 18px;
+}
+
+.edit-activity-actions {
+  margin-top: 14px;
+}
+
+@media (max-width: 760px) {
+  .documentation-mode {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery-photo-header-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gallery-photo-header-actions .button-link {
+    grid-column: 1 / -1;
+  }
+
+  .edit-activity-modal {
+    padding: 0;
+  }
+
+  .edit-activity-dialog {
+    width: 100vw;
+    max-height: 100dvh;
+    min-height: 100dvh;
+    border-radius: 0;
+  }
+}

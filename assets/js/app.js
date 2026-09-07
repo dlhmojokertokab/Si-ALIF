@@ -29,6 +29,9 @@ let galleryFolderFilesCache = new Map();
 let galleryLoading = false;
 let lightboxIndex = -1;
 let lightboxObjectUrl = "";
+let documentationMode = "new";
+let selectedExistingActivityId = "";
+let successContext = "new";
 
 const filterState = {
   query: "",
@@ -136,6 +139,17 @@ function renderSuccessForActivity(item) {
   if (!item) return false;
 
   lastSubmittedActivityId = item.id || null;
+
+  if (successContext === "existing") {
+    $("#successEyebrow").textContent = "Bahan ditambahkan";
+    $("#successTitle").textContent = "Berhasil gabung ke folder";
+    $("#successLead").textContent = "Foto/video tambahan sudah masuk ke kegiatan yang sama. Nggak bikin folder kembar. 💜";
+  } else {
+    $("#successEyebrow").textContent = "Dokumentasi tersimpan";
+    $("#successTitle").textContent = "Berhasil masuk SI ALIF";
+    $("#successLead").textContent = "Dokumentasi asli sudah tersimpan rapi di Google Drive. 💜";
+  }
+
   $("#successActivityName").textContent = item.name || "Aktivitas";
   $("#successActivityMeta").textContent = [
     item.division || "-",
@@ -363,9 +377,68 @@ function renderActivities(target, list) {
   });
 }
 
+
+function populateExistingActivitySelect() {
+  const select = $("#existingActivitySelect");
+  if (!select) return;
+
+  const current = selectedExistingActivityId || select.value;
+  select.innerHTML = `<option value="">Pilih folder kegiatan</option>`;
+
+  activities.forEach(item => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = `${item.date} — ${item.name} • ${item.division} • ${item.place}`;
+    select.appendChild(option);
+  });
+
+  if (current && activities.some(item => String(item.id) === String(current))) {
+    select.value = current;
+  }
+}
+
+function setDocumentationMode(mode, activityId = "") {
+  documentationMode = mode === "existing" ? "existing" : "new";
+
+  $$("[data-documentation-mode]").forEach(button => {
+    button.classList.toggle("active", button.dataset.documentationMode === documentationMode);
+  });
+
+  const existing = documentationMode === "existing";
+  $("#existingActivitySection").hidden = !existing;
+
+  $$(".new-activity-only").forEach(element => {
+    element.hidden = existing;
+  });
+
+  ["activityName", "division", "activityDate", "locationText"].forEach(id => {
+    const field = $(`#${id}`);
+    if (field) field.required = !existing;
+  });
+
+  $("#existingActivitySelect").required = existing;
+
+  if (activityId) {
+    selectedExistingActivityId = String(activityId);
+    populateExistingActivitySelect();
+    $("#existingActivitySelect").value = selectedExistingActivityId;
+  }
+
+  $("#submitDocumentation").textContent = existing
+    ? "Tambahkan Bahan"
+    : "Kirim Dokumentasi";
+}
+
+function openAddMaterialForActivity(activityId) {
+  selectedExistingActivityId = String(activityId || "");
+  setDocumentationMode("existing", selectedExistingActivityId);
+  navigateTo("submit");
+}
+
 function refreshLists() {
   renderActivities("#recentActivities", activities.slice(0, 4));
   populateMonthFilters();
+  populateExistingActivitySelect();
   syncFilterControls();
   updateStats();
 
@@ -1342,6 +1415,90 @@ async function downloadSelectedGalleryFiles() {
 
 
 
+
+function closeEditActivityModal() {
+  $("#editActivityModal").hidden = true;
+  document.body.classList.remove("edit-modal-open");
+}
+
+async function openEditActivityModal() {
+  const item = activities.find(
+    activity => String(activity.id) === String(galleryActivityId)
+  );
+
+  if (!item) {
+    showToast("Kegiatan tidak ditemukan.");
+    return;
+  }
+
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
+  $("#editActivityName").value = item.name || "";
+  $("#editActivityDivision").value = item.division || "";
+  $("#editActivityDate").value = item.dateIso || "";
+  $("#editActivityLocation").value = item.place || "";
+  $("#editActivityDescription").value = item.description || "";
+
+  $("#editActivityModal").hidden = false;
+  document.body.classList.add("edit-modal-open");
+}
+
+async function saveEditedActivity(event) {
+  event.preventDefault();
+
+  const item = activities.find(
+    activity => String(activity.id) === String(galleryActivityId)
+  );
+  if (!item) return;
+
+  const payload = {
+    name: $("#editActivityName").value.trim(),
+    division: $("#editActivityDivision").value,
+    date: $("#editActivityDate").value,
+    location: $("#editActivityLocation").value.trim(),
+    description: $("#editActivityDescription").value.trim()
+  };
+
+  if (!payload.name || !payload.division || !payload.date || !payload.location) {
+    showToast("Nama, bidang, tanggal, dan lokasi wajib diisi.");
+    return;
+  }
+
+  const button = $("#saveActivityInfo");
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Menyimpan...";
+
+  try {
+    await adminApiFetch(`/api/activities/${encodeURIComponent(item.id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    await loadActivitiesFromApi();
+    closeEditActivityModal();
+
+    const updated = activities.find(
+      activity => String(activity.id) === String(item.id)
+    );
+
+    if (updated) {
+      $("#galleryFolderName").textContent = updated.name;
+      $("#galleryFolderMeta").textContent =
+        `${updated.division} • ${updated.place} • ${updated.date} • ${mediaSummary(updated)}`;
+    }
+
+    showToast("Info kegiatan diperbarui.");
+  } catch (error) {
+    showToast(`Gagal menyimpan perubahan: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
 async function ensureAdminUnlock() {
   if (!adminDeleteConfigured) {
     showToast("ADMIN_DELETE_PIN belum dikonfigurasi di Worker.");
@@ -1948,19 +2105,7 @@ async function uploadVideoChunked(activityId, file, fileIndex, totalFiles) {
   return finalFile;
 }
 
-async function submitRemoteActivity(payload) {
-  setUploadProgress(
-    0,
-    Math.max(selectedFiles.length, 1),
-    "Membuat folder kegiatan di Google Drive..."
-  );
-
-  const activity = await apiFetch("/api/activities", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
+async function uploadSelectedFilesToActivity(activityId) {
   const total = selectedFiles.length;
 
   for (let i = 0; i < total; i++) {
@@ -1973,7 +2118,7 @@ async function submitRemoteActivity(payload) {
         `Menyiapkan upload video ${i + 1}/${total}: ${file.name}`
       );
 
-      await uploadVideoChunked(activity.id, file, i, total);
+      await uploadVideoChunked(activityId, file, i, total);
 
       setUploadProgressPercent(
         overallUploadPercent(i, total, 1),
@@ -1991,7 +2136,7 @@ async function submitRemoteActivity(payload) {
     data.append("file", file, file.name);
 
     await apiFetch(
-      `/api/activities/${encodeURIComponent(activity.id)}/files`,
+      `/api/activities/${encodeURIComponent(activityId)}/files`,
       {
         method: "POST",
         body: data
@@ -2004,24 +2149,73 @@ async function submitRemoteActivity(payload) {
     );
   }
 
-  if (!total) {
+  return total;
+}
+
+async function submitRemoteActivity(payload) {
+  setUploadProgress(
+    0,
+    Math.max(selectedFiles.length, 1),
+    "Membuat folder kegiatan di Google Drive..."
+  );
+
+  const activity = await apiFetch("/api/activities", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  await uploadSelectedFilesToActivity(activity.id);
+
+  if (!selectedFiles.length) {
     setUploadProgress(1, 1, "Kegiatan tersimpan tanpa media.");
   }
 
   return activity;
 }
 
+async function submitAdditionalMedia(activityId) {
+  if (!selectedFiles.length) {
+    throw new Error("Pilih minimal satu foto atau video untuk ditambahkan.");
+  }
+
+  setUploadProgress(
+    0,
+    selectedFiles.length,
+    "Menambahkan bahan ke folder kegiatan..."
+  );
+
+  await uploadSelectedFilesToActivity(activityId);
+  return { id: activityId };
+}
+
 $("#documentationForm").addEventListener("submit", async event => {
   event.preventDefault();
+
+  const submitButton = $("#submitDocumentation");
+  const isExisting = documentationMode === "existing";
 
   const name = $("#activityName").value.trim();
   const division = $("#division").value;
   const location = $("#locationText").value.trim();
   const date = $("#activityDate").value;
   const description = $("#description").value.trim();
-  const submitButton = $("#submitDocumentation");
 
-  if (!name || !division || !location || !date) return;
+  if (isExisting) {
+    selectedExistingActivityId = $("#existingActivitySelect").value;
+
+    if (!selectedExistingActivityId) {
+      showToast("Pilih kegiatan yang mau ditambahi bahan.");
+      return;
+    }
+
+    if (!selectedFiles.length) {
+      showToast("Pilih minimal satu foto atau video.");
+      return;
+    }
+  } else if (!name || !division || !location || !date) {
+    return;
+  }
 
   const photoCountAtSubmit = selectedFiles.filter(file => file.type.startsWith("image/")).length;
   const videoCountAtSubmit = selectedFiles.filter(file => file.type.startsWith("video/")).length;
@@ -2030,7 +2224,7 @@ $("#documentationForm").addEventListener("submit", async event => {
   const publicationMode =
     document.querySelector('input[name="publicationMode"]:checked')?.value || "documentation";
 
-  const publication = publicationMode === "request"
+  const publication = !isExisting && publicationMode === "request"
     ? {
         requested: true,
         type: document.querySelector('input[name="publicationType"]:checked')?.value || "instagram_post",
@@ -2056,12 +2250,32 @@ $("#documentationForm").addEventListener("submit", async event => {
   };
 
   submitButton.disabled = true;
-  submitButton.textContent = backendOnline ? "Mengirim..." : "Menyimpan...";
+  submitButton.textContent = isExisting
+    ? "Menambahkan..."
+    : (backendOnline ? "Mengirim..." : "Menyimpan...");
 
   try {
     let savedActivity;
 
-    if (backendOnline) {
+    if (isExisting) {
+      if (!backendOnline) {
+        throw new Error("Tambah ke kegiatan lama membutuhkan koneksi ke SI ALIF.");
+      }
+
+      await submitAdditionalMedia(selectedExistingActivityId);
+      galleryFolderFilesCache.delete(String(selectedExistingActivityId));
+      await loadActivitiesFromApi();
+
+      savedActivity = activities.find(
+        item => String(item.id) === String(selectedExistingActivityId)
+      );
+
+      if (!savedActivity) {
+        throw new Error("Kegiatan tujuan tidak ditemukan setelah upload.");
+      }
+
+      successContext = "existing";
+    } else if (backendOnline) {
       const created = await submitRemoteActivity(payload);
 
       if (publication.requested) {
@@ -2075,6 +2289,7 @@ $("#documentationForm").addEventListener("submit", async event => {
       }
 
       await loadActivitiesFromApi();
+
       savedActivity = activities.find(item => String(item.id) === String(created.id)) || {
         id: created.id,
         name,
@@ -2091,6 +2306,8 @@ $("#documentationForm").addEventListener("submit", async event => {
         coordinates,
         folderUrl: created.folderUrl || ""
       };
+
+      successContext = "new";
     } else {
       savedActivity = {
         id: Date.now(),
@@ -2108,30 +2325,32 @@ $("#documentationForm").addEventListener("submit", async event => {
         coordinates,
         folderUrl: ""
       };
+
       activities.unshift(savedActivity);
       localStorage.setItem("si-alif-activities", JSON.stringify(activities));
       refreshLists();
+      successContext = "new";
     }
 
     event.target.reset();
     selectedFiles = [];
     coordinates = null;
+    selectedExistingActivityId = "";
     $("#previewGrid").innerHTML = "";
+    document.querySelector(".direct-video-note")?.remove();
     $("#gpsStatus").textContent = "Koordinat belum diambil.";
     $("#activityDate").value = new Date().toISOString().slice(0, 10);
-
     $("#publicationRequester").value = "";
     $("#publicationNote").value = "";
 
-    $("#publicationRequester").value = "";
-  $("#publicationNote").value = "";
-
-  const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
+    const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
     if (docMode) docMode.checked = true;
+
     const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
     if (postType) postType.checked = true;
-    syncPublicationUi();
 
+    setDocumentationMode("new");
+    syncPublicationUi();
     resetUploadProgress();
     showSuccessScreen(savedActivity);
   } catch (error) {
@@ -2139,13 +2358,37 @@ $("#documentationForm").addEventListener("submit", async event => {
     setUploadProgress(0, 1, `Gagal: ${error.message}`);
   } finally {
     submitButton.disabled = false;
-    submitButton.textContent = "Kirim Dokumentasi";
+    submitButton.textContent = documentationMode === "existing"
+      ? "Tambahkan Bahan"
+      : "Kirim Dokumentasi";
   }
 });
 
 $("#successViewOrder").addEventListener("click", () => {
   navigateTo("orders");
 });
+
+$$("[data-documentation-mode]").forEach(button => {
+  button.addEventListener("click", () => {
+    setDocumentationMode(button.dataset.documentationMode);
+  });
+});
+
+$("#existingActivitySelect").addEventListener("change", event => {
+  selectedExistingActivityId = event.target.value;
+});
+
+$("#galleryAddMaterial").addEventListener("click", () => {
+  if (galleryActivityId) openAddMaterialForActivity(galleryActivityId);
+});
+
+$("#galleryEditInfo").addEventListener("click", openEditActivityModal);
+
+$$("[data-edit-close]").forEach(element => {
+  element.addEventListener("click", closeEditActivityModal);
+});
+
+$("#editActivityForm").addEventListener("submit", saveEditedActivity);
 
 $("#emptySiAlifTrash").addEventListener("click", emptyTrashSiAlif);
 
@@ -2215,6 +2458,8 @@ $("#resetButton").addEventListener("click", () => {
   if (docMode) docMode.checked = true;
   const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
   if (postType) postType.checked = true;
+  selectedExistingActivityId = "";
+  setDocumentationMode("new");
   syncPublicationUi();
 
   setTimeout(() => {
@@ -2236,6 +2481,7 @@ function showToast(message) {
 }
 
 refreshLists();
+setDocumentationMode("new");
 
 // Baca URL lebih dulu supaya refresh tidak sempat menampilkan Dashboard.
 // Data Google Drive dimuat setelah view yang benar sudah terpilih.
