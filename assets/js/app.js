@@ -511,9 +511,7 @@ function populateExistingActivitySelect() {
   const current = selectedExistingActivityId || select.value;
   select.innerHTML = `<option value="">Pilih folder kegiatan</option>`;
 
-  const eligibleActivities = activities.filter(item =>
-    Number(item.media || item.photos || item.videos || 0) > 0
-  );
+  const eligibleActivities = activities.filter(activityHasMedia);
 
   eligibleActivities.forEach(item => {
     const option = document.createElement("option");
@@ -674,7 +672,19 @@ function activeFilterCount() {
   return Object.values(filterState).filter(Boolean).length;
 }
 
-function updateFilterSummaries(activityCount = null, photoCount = null) {
+
+function activityMediaCount(item) {
+  const explicit = Number(item.media || 0);
+  if (explicit > 0) return explicit;
+
+  return Number(item.photos || 0) + Number(item.videos || 0);
+}
+
+function activityHasMedia(item) {
+  return activityMediaCount(item) > 0;
+}
+
+function updateFilterSummaries(activityCount = null, mediaCount = null) {
   const filtered = getFilteredActivities();
   const shownActivities = activityCount ?? filtered.length;
   const filters = activeFilterCount();
@@ -688,13 +698,16 @@ function updateFilterSummaries(activityCount = null, photoCount = null) {
 
   const galleryResult = $("#galleryFilterResult");
   if (galleryResult) {
-    const galleryActivities = filtered.filter(item => Number(item.photos || 0) > 0);
-    const totalPhotos = photoCount ?? galleryActivities.reduce((sum, item) => sum + Number(item.photos || 0), 0);
+    const galleryActivities = filtered.filter(activityHasMedia);
+    const totalMedia = mediaCount ?? galleryActivities.reduce(
+      (sum, item) => sum + activityMediaCount(item),
+      0
+    );
     const folderCount = activityCount ?? galleryActivities.length;
 
     galleryResult.textContent = filters
-      ? `${folderCount} folder • ${totalPhotos} foto • ${filters} filter aktif`
-      : `${galleryActivities.length} folder • ${totalPhotos} foto`;
+      ? `${folderCount} folder • ${totalMedia} media • ${filters} filter aktif`
+      : `${galleryActivities.length} folder • ${totalMedia} media`;
   }
 }
 
@@ -704,11 +717,11 @@ function applyActivityFilters() {
 }
 
 function applyGalleryFilters() {
-  const filtered = getFilteredActivities().filter(item => Number(item.photos || 0) > 0);
+  const filtered = getFilteredActivities().filter(activityHasMedia);
   renderGalleryFolders(filtered);
   updateFilterSummaries(
     filtered.length,
-    filtered.reduce((sum, item) => sum + Number(item.photos || 0), 0)
+    filtered.reduce((sum, item) => sum + activityMediaCount(item), 0)
   );
 }
 
@@ -1028,7 +1041,7 @@ function renderGalleryFolders(items) {
   cleanupFolderCoverUrls();
   grid.innerHTML = "";
 
-  const folders = items.filter(item => Number(item.media || item.photos || 0) > 0);
+  const folders = items.filter(activityHasMedia);
 
   if (!folders.length) {
     state.hidden = false;
@@ -1057,7 +1070,7 @@ function renderGalleryFolders(items) {
           <div class="gallery-folder-icon">▧</div>
         </div>
         <img class="gallery-folder-cover" alt="" loading="lazy">
-        <span class="gallery-folder-count">${Number(item.media || item.photos || 0)} media</span>
+        <span class="gallery-folder-count">${activityMediaCount(item)} media</span>
 
         <button
           class="gallery-folder-delete gallery-folder-delete-top"

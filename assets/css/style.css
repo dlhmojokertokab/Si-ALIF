@@ -3546,3 +3546,9 @@ body.edit-modal-open {
 .shared-contribution-banner[hidden] {
   display: none !important;
 }
+
+
+/* =========================
+   SI ALIF 06.4.2 — MEDIA CONSISTENCY HOTFIX
+   Galeri + picker memakai satu aturan: foto ATAU video.
+   ========================= */

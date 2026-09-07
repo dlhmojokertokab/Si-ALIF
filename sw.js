@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-4-1-existing-mode-fix";
+const CACHE = "si-alif-06-4-2-media-consistency";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0641",
-  "./assets/js/config.js?v=0641",
-  "./assets/js/app.js?v=0641",
+  "./assets/css/style.css?v=0642",
+  "./assets/js/config.js?v=0642",
+  "./assets/js/app.js?v=0642",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];
