@@ -114,6 +114,7 @@ function navigateTo(view, options = {}) {
     history.pushState(state, "", hash);
   }
 
+  sessionStorage.setItem("si-alif-route", hash);
   applyRouteFromHash();
 }
 
@@ -228,28 +229,34 @@ function applyRouteFromHash() {
 }
 
 function initializeRouting() {
-  const requestedHash = window.location.hash || "#dashboard";
+  const savedRoute = sessionStorage.getItem("si-alif-route");
+  const requestedHash =
+    window.location.hash ||
+    (savedRoute && savedRoute.startsWith("#") ? savedRoute : "#dashboard");
 
   routingReady = true;
 
-  // Direct load / refresh on a nested SI ALIF page should still have
-  // an in-app Dashboard entry behind it, so Back does not immediately
-  // leave the site.
-  if (requestedHash !== "#dashboard") {
-    history.replaceState({ siAlifRoute: true }, "", "#dashboard");
-    history.pushState({ siAlifRoute: true }, "", requestedHash);
+  if (window.location.hash !== requestedHash) {
+    history.replaceState({ siAlifRoute: true }, "", requestedHash);
   } else {
-    history.replaceState({ siAlifRoute: true }, "", "#dashboard");
+    history.replaceState({ siAlifRoute: true }, "", window.location.href);
   }
 
+  sessionStorage.setItem("si-alif-route", requestedHash);
   applyRouteFromHash();
 }
 
 window.addEventListener("popstate", () => {
+  if (window.location.hash) {
+    sessionStorage.setItem("si-alif-route", window.location.hash);
+  }
   applyRouteFromHash();
 });
 
 window.addEventListener("hashchange", () => {
+  if (window.location.hash) {
+    sessionStorage.setItem("si-alif-route", window.location.hash);
+  }
   applyRouteFromHash();
 });
 
