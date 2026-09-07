@@ -16,7 +16,8 @@ let selectedFiles = [];
 let coordinates = null;
 let backendOnline = false;
 let telegramConfigured = false;
-let orderStatusFilter = "all";
+let adminDeleteConfigured = false;
+let adminToken = sessionStorage.getItem("si-alif-admin-token") || "";
 let apiPin = localStorage.getItem("si-alif-api-pin") || "";
 let lastSubmittedActivityId = null;
 let currentDetailActivityId = null;
@@ -176,7 +177,7 @@ function renderDetailForActivity(item) {
   if (item.publication?.requested) {
     publicationField.hidden = false;
     $("#detailPublication").textContent =
-      `${publicationTypeLabel(item.publication.type)} • ${publicationStatusLabel(item.publication.status)}`;
+      `${publicationTypeLabel(item.publication.type)} • Pemesan: ${item.publication.requesterName || "-"} • ${publicationStatusLabel(item.publication.status)}`;
   } else {
     publicationField.hidden = true;
   }
@@ -652,6 +653,7 @@ function normalizeRemoteActivity(item) {
     publication: {
       requested: Boolean(item.publication?.requested),
       type: item.publication?.type || "",
+      requesterName: item.publication?.requesterName || "",
       note: item.publication?.note || "",
       status: item.publication?.status || "",
       requestedAt: item.publication?.requestedAt || "",
@@ -1023,70 +1025,179 @@ async function downloadSelectedGalleryFiles() {
 }
 
 
+
+async function ensureAdminUnlock() {
+  if (!adminDeleteConfigured) {
+    showToast("ADMIN_DELETE_PIN belum dikonfigurasi di Worker.");
+    return false;
+  }
+
+  if (adminToken) return true;
+
+  const pin = window.prompt("Masukkan PIN admin SI ALIF:");
+  if (pin === null) return false;
+
+  try {
+    const result = await apiFetch("/api/admin/unlock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pin: pin.trim() })
+    });
+
+    adminToken = result.token || "";
+    if (!adminToken) throw new Error("Token admin tidak diterima.");
+
+    sessionStorage.setItem("si-alif-admin-token", adminToken);
+    showToast("Admin Unlock aktif untuk sesi ini.");
+    return true;
+  } catch (error) {
+    adminToken = "";
+    sessionStorage.removeItem("si-alif-admin-token");
+    showToast(error.message || "PIN admin salah.");
+    return false;
+  }
+}
+
+async function adminApiFetch(path, options = {}) {
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) throw new Error("Admin belum dibuka.");
+
+  const headers = new Headers(options.headers || {});
+  headers.set("X-SI-ALIF-Admin", adminToken);
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers
+  });
+
+  if (response.status === 403) {
+    adminToken = "";
+    sessionStorage.removeItem("si-alif-admin-token");
+  }
+
+  let payload = {};
+  try { payload = await response.json(); } catch (_) {}
+
+  if (!response.ok) {
+    throw new Error(payload?.error || `HTTP ${response.status}`);
+  }
+
+  return payload;
+}
+
+async function deleteCurrentActivity() {
+  const item = activities.find(activity => String(activity.id) === String(currentDetailActivityId));
+  if (!item) {
+    showToast("Aktivitas tidak ditemukan.");
+    return;
+  }
+
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
+  const ok = window.confirm(
+    `Hapus aktivitas "${item.name}" dari SI ALIF dan pindahkan foldernya ke Trash Google Drive?\n\nFile belum dihapus permanen sampai Trash SI ALIF dikosongkan.`
+  );
+  if (!ok) return;
+
+  const button = $("#deleteActivityFromDrive");
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Menghapus...";
+
+  try {
+    await adminApiFetch(`/api/activities/${encodeURIComponent(item.id)}`, {
+      method: "DELETE"
+    });
+
+    await loadActivitiesFromApi();
+    showToast("Aktivitas dipindahkan ke Trash SI ALIF.");
+    navigateTo("activities", { replace: true });
+  } catch (error) {
+    showToast(`Gagal menghapus: ${error.message}`);
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+async function emptyTrashSiAlif() {
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
+  const ok = window.confirm(
+    "Kosongkan Trash SI ALIF?\n\nHanya folder aktivitas SI ALIF yang sudah berada di Trash yang akan dihapus PERMANEN. File Trash Google Drive lain tidak disentuh."
+  );
+  if (!ok) return;
+
+  const really = window.confirm(
+    "Ini tidak bisa dibatalkan. Lanjut hapus permanen semua aktivitas SI ALIF di Trash?"
+  );
+  if (!really) return;
+
+  const button = $("#emptySiAlifTrash");
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Mengosongkan...";
+
+  try {
+    const result = await adminApiFetch("/api/admin/trash/empty", {
+      method: "POST"
+    });
+
+    showToast(
+      result.deletedCount
+        ? `${result.deletedCount} folder SI ALIF dihapus permanen.`
+        : "Trash SI ALIF sudah kosong."
+    );
+  } catch (error) {
+    showToast(`Gagal mengosongkan Trash: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
 function requestedOrders() {
-  return activities.filter(item => item.publication?.requested);
+  return activities.filter(item =>
+    item.publication?.requested &&
+    (item.publication.status || "baru") !== "selesai" &&
+    (item.publication.status || "baru") !== "dihapus"
+  );
 }
 
 function renderOrders() {
   const box = $("#ordersList");
   if (!box) return;
 
-  const allOrders = requestedOrders();
-  const counts = {
-    all: allOrders.length,
-    baru: allOrders.filter(item => (item.publication.status || "baru") === "baru").length,
-    diproses: allOrders.filter(item => item.publication.status === "diproses").length,
-    selesai: allOrders.filter(item => item.publication.status === "selesai").length
-  };
+  const orders = requestedOrders();
+  const activeCount = orders.length;
 
-  $("#orderCountAll").textContent = counts.all;
-  $("#orderCountNew").textContent = counts.baru;
-  $("#orderCountProcess").textContent = counts.diproses;
-  $("#orderCountDone").textContent = counts.selesai;
+  $("#orderCountActive").textContent = activeCount;
 
   const navCount = $("#ordersNavCount");
   const mobileCount = $("#ordersMobileCount");
   [navCount, mobileCount].forEach(el => {
     if (!el) return;
-    el.textContent = counts.baru;
-    el.hidden = counts.baru === 0;
+    el.textContent = activeCount;
+    el.hidden = activeCount === 0;
   });
-
-  $$(".order-tab").forEach(button => {
-    button.classList.toggle("active", button.dataset.orderFilter === orderStatusFilter);
-  });
-
-  const filtered = allOrders.filter(item =>
-    orderStatusFilter === "all" ||
-    (item.publication.status || "baru") === orderStatusFilter
-  );
 
   box.innerHTML = "";
 
-  if (!filtered.length) {
+  if (!orders.length) {
     box.innerHTML = `
       <div class="orders-empty">
-        <div>✦</div>
-        <strong>${allOrders.length ? "Tidak ada pesanan di status ini" : "Belum ada pesanan medsos"}</strong>
-        <span>${allOrders.length ? "Coba pilih tab status lain." : "Kalau pegawai memilih Ajukan Publikasi, pesanannya muncul di sini."}</span>
+        <div>✓</div>
+        <strong>To do list kosong</strong>
+        <span>Pesanan yang selesai atau dihapus otomatis hilang dari sini.</span>
       </div>
     `;
     return;
   }
 
-  filtered.forEach(item => {
-    const status = item.publication.status || "baru";
+  orders.forEach(item => {
     const card = document.createElement("article");
-    card.className = `order-card order-${status}`;
-
-    let primaryAction = "";
-    if (status === "baru") {
-      primaryAction = `<button class="primary order-status-action" data-order-id="${escapeHtml(item.id)}" data-next-status="diproses">Mulai Proses</button>`;
-    } else if (status === "diproses") {
-      primaryAction = `<button class="primary order-status-action" data-order-id="${escapeHtml(item.id)}" data-next-status="selesai">✓ Tandai Selesai</button>`;
-    } else {
-      primaryAction = `<span class="order-finished">✓ Selesai</span>`;
-    }
+    card.className = "order-card order-baru";
 
     card.innerHTML = `
       <div class="order-card-top">
@@ -1094,11 +1205,15 @@ function renderOrders() {
         <div class="order-main">
           <div class="order-badges">
             <span class="order-type">${escapeHtml(publicationTypeLabel(item.publication.type))}</span>
-            <span class="order-status-badge ${escapeHtml(status)}">${escapeHtml(publicationStatusLabel(status))}</span>
           </div>
           <h4>${escapeHtml(item.name)}</h4>
           <p>${escapeHtml(item.division)} • ${escapeHtml(item.place)} • ${escapeHtml(item.date)}</p>
         </div>
+      </div>
+
+      <div class="order-requester">
+        <span>👤 Pemesan</span>
+        <strong>${escapeHtml(item.publication.requesterName || "-")}</strong>
       </div>
 
       <div class="order-media-line">
@@ -1108,7 +1223,7 @@ function renderOrders() {
 
       ${item.publication.note ? `
         <div class="order-note">
-          <span>Catatan pemesan</span>
+          <span>Catatan</span>
           <p>${escapeHtml(item.publication.note)}</p>
         </div>
       ` : ""}
@@ -1116,16 +1231,39 @@ function renderOrders() {
       <div class="order-actions">
         <button class="secondary order-gallery-action" data-order-gallery="${escapeHtml(item.id)}">▧ Buka Bahan</button>
         ${item.folderUrl ? `<a class="button-link" href="${escapeHtml(item.folderUrl)}" target="_blank" rel="noopener">Drive ↗</a>` : ""}
-        ${primaryAction}
+        <button class="danger-ghost order-remove-action" data-order-remove="${escapeHtml(item.id)}">Hapus Pesanan</button>
+        <button class="primary order-complete-action" data-order-complete="${escapeHtml(item.id)}">✓ Sudah selesai dibuat</button>
       </div>
     `;
 
     box.appendChild(card);
   });
 
-  $$(".order-status-action").forEach(button => {
+  $$(".order-complete-action").forEach(button => {
     button.addEventListener("click", async () => {
-      await updateOrderStatus(button.dataset.orderId, button.dataset.nextStatus, button);
+      const item = activities.find(activity => String(activity.id) === String(button.dataset.orderComplete));
+      if (!item) return;
+
+      const ok = window.confirm(
+        `Tandai pesanan "${item.name}" sudah selesai dibuat?\n\nPesanan akan langsung hilang dari To Do List.`
+      );
+      if (!ok) return;
+
+      await completeOrder(item.id, button);
+    });
+  });
+
+  $$(".order-remove-action").forEach(button => {
+    button.addEventListener("click", async () => {
+      const item = activities.find(activity => String(activity.id) === String(button.dataset.orderRemove));
+      if (!item) return;
+
+      const ok = window.confirm(
+        `Hapus "${item.name}" dari daftar Pesanan Medsos?\n\nAktivitas dan file Drive TIDAK akan dihapus.`
+      );
+      if (!ok) return;
+
+      await removeOrder(item.id, button);
     });
   });
 
@@ -1136,7 +1274,7 @@ function renderOrders() {
   });
 }
 
-async function updateOrderStatus(activityId, status, button) {
+async function completeOrder(activityId, button) {
   const original = button.textContent;
   button.disabled = true;
   button.textContent = "Menyimpan...";
@@ -1145,17 +1283,37 @@ async function updateOrderStatus(activityId, status, button) {
     await apiFetch(`/api/activities/${encodeURIComponent(activityId)}/publication`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ status: "selesai" })
     });
 
     await loadActivitiesFromApi();
-    showToast(`Pesanan diubah menjadi ${publicationStatusLabel(status)}.`);
+    showToast("Pesanan selesai dan dihapus dari To Do List.");
   } catch (error) {
-    showToast(`Status gagal diubah: ${error.message}`);
+    showToast(`Gagal menyelesaikan pesanan: ${error.message}`);
     button.disabled = false;
     button.textContent = original;
   }
 }
+
+async function removeOrder(activityId, button) {
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Menghapus...";
+
+  try {
+    await apiFetch(`/api/activities/${encodeURIComponent(activityId)}/publication`, {
+      method: "DELETE"
+    });
+
+    await loadActivitiesFromApi();
+    showToast("Pesanan dihapus dari daftar.");
+  } catch (error) {
+    showToast(`Gagal menghapus pesanan: ${error.message}`);
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
 
 function updateBotStatus() {
   const box = $("#botStatus");
@@ -1179,6 +1337,7 @@ async function checkBackend() {
     const health = await apiFetch("/health", {}, false);
     backendOnline = true;
     telegramConfigured = Boolean(health.telegramConfigured);
+    adminDeleteConfigured = Boolean(health.adminDeleteConfigured);
     updateBotStatus();
     setBackendStatus("online", "Google Drive terhubung");
     await loadActivitiesFromApi();
@@ -1559,9 +1718,16 @@ $("#documentationForm").addEventListener("submit", async event => {
     ? {
         requested: true,
         type: document.querySelector('input[name="publicationType"]:checked')?.value || "instagram_post",
+        requesterName: $("#publicationRequester").value.trim(),
         note: $("#publicationNote").value.trim()
       }
     : { requested: false };
+
+  if (publication.requested && !publication.requesterName) {
+    showToast("Nama pemesan wajib diisi untuk pengajuan publikasi.");
+    $("#publicationRequester").focus();
+    return;
+  }
 
   const payload = {
     name,
@@ -1638,7 +1804,13 @@ $("#documentationForm").addEventListener("submit", async event => {
     $("#gpsStatus").textContent = "Koordinat belum diambil.";
     $("#activityDate").value = new Date().toISOString().slice(0, 10);
 
-    const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
+    $("#publicationRequester").value = "";
+    $("#publicationNote").value = "";
+
+    $("#publicationRequester").value = "";
+  $("#publicationNote").value = "";
+
+  const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
     if (docMode) docMode.checked = true;
     const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
     if (postType) postType.checked = true;
@@ -1655,16 +1827,12 @@ $("#documentationForm").addEventListener("submit", async event => {
   }
 });
 
-$$("[data-order-filter]").forEach(button => {
-  button.addEventListener("click", () => {
-    orderStatusFilter = button.dataset.orderFilter;
-    renderOrders();
-  });
-});
-
 $("#successViewOrder").addEventListener("click", () => {
   navigateTo("orders");
 });
+
+$("#deleteActivityFromDrive").addEventListener("click", deleteCurrentActivity);
+$("#emptySiAlifTrash").addEventListener("click", emptyTrashSiAlif);
 
 $("#galleryBackFromFolder").addEventListener("click", () => {
   const route = parseRouteHash();

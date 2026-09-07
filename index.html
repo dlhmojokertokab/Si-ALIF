@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0602" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0610" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -48,7 +48,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.0.2</strong>
+        <strong>SI ALIF 06.1</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -202,7 +202,7 @@
                       <input type="radio" name="publicationMode" value="request">
                       <div>
                         <strong>📣 Ajukan publikasi media sosial</strong>
-                        <small>Masuk ke antrean Tim Konten setelah dokumentasi terkirim.</small>
+                        <small>Masuk ke daftar Pesanan Medsos setelah dokumentasi terkirim.</small>
                       </div>
                     </label>
                   </div>
@@ -227,8 +227,13 @@
                       </label>
                     </div>
 
+                    <label class="field publication-requester-field">
+                      <span>Nama Pemesan</span>
+                      <input id="publicationRequester" maxlength="120" placeholder="Contoh: Pak Eko Wibowo" autocomplete="name">
+                    </label>
+
                     <label class="field publication-note-field">
-                      <span>Catatan untuk Tim Konten <small>(opsional)</small></span>
+                      <span>Catatan Pesanan <small>(opsional)</small></span>
                       <textarea id="publicationNote" rows="2" maxlength="500" placeholder="Contoh: mohon tayang minggu ini / ada poin yang perlu ditonjolkan"></textarea>
                     </label>
 
@@ -304,7 +309,7 @@
                 <span>📣</span>
                 <div>
                   <strong>Pesanan medsos ikut dibuat</strong>
-                  <small id="successPublicationText">Masuk antrean Tim Konten.</small>
+                  <small id="successPublicationText">Masuk ke daftar Pesanan Medsos.</small>
                 </div>
               </div>
               <button class="secondary" type="button" id="successViewOrder">Lihat Pesanan</button>
@@ -351,6 +356,7 @@
             <button class="primary" type="button" id="detailOpenGallery">▧ Lihat Galeri Foto</button>
             <a class="button-link" id="detailDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
             <button class="secondary" type="button" data-view="submit">＋ Setor Dokumentasi Baru</button>
+            <button class="danger-button" type="button" id="deleteActivityFromDrive">🗑 Hapus Aktivitas dari Drive</button>
           </div>
         </article>
       </section>
@@ -362,7 +368,10 @@
               <span class="eyebrow">Arsip aktivitas</span>
               <h3>Daftar Aktivitas</h3>
             </div>
-            <div class="filter-summary" id="activityFilterResult">Semua aktivitas</div>
+            <div class="activity-head-actions">
+              <div class="filter-summary" id="activityFilterResult">Semua aktivitas</div>
+              <button class="danger-ghost" id="emptySiAlifTrash" type="button">🗑 Kosongkan Trash SI ALIF</button>
+            </div>
           </div>
 
           <div class="smart-filter-bar" data-filter-scope="activity">
@@ -478,9 +487,9 @@
         <article class="panel orders-panel">
           <div class="orders-head">
             <div>
-              <span class="eyebrow">Antrean Tim Konten</span>
+              <span class="eyebrow">Daftar kerja SI ALIF</span>
               <h3>Pesanan Medsos</h3>
-              <p>Permintaan publikasi yang dikirim bersamaan dengan dokumentasi kegiatan.</p>
+              <p>Daftar publikasi yang perlu dibuat dari dokumentasi kegiatan.</p>
             </div>
             <div class="bot-status" id="botStatus">
               <span class="bot-dot"></span>
@@ -488,11 +497,9 @@
             </div>
           </div>
 
-          <div class="order-tabs" id="orderTabs">
-            <button class="order-tab active" data-order-filter="all">Semua <b id="orderCountAll">0</b></button>
-            <button class="order-tab" data-order-filter="baru">Baru <b id="orderCountNew">0</b></button>
-            <button class="order-tab" data-order-filter="diproses">Diproses <b id="orderCountProcess">0</b></button>
-            <button class="order-tab" data-order-filter="selesai">Selesai <b id="orderCountDone">0</b></button>
+          <div class="todo-summary">
+            <strong id="orderCountActive">0</strong>
+            <span>pesanan belum selesai</span>
           </div>
 
           <div class="orders-list" id="ordersList"></div>
@@ -513,7 +520,7 @@
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0602"></script>
-  <script src="./assets/js/app.js?v=0602"></script>
+  <script src="./assets/js/config.js?v=0610"></script>
+  <script src="./assets/js/app.js?v=0610"></script>
 </body>
 </html>

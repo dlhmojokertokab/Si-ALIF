@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-0-2-chunk-video";
+const CACHE = "si-alif-06-1-admin-todo";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0602",
-  "./assets/js/config.js?v=0602",
-  "./assets/js/app.js?v=0602",
+  "./assets/css/style.css?v=0610",
+  "./assets/js/config.js?v=0610",
+  "./assets/js/app.js?v=0610",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

@@ -2685,3 +2685,105 @@ body.route-pending .route-boot {
     white-space: normal;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.1 — ADMIN + SIMPLE TODO
+   ========================= */
+
+.activity-head-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.danger-button,
+.danger-ghost {
+  border: 1px solid #efc8cf;
+  color: #a43e50;
+  font-weight: 800;
+}
+
+.danger-button {
+  background: #fff1f3;
+}
+
+.danger-ghost {
+  background: #fff;
+}
+
+.danger-button:hover,
+.danger-ghost:hover {
+  border-color: #dfa5b0;
+  background: #fff0f2;
+}
+
+.publication-requester-field {
+  margin-top: 11px;
+}
+
+.todo-summary {
+  display: inline-flex;
+  gap: 7px;
+  align-items: baseline;
+  margin-bottom: 14px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-soft);
+}
+
+.todo-summary strong {
+  color: var(--primary-strong);
+  font-size: 18px;
+}
+
+.todo-summary span {
+  color: var(--text-soft);
+  font-size: 10px;
+}
+
+.order-requester {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 11px;
+  padding: 9px 10px;
+  border-radius: 11px;
+  background: #f8f4fe;
+}
+
+.order-requester span {
+  color: var(--text-faint);
+  font-size: 9px;
+}
+
+.order-requester strong {
+  color: var(--text);
+  font-size: 10px;
+}
+
+@media (max-width: 760px) {
+  .activity-head-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .activity-head-actions .filter-summary,
+  .activity-head-actions .danger-ghost {
+    width: 100%;
+  }
+
+  .order-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .order-actions .primary,
+  .order-actions .danger-ghost,
+  .order-actions .button-link,
+  .order-actions .secondary {
+    grid-column: 1 / -1;
+  }
+}
