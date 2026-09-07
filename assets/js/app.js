@@ -142,14 +142,17 @@ function renderSuccessForActivity(item) {
     item.place || "-",
     item.date || "-"
   ].join(" • ");
-  $("#successPhotoCount").textContent = Number(item.media || item.photos || 0);
+  $("#successPhotoCount").textContent = Number(item.media || item.photos || item.videos || 0);
 
   const publicationBox = $("#successPublication");
   const publicationText = $("#successPublicationText");
   if (item.publication?.requested) {
     publicationBox.hidden = false;
-    publicationText.textContent =
-      `${publicationTypeLabel(item.publication.type)} • status ${publicationStatusLabel(item.publication.status)}.`;
+    publicationText.textContent = [
+      publicationTypeLabel(item.publication.type),
+      item.publication.requesterName ? `Pemesan: ${item.publication.requesterName}` : "",
+      "masuk To Do List"
+    ].filter(Boolean).join(" • ");
   } else {
     publicationBox.hidden = true;
   }

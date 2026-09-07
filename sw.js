@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-2-gallery-polish";
+const CACHE = "si-alif-06-2-1-success-polish";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0620",
-  "./assets/js/config.js?v=0620",
-  "./assets/js/app.js?v=0620",
+  "./assets/css/style.css?v=0621",
+  "./assets/js/config.js?v=0621",
+  "./assets/js/app.js?v=0621",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

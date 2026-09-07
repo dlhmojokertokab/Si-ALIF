@@ -3229,3 +3229,16 @@ body.lightbox-open {
     height: 36px;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.2.1 — SUCCESS SCREEN POLISH
+   ========================= */
+
+.success-publication {
+  background: linear-gradient(135deg, #f7f1ff, #fbf9ff);
+}
+
+.success-publication small {
+  line-height: 1.45;
+}
