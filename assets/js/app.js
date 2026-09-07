@@ -25,6 +25,14 @@ let galleryObjectUrls = new Map();
 let galleryLoaded = false;
 let galleryLoading = false;
 let galleryFocusActivityId = null;
+let galleryGroupsData = [];
+
+const filterState = {
+  query: "",
+  division: "",
+  month: "",
+  status: ""
+};
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -137,27 +145,172 @@ function renderActivities(target, list) {
 
 function refreshLists() {
   renderActivities("#recentActivities", activities.slice(0, 4));
-  renderActivities("#allActivities", activities);
+  populateMonthFilters();
+  syncFilterControls();
+  applyActivityFilters();
   updateStats();
 
   if (currentView === "gallery" && !galleryLoading) {
     galleryLoaded = false;
     ensureAllGalleryReady();
+  } else {
+    updateFilterSummaries();
   }
 }
 
-function filterActivities() {
-  const q = $("#searchActivity").value.trim().toLowerCase();
-  const division = $("#filterDivision").value;
-  const filtered = activities.filter(item => {
-    const text = `${item.name} ${item.place} ${item.division}`.toLowerCase();
-    return (!q || text.includes(q)) && (!division || item.division === division);
-  });
-  renderActivities("#allActivities", filtered);
+function activitySearchText(item) {
+  return [
+    item.name,
+    item.place,
+    item.division,
+    item.description,
+    item.date
+  ].filter(Boolean).join(" ").toLowerCase();
 }
 
-$("#searchActivity").addEventListener("input", filterActivities);
-$("#filterDivision").addEventListener("change", filterActivities);
+function activityMonthKey(item) {
+  return item.dateIso ? item.dateIso.slice(0, 7) : "";
+}
+
+function activityMatchesFilters(item) {
+  const query = filterState.query.trim().toLowerCase();
+
+  return (
+    (!query || activitySearchText(item).includes(query)) &&
+    (!filterState.division || item.division === filterState.division) &&
+    (!filterState.month || activityMonthKey(item) === filterState.month) &&
+    (!filterState.status || item.status === filterState.status)
+  );
+}
+
+function getFilteredActivities() {
+  return activities.filter(activityMatchesFilters);
+}
+
+function formatMonthLabel(monthKey) {
+  if (!monthKey) return "";
+  const [year, month] = monthKey.split("-").map(Number);
+  if (!year || !month) return monthKey;
+
+  return new Intl.DateTimeFormat("id-ID", {
+    month: "long",
+    year: "numeric"
+  }).format(new Date(year, month - 1, 1));
+}
+
+function populateMonthFilters() {
+  const monthKeys = [...new Set(
+    activities
+      .map(activityMonthKey)
+      .filter(Boolean)
+  )].sort().reverse();
+
+  $$('[data-filter="month"]').forEach(select => {
+    const current = filterState.month;
+    select.innerHTML = `<option value="">Semua bulan</option>`;
+
+    monthKeys.forEach(key => {
+      const option = document.createElement("option");
+      option.value = key;
+      option.textContent = formatMonthLabel(key);
+      select.appendChild(option);
+    });
+
+    select.value = monthKeys.includes(current) ? current : "";
+  });
+
+  if (filterState.month && !monthKeys.includes(filterState.month)) {
+    filterState.month = "";
+  }
+}
+
+function syncFilterControls() {
+  $$('[data-filter="query"]').forEach(el => {
+    if (el.value !== filterState.query) el.value = filterState.query;
+  });
+  $$('[data-filter="division"]').forEach(el => {
+    if (el.value !== filterState.division) el.value = filterState.division;
+  });
+  $$('[data-filter="month"]').forEach(el => {
+    if (el.value !== filterState.month) el.value = filterState.month;
+  });
+  $$('[data-filter="status"]').forEach(el => {
+    if (el.value !== filterState.status) el.value = filterState.status;
+  });
+}
+
+function activeFilterCount() {
+  return Object.values(filterState).filter(Boolean).length;
+}
+
+function updateFilterSummaries(activityCount = null, photoCount = null) {
+  const filtered = getFilteredActivities();
+  const shownActivities = activityCount ?? filtered.length;
+  const filters = activeFilterCount();
+
+  const activityResult = $("#activityFilterResult");
+  if (activityResult) {
+    activityResult.textContent = filters
+      ? `${shownActivities} dari ${activities.length} aktivitas • ${filters} filter aktif`
+      : `${activities.length} aktivitas`;
+  }
+
+  const galleryResult = $("#galleryFilterResult");
+  if (galleryResult) {
+    const totalPhotos = photoCount ?? filtered.reduce((sum, item) => sum + Number(item.photos || 0), 0);
+    galleryResult.textContent = filters
+      ? `${shownActivities} aktivitas • ${totalPhotos} foto • ${filters} filter aktif`
+      : `${activities.length} aktivitas • ${totalPhotos} foto`;
+  }
+}
+
+function applyActivityFilters() {
+  const filtered = getFilteredActivities();
+  renderActivities("#allActivities", filtered);
+  updateFilterSummaries(filtered.length);
+}
+
+function applyGalleryFilters() {
+  if (!galleryLoaded) {
+    updateFilterSummaries();
+    return;
+  }
+
+  const filteredGroups = galleryGroupsData.filter(group =>
+    group.files.length && activityMatchesFilters(group.activity)
+  );
+
+  renderAllGalleryGroups(filteredGroups, { preserveSource: true });
+}
+
+function applyAllFilters() {
+  syncFilterControls();
+  applyActivityFilters();
+  applyGalleryFilters();
+}
+
+$$("[data-filter]").forEach(control => {
+  const key = control.dataset.filter;
+  const eventName = key === "query" ? "input" : "change";
+
+  control.addEventListener(eventName, event => {
+    filterState[key] = event.target.value;
+    syncFilterControls();
+    applyActivityFilters();
+    applyGalleryFilters();
+  });
+});
+
+$$("[data-filter-reset]").forEach(button => {
+  button.addEventListener("click", () => {
+    filterState.query = "";
+    filterState.division = "";
+    filterState.month = "";
+    filterState.status = "";
+    applyAllFilters();
+  });
+});
+
 
 function updateStats() {
   const now = new Date();
@@ -443,13 +596,17 @@ function createGalleryCard(file) {
   return card;
 }
 
-function renderAllGalleryGroups(groups) {
+function renderAllGalleryGroups(groups, options = {}) {
   const container = $("#galleryGroups");
   container.innerHTML = "";
   cleanupGalleryObjectUrls();
   gallerySelected.clear();
 
   const validGroups = groups.filter(group => group.files.length);
+
+  if (!options.preserveSource) {
+    galleryGroupsData = groups;
+  }
 
   galleryFiles = validGroups.flatMap(group =>
     group.files.map(file => ({
@@ -461,7 +618,15 @@ function renderAllGalleryGroups(groups) {
 
   if (!galleryFiles.length) {
     $("#galleryToolbar").hidden = true;
-    setGalleryState("empty", "Belum ada foto", "Setor dokumentasi dulu, nanti semua fotonya langsung muncul di sini.");
+    const filtered = activeFilterCount() > 0;
+    setGalleryState(
+      "empty",
+      filtered ? "Tidak ada yang cocok" : "Belum ada foto",
+      filtered
+        ? "Coba ubah atau reset filter untuk melihat dokumentasi lain."
+        : "Setor dokumentasi dulu, nanti semua fotonya langsung muncul di sini."
+    );
+    updateFilterSummaries(0, 0);
     return;
   }
 
@@ -494,6 +659,10 @@ function renderAllGalleryGroups(groups) {
   });
 
   updateGallerySelectionUi();
+  updateFilterSummaries(
+    validGroups.length,
+    galleryFiles.length
+  );
 
   if (galleryFocusActivityId) {
     requestAnimationFrame(() => {
@@ -550,9 +719,11 @@ async function loadAllGallery() {
   const withPhotos = activities.filter(item => Number(item.photos || 0) > 0);
 
   if (!withPhotos.length) {
+    galleryGroupsData = [];
     galleryLoading = false;
     galleryLoaded = true;
     setGalleryState("empty", "Belum ada foto", "Setor dokumentasi dulu, nanti semua fotonya langsung muncul di sini.");
+    updateFilterSummaries(0, 0);
     return;
   }
 
@@ -564,8 +735,12 @@ async function loadAllGallery() {
 
   try {
     const groups = await mapWithConcurrency(withPhotos, 4, fetchGalleryActivityGroup);
-    renderAllGalleryGroups(groups);
+    galleryGroupsData = groups;
     galleryLoaded = true;
+    const filteredGroups = galleryGroupsData.filter(group =>
+      group.files.length && activityMatchesFilters(group.activity)
+    );
+    renderAllGalleryGroups(filteredGroups, { preserveSource: true });
   } catch (error) {
     setGalleryState("error", "Galeri gagal dimuat", error.message);
   } finally {
@@ -818,6 +993,7 @@ $("#documentationForm").addEventListener("submit", async event => {
     $("#activityDate").value = new Date().toISOString().slice(0, 10);
     resetUploadProgress();
     galleryLoaded = false;
+    galleryGroupsData = [];
     showSuccessScreen(savedActivity);
   } catch (error) {
     showToast(`Upload gagal: ${error.message}`);

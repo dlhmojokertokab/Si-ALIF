@@ -288,17 +288,33 @@
               <span class="eyebrow">Arsip aktivitas</span>
               <h3>Daftar Aktivitas</h3>
             </div>
-            <div class="filters">
-              <input id="searchActivity" placeholder="Cari aktivitas..." />
-              <select id="filterDivision">
-                <option value="">Semua bidang</option>
-                <option>Sekretariat</option>
-                <option>PSLB3</option>
-                <option>PPKL</option>
-                <option>Penaatan</option>
-              </select>
-            </div>
+            <div class="filter-summary" id="activityFilterResult">Semua aktivitas</div>
           </div>
+
+          <div class="smart-filter-bar" data-filter-scope="activity">
+            <label class="smart-filter-search">
+              <span>🔎</span>
+              <input data-filter="query" type="search" placeholder="Cari kegiatan, lokasi, atau keterangan..." autocomplete="off">
+            </label>
+            <select data-filter="division" aria-label="Filter bidang">
+              <option value="">Semua bidang</option>
+              <option>Sekretariat</option>
+              <option>PSLB3</option>
+              <option>PPKL</option>
+              <option>Penaatan</option>
+              <option>UPTD Laboratorium Lingkungan</option>
+            </select>
+            <select data-filter="month" aria-label="Filter bulan">
+              <option value="">Semua bulan</option>
+            </select>
+            <select data-filter="status" aria-label="Filter status">
+              <option value="">Semua status</option>
+              <option value="Lengkap">🟢 Lengkap</option>
+              <option value="Minim">🟡 Minim</option>
+            </select>
+            <button class="secondary filter-reset" type="button" data-filter-reset>↺ Reset</button>
+          </div>
+
           <div class="activity-list" id="allActivities"></div>
         </article>
       </section>
@@ -310,8 +326,33 @@
               <span class="eyebrow">Foto asli dari Google Drive</span>
               <h3>Galeri SI ALIF</h3>
               <p>Semua dokumentasi langsung tampil di sini, dikelompokkan per aktivitas. Tinggal pilih foto yang dibutuhkan.</p>
+              <div class="filter-summary gallery-filter-summary" id="galleryFilterResult">Semua dokumentasi</div>
             </div>
             <button class="secondary gallery-back-button" type="button" data-history-back>← Kembali</button>
+          </div>
+
+          <div class="smart-filter-bar gallery-filter-bar" data-filter-scope="gallery">
+            <label class="smart-filter-search">
+              <span>🔎</span>
+              <input data-filter="query" type="search" placeholder="Cari kegiatan, lokasi, atau keterangan..." autocomplete="off">
+            </label>
+            <select data-filter="division" aria-label="Filter bidang galeri">
+              <option value="">Semua bidang</option>
+              <option>Sekretariat</option>
+              <option>PSLB3</option>
+              <option>PPKL</option>
+              <option>Penaatan</option>
+              <option>UPTD Laboratorium Lingkungan</option>
+            </select>
+            <select data-filter="month" aria-label="Filter bulan galeri">
+              <option value="">Semua bulan</option>
+            </select>
+            <select data-filter="status" aria-label="Filter status galeri">
+              <option value="">Semua status</option>
+              <option value="Lengkap">🟢 Lengkap</option>
+              <option value="Minim">🟡 Minim</option>
+            </select>
+            <button class="secondary filter-reset" type="button" data-filter-reset>↺ Reset</button>
           </div>
 
           <div class="gallery-toolbar" id="galleryToolbar" hidden>
