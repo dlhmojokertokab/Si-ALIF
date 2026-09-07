@@ -3,7 +3,7 @@ const titleMap = {
   submit: "Setor Dokumentasi",
   activities: "Aktivitas",
   gallery: "Galeri",
-  map: "Peta",
+  orders: "Pesanan Medsos",
   success: "Tersimpan",
   detail: "Detail Aktivitas"
 };
@@ -15,6 +15,8 @@ let activities = [];
 let selectedFiles = [];
 let coordinates = null;
 let backendOnline = false;
+let telegramConfigured = false;
+let orderStatusFilter = "all";
 let apiPin = localStorage.getItem("si-alif-api-pin") || "";
 let lastSubmittedActivityId = null;
 let currentDetailActivityId = null;
@@ -51,7 +53,7 @@ function routeHash(view, options = {}) {
     "submit",
     "activities",
     "gallery",
-    "map",
+    "orders",
     "success",
     "detail"
   ]);
@@ -73,7 +75,7 @@ function parseRouteHash() {
     return { view, activityId: id || null };
   }
 
-  if (["dashboard", "submit", "activities", "map"].includes(view)) {
+  if (["dashboard", "submit", "activities", "orders"].includes(view)) {
     return { view };
   }
 
@@ -133,7 +135,17 @@ function renderSuccessForActivity(item) {
     item.place || "-",
     item.date || "-"
   ].join(" • ");
-  $("#successPhotoCount").textContent = Number(item.photos || 0);
+  $("#successPhotoCount").textContent = Number(item.media || item.photos || 0);
+
+  const publicationBox = $("#successPublication");
+  const publicationText = $("#successPublicationText");
+  if (item.publication?.requested) {
+    publicationBox.hidden = false;
+    publicationText.textContent =
+      `${publicationTypeLabel(item.publication.type)} • status ${publicationStatusLabel(item.publication.status)}.`;
+  } else {
+    publicationBox.hidden = true;
+  }
 
   const drive = $("#successDriveLink");
   if (item.folderUrl) {
@@ -159,6 +171,15 @@ function renderDetailForActivity(item) {
   $("#detailLocation").textContent = item.place || "-";
   $("#detailStatus").textContent = item.status || "-";
   $("#detailCoordinates").textContent = formatCoordinates(item.coordinates);
+
+  const publicationField = $("#detailPublicationField");
+  if (item.publication?.requested) {
+    publicationField.hidden = false;
+    $("#detailPublication").textContent =
+      `${publicationTypeLabel(item.publication.type)} • ${publicationStatusLabel(item.publication.status)}`;
+  } else {
+    publicationField.hidden = true;
+  }
 
   const drive = $("#detailDriveLink");
   if (item.folderUrl) {
@@ -308,7 +329,8 @@ function renderActivities(target, list) {
       <div class="activity-thumb">📷</div>
       <div class="activity-meta">
         <strong>${escapeHtml(item.name)}</strong>
-        <span>${escapeHtml(item.division)} • ${escapeHtml(item.place)} • ${escapeHtml(item.date)} • ${item.photos} foto</span>
+        <span>${escapeHtml(item.division)} • ${escapeHtml(item.place)} • ${escapeHtml(item.date)} • ${escapeHtml(mediaSummary(item))}</span>
+        ${item.publication?.requested ? `<em class="activity-order-tag">📣 ${escapeHtml(publicationTypeLabel(item.publication.type))}</em>` : ""}
       </div>
       <div class="activity-side">
         <span class="activity-status ${item.status === "Minim" ? "warn" : ""}">${item.status === "Minim" ? "🟡" : "🟢"} ${escapeHtml(item.status)}</span>
@@ -343,6 +365,8 @@ function refreshLists() {
   } else {
     updateFilterSummaries();
   }
+
+  renderOrders();
 }
 
 function activitySearchText(item) {
@@ -608,19 +632,53 @@ function formatDate(dateIso) {
 }
 
 function normalizeRemoteActivity(item) {
+  const photos = Number(item.photoCount || 0);
+  const videos = Number(item.videoCount || 0);
+  const media = Number(item.mediaCount || (photos + videos));
+
   return {
     id: item.id,
     name: item.name || "Tanpa nama",
     division: item.division || "-",
     place: item.location || "-",
-    photos: Number(item.photoCount || 0),
-    status: Number(item.photoCount || 0) >= 3 ? "Lengkap" : "Minim",
+    photos,
+    videos,
+    media,
+    status: photos >= 3 ? "Lengkap" : "Minim",
     date: formatDate(item.date),
     dateIso: item.date || "",
     description: item.description || "",
     coordinates: item.coordinates || null,
+    publication: {
+      requested: Boolean(item.publication?.requested),
+      type: item.publication?.type || "",
+      note: item.publication?.note || "",
+      status: item.publication?.status || "",
+      requestedAt: item.publication?.requestedAt || "",
+      updatedAt: item.publication?.updatedAt || "",
+      notifiedAt: item.publication?.notifiedAt || ""
+    },
     folderUrl: item.folderUrl || ""
   };
+}
+
+function publicationTypeLabel(type) {
+  return type === "instagram_reels" ? "Reels Instagram" : "Post Instagram";
+}
+
+function publicationStatusLabel(status) {
+  return ({
+    baru: "Baru",
+    diproses: "Diproses",
+    selesai: "Selesai"
+  })[status] || "Baru";
+}
+
+function mediaSummary(item) {
+  const parts = [];
+  if (Number(item.photos || 0)) parts.push(`${item.photos} foto`);
+  if (Number(item.videos || 0)) parts.push(`${item.videos} video`);
+  return parts.length ? parts.join(" • ") : "belum ada media";
 }
 
 
@@ -699,7 +757,7 @@ function renderGalleryFolders(items) {
 
   grid.innerHTML = "";
 
-  const folders = items.filter(item => Number(item.photos || 0) > 0);
+  const folders = items.filter(item => Number(item.media || item.photos || 0) > 0);
 
   if (!folders.length) {
     state.hidden = false;
@@ -725,7 +783,7 @@ function renderGalleryFolders(items) {
       <div class="gallery-folder-visual">
         <div class="gallery-folder-tab"></div>
         <div class="gallery-folder-icon">▧</div>
-        <span class="gallery-folder-count">${Number(item.photos || 0)} foto</span>
+        <span class="gallery-folder-count">${Number(item.media || item.photos || 0)} media</span>
       </div>
       <div class="gallery-folder-content">
         <strong title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</strong>
@@ -797,7 +855,12 @@ function createGalleryCard(file) {
   card.setAttribute("aria-checked", "false");
 
   const dimension = file.width && file.height ? `${file.width}×${file.height}` : "";
-  const detail = [dimension, formatFileSize(file.size)].filter(Boolean).join(" • ");
+  const isVideo = String(file.mimeType || "").startsWith("video/");
+  const detail = [
+    isVideo ? "🎬 Video" : "📷 Foto",
+    dimension,
+    formatFileSize(file.size)
+  ].filter(Boolean).join(" • ");
 
   card.innerHTML = `
     <div class="gallery-photo-frame">
@@ -894,7 +957,7 @@ async function openGalleryFolder(activityId, options = {}) {
 
   $("#galleryFolderName").textContent = activity.name || "Aktivitas";
   $("#galleryFolderMeta").textContent =
-    `${activity.division} • ${activity.place} • ${activity.date} • ${activity.photos} foto`;
+    `${activity.division} • ${activity.place} • ${activity.date} • ${mediaSummary(activity)}`;
 
   const drive = $("#galleryFolderDriveLink");
   if (activity.folderUrl) {
@@ -949,7 +1012,7 @@ async function downloadSelectedGalleryFiles() {
         await new Promise(resolve => setTimeout(resolve, 250));
       }
     }
-    showToast(`${chosen.length} foto dikirim ke download browser.`);
+    showToast(`${chosen.length} file dikirim ke download browser.`);
   } catch (error) {
     showToast(`Download gagal: ${error.message}`);
   } finally {
@@ -957,6 +1020,151 @@ async function downloadSelectedGalleryFiles() {
     button.disabled = false;
     updateGallerySelectionUi();
   }
+}
+
+
+function requestedOrders() {
+  return activities.filter(item => item.publication?.requested);
+}
+
+function renderOrders() {
+  const box = $("#ordersList");
+  if (!box) return;
+
+  const allOrders = requestedOrders();
+  const counts = {
+    all: allOrders.length,
+    baru: allOrders.filter(item => (item.publication.status || "baru") === "baru").length,
+    diproses: allOrders.filter(item => item.publication.status === "diproses").length,
+    selesai: allOrders.filter(item => item.publication.status === "selesai").length
+  };
+
+  $("#orderCountAll").textContent = counts.all;
+  $("#orderCountNew").textContent = counts.baru;
+  $("#orderCountProcess").textContent = counts.diproses;
+  $("#orderCountDone").textContent = counts.selesai;
+
+  const navCount = $("#ordersNavCount");
+  const mobileCount = $("#ordersMobileCount");
+  [navCount, mobileCount].forEach(el => {
+    if (!el) return;
+    el.textContent = counts.baru;
+    el.hidden = counts.baru === 0;
+  });
+
+  $$(".order-tab").forEach(button => {
+    button.classList.toggle("active", button.dataset.orderFilter === orderStatusFilter);
+  });
+
+  const filtered = allOrders.filter(item =>
+    orderStatusFilter === "all" ||
+    (item.publication.status || "baru") === orderStatusFilter
+  );
+
+  box.innerHTML = "";
+
+  if (!filtered.length) {
+    box.innerHTML = `
+      <div class="orders-empty">
+        <div>✦</div>
+        <strong>${allOrders.length ? "Tidak ada pesanan di status ini" : "Belum ada pesanan medsos"}</strong>
+        <span>${allOrders.length ? "Coba pilih tab status lain." : "Kalau pegawai memilih Ajukan Publikasi, pesanannya muncul di sini."}</span>
+      </div>
+    `;
+    return;
+  }
+
+  filtered.forEach(item => {
+    const status = item.publication.status || "baru";
+    const card = document.createElement("article");
+    card.className = `order-card order-${status}`;
+
+    let primaryAction = "";
+    if (status === "baru") {
+      primaryAction = `<button class="primary order-status-action" data-order-id="${escapeHtml(item.id)}" data-next-status="diproses">Mulai Proses</button>`;
+    } else if (status === "diproses") {
+      primaryAction = `<button class="primary order-status-action" data-order-id="${escapeHtml(item.id)}" data-next-status="selesai">✓ Tandai Selesai</button>`;
+    } else {
+      primaryAction = `<span class="order-finished">✓ Selesai</span>`;
+    }
+
+    card.innerHTML = `
+      <div class="order-card-top">
+        <div class="order-type-icon">${item.publication.type === "instagram_reels" ? "▶" : "▧"}</div>
+        <div class="order-main">
+          <div class="order-badges">
+            <span class="order-type">${escapeHtml(publicationTypeLabel(item.publication.type))}</span>
+            <span class="order-status-badge ${escapeHtml(status)}">${escapeHtml(publicationStatusLabel(status))}</span>
+          </div>
+          <h4>${escapeHtml(item.name)}</h4>
+          <p>${escapeHtml(item.division)} • ${escapeHtml(item.place)} • ${escapeHtml(item.date)}</p>
+        </div>
+      </div>
+
+      <div class="order-media-line">
+        <span>📎 ${escapeHtml(mediaSummary(item))}</span>
+        ${item.publication.notifiedAt ? `<span>🤖 bot terkirim</span>` : ""}
+      </div>
+
+      ${item.publication.note ? `
+        <div class="order-note">
+          <span>Catatan pemesan</span>
+          <p>${escapeHtml(item.publication.note)}</p>
+        </div>
+      ` : ""}
+
+      <div class="order-actions">
+        <button class="secondary order-gallery-action" data-order-gallery="${escapeHtml(item.id)}">▧ Buka Bahan</button>
+        ${item.folderUrl ? `<a class="button-link" href="${escapeHtml(item.folderUrl)}" target="_blank" rel="noopener">Drive ↗</a>` : ""}
+        ${primaryAction}
+      </div>
+    `;
+
+    box.appendChild(card);
+  });
+
+  $$(".order-status-action").forEach(button => {
+    button.addEventListener("click", async () => {
+      await updateOrderStatus(button.dataset.orderId, button.dataset.nextStatus, button);
+    });
+  });
+
+  $$(".order-gallery-action").forEach(button => {
+    button.addEventListener("click", () => {
+      navigateTo("gallery", { galleryFolderId: button.dataset.orderGallery });
+    });
+  });
+}
+
+async function updateOrderStatus(activityId, status, button) {
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Menyimpan...";
+
+  try {
+    await apiFetch(`/api/activities/${encodeURIComponent(activityId)}/publication`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status })
+    });
+
+    await loadActivitiesFromApi();
+    showToast(`Pesanan diubah menjadi ${publicationStatusLabel(status)}.`);
+  } catch (error) {
+    showToast(`Status gagal diubah: ${error.message}`);
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+function updateBotStatus() {
+  const box = $("#botStatus");
+  if (!box) return;
+
+  box.classList.toggle("online", telegramConfigured);
+  box.innerHTML = telegramConfigured
+    ? `<span class="bot-dot"></span><div><strong>Bot aktif</strong><small>Pesanan baru akan dikirim ke Telegram.</small></div>`
+    : `<span class="bot-dot"></span><div><strong>Bot belum aktif</strong><small>Antrean tetap tersimpan di SI ALIF.</small></div>`;
 }
 
 async function checkBackend() {
@@ -968,12 +1176,16 @@ async function checkBackend() {
   }
 
   try {
-    await apiFetch("/health", {}, false);
+    const health = await apiFetch("/health", {}, false);
     backendOnline = true;
+    telegramConfigured = Boolean(health.telegramConfigured);
+    updateBotStatus();
     setBackendStatus("online", "Google Drive terhubung");
     await loadActivitiesFromApi();
   } catch (error) {
     backendOnline = false;
+    telegramConfigured = false;
+    updateBotStatus();
     setBackendStatus("offline", "Mode lokal");
     console.warn("SI ALIF backend offline:", error.message);
     activities = JSON.parse(localStorage.getItem("si-alif-activities") || "null") || [];
@@ -990,6 +1202,27 @@ async function loadActivitiesFromApi() {
     applyRouteFromHash();
   }
 }
+
+
+function syncPublicationUi() {
+  const mode = document.querySelector('input[name="publicationMode"]:checked')?.value || "documentation";
+  const requested = mode === "request";
+  $("#publicationOptions").hidden = !requested;
+
+  $$(".publication-choice").forEach(label => {
+    label.classList.toggle("active", label.querySelector("input")?.checked);
+  });
+
+  $$(".publication-type").forEach(label => {
+    label.classList.toggle("active", label.querySelector("input")?.checked);
+  });
+}
+
+$$('input[name="publicationMode"], input[name="publicationType"]').forEach(input => {
+  input.addEventListener("change", syncPublicationUi);
+});
+
+syncPublicationUi();
 
 const today = new Date();
 $("#activityDate").value = today.toISOString().slice(0, 10);
@@ -1026,10 +1259,28 @@ $("#photoInput").addEventListener("change", event => {
   grid.innerHTML = "";
 
   selectedFiles.slice(0, 15).forEach(file => {
-    const img = document.createElement("img");
-    img.alt = file.name;
-    img.src = URL.createObjectURL(file);
-    grid.appendChild(img);
+    const url = URL.createObjectURL(file);
+
+    if (file.type.startsWith("video/")) {
+      const wrap = document.createElement("div");
+      wrap.className = "preview-video";
+      const video = document.createElement("video");
+      video.src = url;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "metadata";
+      wrap.appendChild(video);
+
+      const badge = document.createElement("span");
+      badge.textContent = "▶ VIDEO";
+      wrap.appendChild(badge);
+      grid.appendChild(wrap);
+    } else {
+      const img = document.createElement("img");
+      img.alt = file.name;
+      img.src = url;
+      grid.appendChild(img);
+    }
   });
 
   if (selectedFiles.length > 15) {
@@ -1078,10 +1329,10 @@ async function submitRemoteActivity(payload) {
       body: data
     });
 
-    setUploadProgress(i + 1, total, `Foto ${i + 1}/${total} tersimpan.`);
+    setUploadProgress(i + 1, total, `File ${i + 1}/${total} tersimpan.`);
   }
 
-  if (!total) setUploadProgress(1, 1, "Kegiatan tersimpan tanpa foto.");
+  if (!total) setUploadProgress(1, 1, "Kegiatan tersimpan tanpa media.");
   return activity;
 }
 
@@ -1097,8 +1348,30 @@ $("#documentationForm").addEventListener("submit", async event => {
 
   if (!name || !division || !location || !date) return;
 
-  const photoCountAtSubmit = selectedFiles.length;
-  const payload = { name, division, date, location, description, coordinates };
+  const photoCountAtSubmit = selectedFiles.filter(file => file.type.startsWith("image/")).length;
+  const videoCountAtSubmit = selectedFiles.filter(file => file.type.startsWith("video/")).length;
+  const mediaCountAtSubmit = selectedFiles.length;
+
+  const publicationMode =
+    document.querySelector('input[name="publicationMode"]:checked')?.value || "documentation";
+
+  const publication = publicationMode === "request"
+    ? {
+        requested: true,
+        type: document.querySelector('input[name="publicationType"]:checked')?.value || "instagram_post",
+        note: $("#publicationNote").value.trim()
+      }
+    : { requested: false };
+
+  const payload = {
+    name,
+    division,
+    date,
+    location,
+    description,
+    coordinates,
+    publication
+  };
 
   submitButton.disabled = true;
   submitButton.textContent = backendOnline ? "Mengirim..." : "Menyimpan...";
@@ -1108,6 +1381,17 @@ $("#documentationForm").addEventListener("submit", async event => {
 
     if (backendOnline) {
       const created = await submitRemoteActivity(payload);
+
+      if (publication.requested) {
+        try {
+          await apiFetch(`/api/activities/${encodeURIComponent(created.id)}/publication/notify`, {
+            method: "POST"
+          });
+        } catch (notifyError) {
+          console.warn("Notifikasi bot belum terkirim:", notifyError.message);
+        }
+      }
+
       await loadActivitiesFromApi();
       savedActivity = activities.find(item => String(item.id) === String(created.id)) || {
         id: created.id,
@@ -1115,6 +1399,9 @@ $("#documentationForm").addEventListener("submit", async event => {
         division,
         place: location,
         photos: photoCountAtSubmit,
+        videos: videoCountAtSubmit,
+        media: mediaCountAtSubmit,
+        publication,
         status: photoCountAtSubmit >= 3 ? "Lengkap" : "Minim",
         date: formatDate(date),
         dateIso: date,
@@ -1129,6 +1416,9 @@ $("#documentationForm").addEventListener("submit", async event => {
         division,
         place: location,
         photos: photoCountAtSubmit,
+        videos: videoCountAtSubmit,
+        media: mediaCountAtSubmit,
+        publication,
         status: photoCountAtSubmit >= 3 ? "Lengkap" : "Minim",
         date: formatDate(date),
         dateIso: date,
@@ -1147,6 +1437,13 @@ $("#documentationForm").addEventListener("submit", async event => {
     $("#previewGrid").innerHTML = "";
     $("#gpsStatus").textContent = "Koordinat belum diambil.";
     $("#activityDate").value = new Date().toISOString().slice(0, 10);
+
+    const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
+    if (docMode) docMode.checked = true;
+    const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
+    if (postType) postType.checked = true;
+    syncPublicationUi();
+
     resetUploadProgress();
     showSuccessScreen(savedActivity);
   } catch (error) {
@@ -1156,6 +1453,17 @@ $("#documentationForm").addEventListener("submit", async event => {
     submitButton.disabled = false;
     submitButton.textContent = "Kirim Dokumentasi";
   }
+});
+
+$$("[data-order-filter]").forEach(button => {
+  button.addEventListener("click", () => {
+    orderStatusFilter = button.dataset.orderFilter;
+    renderOrders();
+  });
+});
+
+$("#successViewOrder").addEventListener("click", () => {
+  navigateTo("orders");
 });
 
 $("#galleryBackFromFolder").addEventListener("click", () => {
@@ -1204,6 +1512,13 @@ $("#resetButton").addEventListener("click", () => {
   $("#previewGrid").innerHTML = "";
   $("#gpsStatus").textContent = "Koordinat belum diambil.";
   resetUploadProgress();
+
+  const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
+  if (docMode) docMode.checked = true;
+  const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
+  if (postType) postType.checked = true;
+  syncPublicationUi();
+
   setTimeout(() => {
     $("#activityDate").value = new Date().toISOString().slice(0, 10);
   }, 0);

@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0522" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0600" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -41,13 +41,14 @@
         <button class="nav-item" data-view="gallery">
           <span>▧</span><span>Galeri</span>
         </button>
-        <button class="nav-item" data-view="map">
-          <span>⌖</span><span>Peta</span>
+        <button class="nav-item nav-orders" data-view="orders">
+          <span>✦</span><span>Pesanan Medsos</span>
+          <b class="nav-count" id="ordersNavCount" hidden>0</b>
         </button>
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 05.2.2</strong>
+        <strong>SI ALIF 06</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -185,13 +186,66 @@
                   <textarea id="description" rows="3" maxlength="300" placeholder="Apa yang dilakukan / hasil singkat kegiatan"></textarea>
                 </label>
 
+                <div class="field field-wide publication-field">
+                  <span>Tujuan dokumentasi</span>
+
+                  <div class="publication-choice-grid">
+                    <label class="publication-choice active">
+                      <input type="radio" name="publicationMode" value="documentation" checked>
+                      <div>
+                        <strong>📁 Dokumentasi saja</strong>
+                        <small>Simpan kegiatan dan bahan dokumentasi ke SI ALIF.</small>
+                      </div>
+                    </label>
+
+                    <label class="publication-choice">
+                      <input type="radio" name="publicationMode" value="request">
+                      <div>
+                        <strong>📣 Ajukan publikasi media sosial</strong>
+                        <small>Masuk ke antrean Tim Konten setelah dokumentasi terkirim.</small>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div class="publication-options" id="publicationOptions" hidden>
+                    <div class="publication-options-head">
+                      <strong>Bentuk konten</strong>
+                      <small>Pilih sesuai bahan yang disetor.</small>
+                    </div>
+
+                    <div class="publication-type-grid">
+                      <label class="publication-type active">
+                        <input type="radio" name="publicationType" value="instagram_post" checked>
+                        <span>▧</span>
+                        <div><strong>Post Instagram</strong><small>Foto / carousel</small></div>
+                      </label>
+
+                      <label class="publication-type">
+                        <input type="radio" name="publicationType" value="instagram_reels">
+                        <span>▶</span>
+                        <div><strong>Reels Instagram</strong><small>Utamakan bahan video</small></div>
+                      </label>
+                    </div>
+
+                    <label class="field publication-note-field">
+                      <span>Catatan untuk Tim Konten <small>(opsional)</small></span>
+                      <textarea id="publicationNote" rows="2" maxlength="500" placeholder="Contoh: mohon tayang minggu ini / ada poin yang perlu ditonjolkan"></textarea>
+                    </label>
+
+                    <div class="publication-warning">
+                      <strong>Yang pesan wajib setor bahan.</strong>
+                      <span>Jangan cuma centang Reels lalu ninggalin satu foto blur. 😭</span>
+                    </div>
+                  </div>
+                </div>
+
                 <label class="field field-wide">
-                  <span>Foto kegiatan</span>
+                  <span>Foto / video kegiatan</span>
                   <div class="upload-box">
-                    <input id="photoInput" type="file" accept="image/*" multiple />
+                    <input id="photoInput" type="file" accept="image/*,video/*" multiple />
                     <div class="upload-copy">
-                      <strong>＋ Pilih Foto dari Galeri</strong>
-                      <span>Pilih beberapa foto sekaligus. File asli dikirim langsung ke Google Drive.</span>
+                      <strong>＋ Pilih Foto / Video</strong>
+                      <span>Pilih beberapa file sekaligus. Foto dan video asli dikirim langsung ke Google Drive.</span>
                     </div>
                   </div>
                   <div class="preview-grid" id="previewGrid"></div>
@@ -245,6 +299,17 @@
               </div>
             </div>
 
+            <div class="success-publication" id="successPublication" hidden>
+              <div>
+                <span>📣</span>
+                <div>
+                  <strong>Pesanan medsos ikut dibuat</strong>
+                  <small id="successPublicationText">Masuk antrean Tim Konten.</small>
+                </div>
+              </div>
+              <button class="secondary" type="button" id="successViewOrder">Lihat Pesanan</button>
+            </div>
+
             <div class="success-actions">
               <button class="secondary" type="button" data-view="submit">＋ Setor Lagi</button>
               <button class="primary" type="button" id="successViewActivity">Lihat Aktivitas</button>
@@ -276,6 +341,10 @@
             <div class="detail-field"><span>Lokasi</span><strong id="detailLocation">-</strong></div>
             <div class="detail-field"><span>Status</span><strong id="detailStatus">-</strong></div>
             <div class="detail-field detail-field-wide"><span>Koordinat</span><strong id="detailCoordinates">Tidak disimpan</strong></div>
+            <div class="detail-field detail-field-wide" id="detailPublicationField" hidden>
+              <span>Publikasi Medsos</span>
+              <strong id="detailPublication">-</strong>
+            </div>
           </div>
 
           <div class="detail-actions">
@@ -405,11 +474,28 @@
         </article>
       </section>
 
-      <section class="view" id="view-map">
-        <article class="panel empty-state">
-          <div class="empty-icon">⌖</div>
-          <h3>Peta Aktivitas</h3>
-          <p>Lokasi aktivitas yang memiliki koordinat akan dapat divisualisasikan pada peta aktivitas.</p>
+      <section class="view" id="view-orders">
+        <article class="panel orders-panel">
+          <div class="orders-head">
+            <div>
+              <span class="eyebrow">Antrean Tim Konten</span>
+              <h3>Pesanan Medsos</h3>
+              <p>Permintaan publikasi yang dikirim bersamaan dengan dokumentasi kegiatan.</p>
+            </div>
+            <div class="bot-status" id="botStatus">
+              <span class="bot-dot"></span>
+              <div><strong>Bot belum aktif</strong><small>Antrean tetap tersimpan di SI ALIF.</small></div>
+            </div>
+          </div>
+
+          <div class="order-tabs" id="orderTabs">
+            <button class="order-tab active" data-order-filter="all">Semua <b id="orderCountAll">0</b></button>
+            <button class="order-tab" data-order-filter="baru">Baru <b id="orderCountNew">0</b></button>
+            <button class="order-tab" data-order-filter="diproses">Diproses <b id="orderCountProcess">0</b></button>
+            <button class="order-tab" data-order-filter="selesai">Selesai <b id="orderCountDone">0</b></button>
+          </div>
+
+          <div class="orders-list" id="ordersList"></div>
         </article>
       </section>
 
@@ -421,11 +507,13 @@
       <button class="mobile-item" data-view="activities"><span>▦</span><small>Aktivitas</small></button>
       <button class="mobile-add" data-view="submit" aria-label="Setor dokumentasi">＋</button>
       <button class="mobile-item" data-view="gallery"><span>▧</span><small>Galeri</small></button>
-      <button class="mobile-item" data-view="map"><span>⌖</span><small>Peta</small></button>
+      <button class="mobile-item mobile-orders" data-view="orders">
+        <span>✦</span><small>Pesanan</small><b class="mobile-count" id="ordersMobileCount" hidden>0</b>
+      </button>
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0522"></script>
-  <script src="./assets/js/app.js?v=0522"></script>
+  <script src="./assets/js/config.js?v=0600"></script>
+  <script src="./assets/js/app.js?v=0600"></script>
 </body>
 </html>

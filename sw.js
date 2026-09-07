@@ -1,10 +1,10 @@
-const CACHE = "si-alif-05-2-2-route-boot";
+const CACHE = "si-alif-06-pesanan-medsos";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0522",
-  "./assets/js/config.js?v=0522",
-  "./assets/js/app.js?v=0522",
+  "./assets/css/style.css?v=0600",
+  "./assets/js/config.js?v=0600",
+  "./assets/js/app.js?v=0600",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];
