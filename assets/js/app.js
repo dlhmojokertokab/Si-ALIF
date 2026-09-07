@@ -33,6 +33,7 @@ let documentationMode = "new";
 let selectedExistingActivityId = "";
 let successContext = "new";
 let sharedContributionMode = false;
+let siAlifTrashItems = [];
 
 const filterState = {
   query: "",
@@ -1437,7 +1438,7 @@ async function deleteGalleryMediaById(file, button) {
     await loadActivitiesFromApi();
     renderGalleryPhotos();
 
-    showToast(`"${file.name}" dipindahkan ke Trash SI ALIF.`);
+    showToast(`"${file.name}" masuk Trash SI ALIF. Masih bisa dipulihkan.`);
   } catch (error) {
     showToast(`Gagal menghapus media: ${error.message}`);
     button.disabled = false;
@@ -1813,7 +1814,7 @@ async function deleteGalleryFolderById(activityId, button) {
 
     galleryFolderFilesCache.delete(String(item.id));
     await loadActivitiesFromApi();
-    showToast(`"${item.name}" dipindahkan ke Trash SI ALIF.`);
+    showToast(`"${item.name}" masuk Trash SI ALIF. Masih bisa dipulihkan.`);
   } catch (error) {
     showToast(`Gagal menghapus: ${error.message}`);
     button.disabled = false;
@@ -1822,17 +1823,223 @@ async function deleteGalleryFolderById(activityId, button) {
 }
 
 
+function formatTrashDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function closeSiAlifTrash() {
+  $("#siAlifTrashModal").hidden = true;
+  document.body.classList.remove("trash-modal-open");
+}
+
+function renderSiAlifTrash() {
+  const list = $("#siAlifTrashList");
+  const empty = $("#siAlifTrashEmpty");
+  const count = $("#siAlifTrashCount");
+  const emptyButton = $("#emptySiAlifTrash");
+
+  list.innerHTML = "";
+  count.textContent = `${siAlifTrashItems.length} item`;
+  empty.hidden = siAlifTrashItems.length > 0;
+  emptyButton.disabled = siAlifTrashItems.length === 0;
+
+  if (!siAlifTrashItems.length) return;
+
+  siAlifTrashItems.forEach(item => {
+    const row = document.createElement("article");
+    row.className = `trash-item trash-item-${item.kind}`;
+
+    const isActivity = item.kind === "activity";
+    const isVideo = String(item.mimeType || "").startsWith("video/");
+
+    const icon = isActivity ? "▧" : (isVideo ? "▶" : "▦");
+
+    const detail = isActivity
+      ? [
+          item.division || "",
+          item.date || "",
+          item.location || "",
+          `${Number(item.mediaCount || 0)} media`
+        ].filter(Boolean).join(" • ")
+      : [
+          isVideo ? "Video" : "Foto",
+          formatFileSize(item.size),
+          `dari ${item.activityName || "kegiatan"}`
+        ].filter(Boolean).join(" • ");
+
+    row.innerHTML = `
+      <div class="trash-item-icon">${icon}</div>
+
+      <div class="trash-item-main">
+        <div class="trash-item-title">
+          <strong>${escapeHtml(item.name || "Item SI ALIF")}</strong>
+          <span>${isActivity ? "Folder kegiatan" : "Media"}</span>
+        </div>
+
+        <p>${escapeHtml(detail || "-")}</p>
+        ${item.modifiedAt ? `<small>Masuk/berubah di Trash • ${escapeHtml(formatTrashDate(item.modifiedAt))}</small>` : ""}
+        ${!item.canRestore ? `<small class="trash-warning">Folder asal sudah tidak tersedia — hanya bisa dihapus permanen.</small>` : ""}
+      </div>
+
+      <div class="trash-item-actions">
+        <button
+          class="secondary trash-restore"
+          type="button"
+          data-trash-restore="${escapeHtml(item.id)}"
+          ${item.canRestore ? "" : "disabled"}
+        >↩ Pulihkan</button>
+
+        <button
+          class="danger-ghost trash-delete-permanent"
+          type="button"
+          data-trash-delete="${escapeHtml(item.id)}"
+        >Hapus Permanen</button>
+      </div>
+    `;
+
+    row.querySelector("[data-trash-restore]")?.addEventListener("click", async event => {
+      await restoreTrashItem(item, event.currentTarget);
+    });
+
+    row.querySelector("[data-trash-delete]")?.addEventListener("click", async event => {
+      await deleteTrashItemPermanently(item, event.currentTarget);
+    });
+
+    list.appendChild(row);
+  });
+}
+
+async function loadSiAlifTrash() {
+  const list = $("#siAlifTrashList");
+  list.innerHTML = `
+    <div class="trash-loading">
+      <span class="gallery-spinner">◌</span>
+      <small>Mengecek Trash SI ALIF...</small>
+    </div>
+  `;
+  $("#siAlifTrashEmpty").hidden = true;
+
+  try {
+    const result = await adminApiFetch("/api/admin/trash");
+    siAlifTrashItems = result.items || [];
+    renderSiAlifTrash();
+  } catch (error) {
+    list.innerHTML = `
+      <div class="trash-load-error">
+        <strong>Trash gagal dimuat</strong>
+        <small>${escapeHtml(error.message)}</small>
+      </div>
+    `;
+    showToast(`Gagal membuka Trash: ${error.message}`);
+  }
+}
+
+async function openSiAlifTrash() {
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
+  $("#siAlifTrashModal").hidden = false;
+  document.body.classList.add("trash-modal-open");
+  await loadSiAlifTrash();
+}
+
+async function restoreTrashItem(item, button) {
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Memulihkan...";
+
+  try {
+    const result = await adminApiFetch("/api/admin/trash/restore", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: item.kind,
+        id: item.id
+      })
+    });
+
+    if (result.activityId) {
+      galleryFolderFilesCache.delete(String(result.activityId));
+    }
+    if (item.kind === "activity") {
+      galleryFolderFilesCache.delete(String(item.id));
+    }
+
+    await loadActivitiesFromApi();
+    await loadSiAlifTrash();
+
+    showToast(
+      item.kind === "activity"
+        ? `"${item.name}" balik ke Galeri.`
+        : `"${item.name}" balik ke folder kegiatannya.`
+    );
+  } catch (error) {
+    showToast(`Gagal memulihkan: ${error.message}`);
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+async function deleteTrashItemPermanently(item, button) {
+  const ok = window.confirm(
+    `Hapus "${item.name}" PERMANEN?\n\nSetelah ini item tidak bisa dipulihkan lagi.`
+  );
+  if (!ok) return;
+
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Menghapus...";
+
+  try {
+    await adminApiFetch("/api/admin/trash/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: item.kind,
+        id: item.id
+      })
+    });
+
+    siAlifTrashItems = siAlifTrashItems.filter(
+      candidate =>
+        !(candidate.kind === item.kind && String(candidate.id) === String(item.id))
+    );
+    renderSiAlifTrash();
+
+    showToast(`"${item.name}" dihapus permanen.`);
+  } catch (error) {
+    showToast(`Gagal menghapus permanen: ${error.message}`);
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
 async function emptyTrashSiAlif() {
   const unlocked = await ensureAdminUnlock();
   if (!unlocked) return;
 
+  if (!siAlifTrashItems.length) {
+    showToast("Trash SI ALIF sudah kosong.");
+    return;
+  }
+
   const ok = window.confirm(
-    "Kosongkan Trash SI ALIF?\n\nSemua folder SI ALIF yang sudah kamu hapus dari Galeri akan dihapus PERMANEN. File lain di Trash Google Drive tidak disentuh."
+    `Kosongkan Trash SI ALIF?\n\n${siAlifTrashItems.length} item SI ALIF akan dihapus PERMANEN. File lain di Trash Google Drive tidak disentuh.`
   );
   if (!ok) return;
 
   const really = window.confirm(
-    "Ini tidak bisa dibatalkan. Lanjut hapus permanen semua aktivitas SI ALIF di Trash?"
+    "Ini tidak bisa dibatalkan. Yakin mau menghapus permanen semuanya?"
   );
   if (!really) return;
 
@@ -1846,9 +2053,12 @@ async function emptyTrashSiAlif() {
       method: "POST"
     });
 
+    siAlifTrashItems = [];
+    renderSiAlifTrash();
+
     showToast(
       result.deletedCount
-        ? `${result.deletedCount} folder SI ALIF dihapus permanen.`
+        ? `${result.deletedCount} item SI ALIF dihapus permanen.`
         : "Trash SI ALIF sudah kosong."
     );
   } catch (error) {
@@ -2633,7 +2843,12 @@ $$("[data-edit-close]").forEach(element => {
 
 $("#editActivityForm").addEventListener("submit", saveEditedActivity);
 
+$("#openSiAlifTrash").addEventListener("click", openSiAlifTrash);
 $("#emptySiAlifTrash").addEventListener("click", emptyTrashSiAlif);
+
+$$("[data-trash-close]").forEach(element => {
+  element.addEventListener("click", closeSiAlifTrash);
+});
 
 $$("[data-lightbox-close]").forEach(element => {
   element.addEventListener("click", closeMediaLightbox);
@@ -2645,6 +2860,11 @@ $("#lightboxDownload").addEventListener("click", downloadLightboxMedia);
 $("#lightboxDelete").addEventListener("click", deleteLightboxMedia);
 
 window.addEventListener("keydown", event => {
+  if (!$("#siAlifTrashModal")?.hidden && event.key === "Escape") {
+    closeSiAlifTrash();
+    return;
+  }
+
   if ($("#mediaLightbox")?.hidden) return;
 
   if (event.key === "Escape") closeMediaLightbox();

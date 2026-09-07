@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-5-2-mobile-pin-polish";
+const CACHE = "si-alif-06-6-trash-restore";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0652",
-  "./assets/js/config.js?v=0652",
-  "./assets/js/app.js?v=0652",
+  "./assets/css/style.css?v=0660",
+  "./assets/js/config.js?v=0660",
+  "./assets/js/app.js?v=0660",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

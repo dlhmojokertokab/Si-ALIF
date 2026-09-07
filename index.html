@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0652" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0660" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -45,7 +45,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.5.2</strong>
+        <strong>SI ALIF 06.6</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -444,7 +444,7 @@
                 <p>Semua kegiatan tersimpan sebagai folder. Buka folder untuk melihat foto, video, dan detail dokumentasi.</p>
                 <div class="filter-summary gallery-filter-summary" id="galleryFilterResult">Semua folder</div>
               </div>
-              <button class="danger-ghost gallery-trash-action" id="emptySiAlifTrash" type="button">🗑 Kosongkan Trash SI ALIF</button>
+              <button class="secondary gallery-trash-action" id="openSiAlifTrash" type="button">🗑 Trash SI ALIF</button>
             </div>
 
             <div class="smart-filter-bar gallery-filter-bar" data-filter-scope="gallery">
@@ -476,7 +476,7 @@
             <div class="gallery-state" id="galleryFolderState" hidden>
               <div class="empty-icon">▧</div>
               <h3>Belum ada dokumentasi</h3>
-              <p>Aktivitas yang memiliki foto akan tampil di sini.</p>
+              <p>Kegiatan yang memiliki foto atau video akan tampil di sini.</p>
             </div>
           </div>
 
@@ -520,6 +520,34 @@
 
         </article>
       </section>
+
+      <div class="trash-modal" id="siAlifTrashModal" hidden>
+        <div class="trash-modal-backdrop" data-trash-close></div>
+
+        <div class="trash-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="trashModalTitle">
+          <div class="trash-modal-head">
+            <div>
+              <span class="eyebrow">Admin • Trash SI ALIF</span>
+              <h3 id="trashModalTitle">Masih bisa dibalikin.</h3>
+              <p>Folder atau media yang dihapus dari SI ALIF akan nongkrong di sini sebelum dihapus permanen.</p>
+            </div>
+            <button class="lightbox-close trash-close" type="button" data-trash-close aria-label="Tutup">×</button>
+          </div>
+
+          <div class="trash-modal-toolbar">
+            <span class="trash-count" id="siAlifTrashCount">0 item</span>
+            <button class="danger-ghost" id="emptySiAlifTrash" type="button">🗑 Kosongkan Trash</button>
+          </div>
+
+          <div class="trash-list" id="siAlifTrashList"></div>
+
+          <div class="trash-empty" id="siAlifTrashEmpty" hidden>
+            <span>✓</span>
+            <strong>Trash kosong.</strong>
+            <small>Nggak ada yang perlu diselamatkan. Aman wkwk.</small>
+          </div>
+        </div>
+      </div>
 
       <div class="edit-activity-modal" id="editActivityModal" hidden>
         <div class="edit-activity-backdrop" data-edit-close></div>
@@ -647,7 +675,7 @@
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0652"></script>
-  <script src="./assets/js/app.js?v=0652"></script>
+  <script src="./assets/js/config.js?v=0660"></script>
+  <script src="./assets/js/app.js?v=0660"></script>
 </body>
 </html>
