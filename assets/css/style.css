@@ -2624,3 +2624,43 @@ body.route-pending .route-boot {
     width: 100%;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.0.1 — DIRECT VIDEO UPLOAD
+   ========================= */
+
+.direct-video-note {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 9px;
+  padding: 9px 10px;
+  border: 1px solid #dacdf0;
+  border-radius: 11px;
+  background: #f8f4fe;
+  color: var(--text-soft);
+}
+
+.direct-video-note strong {
+  flex: 0 0 auto;
+  color: var(--primary-strong);
+  font-size: 9px;
+}
+
+.direct-video-note span {
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.upload-progress-track > span {
+  transition: width .18s linear;
+}
+
+@media (max-width: 760px) {
+  .direct-video-note {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+}

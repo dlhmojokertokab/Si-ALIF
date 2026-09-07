@@ -1257,6 +1257,7 @@ $("#photoInput").addEventListener("change", event => {
   selectedFiles = [...event.target.files];
   const grid = $("#previewGrid");
   grid.innerHTML = "";
+  document.querySelector(".direct-video-note")?.remove();
 
   selectedFiles.slice(0, 15).forEach(file => {
     const url = URL.createObjectURL(file);
@@ -1289,6 +1290,14 @@ $("#photoInput").addEventListener("change", event => {
     more.textContent = `+${selectedFiles.length - 15}`;
     grid.appendChild(more);
   }
+
+  const videoCount = selectedFiles.filter(file => file.type.startsWith("video/")).length;
+  if (videoCount) {
+    const note = document.createElement("div");
+    note.className = "direct-video-note";
+    note.innerHTML = `<strong>🎬 ${videoCount} video</strong><span>Video akan dikirim langsung dari perangkat ke Google Drive.</span>`;
+    grid.insertAdjacentElement("afterend", note);
+  }
 });
 
 function setUploadProgress(done, total, text) {
@@ -1300,6 +1309,21 @@ function setUploadProgress(done, total, text) {
   $("#uploadProgressBar").style.width = `${value}%`;
 }
 
+function setUploadProgressPercent(percent, text) {
+  const box = $("#uploadProgress");
+  const value = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+
+  box.hidden = false;
+  $("#uploadProgressText").textContent = text;
+  $("#uploadProgressValue").textContent = `${value}%`;
+  $("#uploadProgressBar").style.width = `${value}%`;
+}
+
+function overallUploadPercent(fileIndex, totalFiles, currentFileRatio = 0) {
+  if (!totalFiles) return 100;
+  return ((fileIndex + Math.max(0, Math.min(1, currentFileRatio))) / totalFiles) * 100;
+}
+
 function resetUploadProgress() {
   const box = $("#uploadProgress");
   box.hidden = true;
@@ -1308,8 +1332,106 @@ function resetUploadProgress() {
   $("#uploadProgressBar").style.width = "0%";
 }
 
+async function createDirectUploadSession(activityId, file) {
+  return apiFetch(
+    `/api/activities/${encodeURIComponent(activityId)}/uploads/resumable`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: file.name,
+        mimeType: file.type || "application/octet-stream",
+        size: file.size
+      })
+    }
+  );
+}
+
+function uploadFileDirectToDrive(uploadUrl, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("PUT", uploadUrl, true);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.timeout = 30 * 60 * 1000;
+
+    xhr.upload.addEventListener("progress", event => {
+      if (!event.lengthComputable) return;
+      const ratio = event.total ? event.loaded / event.total : 0;
+      onProgress?.(ratio, event.loaded, event.total);
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const payload = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+          resolve(payload);
+        } catch (_) {
+          reject(new Error("Google Drive mengembalikan respons upload yang tidak valid."));
+        }
+        return;
+      }
+
+      reject(new Error(`Upload langsung ke Google Drive gagal (HTTP ${xhr.status}).`));
+    });
+
+    xhr.addEventListener("error", () => {
+      reject(new Error("Koneksi ke Google Drive terputus saat mengunggah video."));
+    });
+
+    xhr.addEventListener("timeout", () => {
+      reject(new Error("Upload video terlalu lama dan mencapai batas waktu."));
+    });
+
+    xhr.addEventListener("abort", () => {
+      reject(new Error("Upload video dibatalkan."));
+    });
+
+    xhr.send(file);
+  });
+}
+
+async function uploadVideoDirect(activityId, file, fileIndex, totalFiles) {
+  const session = await createDirectUploadSession(activityId, file);
+
+  if (!session?.uploadUrl) {
+    throw new Error("Tiket upload Google Drive tidak tersedia.");
+  }
+
+  const uploaded = await uploadFileDirectToDrive(
+    session.uploadUrl,
+    file,
+    ratio => {
+      const percent = overallUploadPercent(fileIndex, totalFiles, ratio);
+      setUploadProgressPercent(
+        percent,
+        `🎬 ${fileIndex + 1}/${totalFiles} • ${file.name} • ${Math.round(ratio * 100)}%`
+      );
+    }
+  );
+
+  if (!uploaded?.id) {
+    throw new Error("Google Drive tidak mengembalikan ID video setelah upload.");
+  }
+
+  await apiFetch(
+    `/api/activities/${encodeURIComponent(activityId)}/uploads/complete`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileId: uploaded.id })
+    }
+  );
+
+  return uploaded;
+}
+
 async function submitRemoteActivity(payload) {
-  setUploadProgress(0, Math.max(selectedFiles.length, 1), "Membuat folder kegiatan di Google Drive...");
+  setUploadProgress(
+    0,
+    Math.max(selectedFiles.length, 1),
+    "Membuat folder kegiatan di Google Drive..."
+  );
 
   const activity = await apiFetch("/api/activities", {
     method: "POST",
@@ -1318,21 +1440,52 @@ async function submitRemoteActivity(payload) {
   });
 
   const total = selectedFiles.length;
+
   for (let i = 0; i < total; i++) {
     const file = selectedFiles[i];
-    setUploadProgress(i, total, `Mengunggah ${i + 1}/${total}: ${file.name}`);
+    const isVideo = file.type.startsWith("video/");
+
+    if (isVideo) {
+      setUploadProgressPercent(
+        overallUploadPercent(i, total, 0),
+        `Menyiapkan upload video ${i + 1}/${total}: ${file.name}`
+      );
+
+      await uploadVideoDirect(activity.id, file, i, total);
+
+      setUploadProgressPercent(
+        overallUploadPercent(i, total, 1),
+        `🎬 Video ${i + 1}/${total} tersimpan di Google Drive.`
+      );
+      continue;
+    }
+
+    setUploadProgressPercent(
+      overallUploadPercent(i, total, 0),
+      `📷 Mengunggah ${i + 1}/${total}: ${file.name}`
+    );
 
     const data = new FormData();
     data.append("file", file, file.name);
-    await apiFetch(`/api/activities/${encodeURIComponent(activity.id)}/files`, {
-      method: "POST",
-      body: data
-    });
 
-    setUploadProgress(i + 1, total, `File ${i + 1}/${total} tersimpan.`);
+    await apiFetch(
+      `/api/activities/${encodeURIComponent(activity.id)}/files`,
+      {
+        method: "POST",
+        body: data
+      }
+    );
+
+    setUploadProgressPercent(
+      overallUploadPercent(i, total, 1),
+      `📷 Foto ${i + 1}/${total} tersimpan.`
+    );
   }
 
-  if (!total) setUploadProgress(1, 1, "Kegiatan tersimpan tanpa media.");
+  if (!total) {
+    setUploadProgress(1, 1, "Kegiatan tersimpan tanpa media.");
+  }
+
   return activity;
 }
 

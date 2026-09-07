@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-pesanan-medsos";
+const CACHE = "si-alif-06-0-1-direct-video";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0600",
-  "./assets/js/config.js?v=0600",
-  "./assets/js/app.js?v=0600",
+  "./assets/css/style.css?v=0601",
+  "./assets/js/config.js?v=0601",
+  "./assets/js/app.js?v=0601",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];
