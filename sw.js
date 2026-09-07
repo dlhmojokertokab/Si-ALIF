@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-6-trash-restore";
+const CACHE = "si-alif-06-6-1-bounded-navigation";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0660",
-  "./assets/js/config.js?v=0660",
-  "./assets/js/app.js?v=0660",
+  "./assets/css/style.css?v=0661",
+  "./assets/js/config.js?v=0661",
+  "./assets/js/app.js?v=0661",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];

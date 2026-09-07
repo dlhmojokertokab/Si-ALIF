@@ -49,6 +49,11 @@ let currentView = "dashboard";
 let routingReady = false;
 let handlingRoute = false;
 
+const SI_ALIF_NAV_VERSION = 661;
+let currentNavLevel = 0;
+let pendingBoundedNavigation = null;
+let skippingOldHistory = false;
+
 function routeHash(view, options = {}) {
   const activityId = options.activityId ? encodeURIComponent(String(options.activityId)) : "";
   const galleryFolderId = options.galleryFolderId ? encodeURIComponent(String(options.galleryFolderId)) : "";
@@ -71,8 +76,8 @@ function routeHash(view, options = {}) {
   return `#${allowed.has(view) ? view : "dashboard"}`;
 }
 
-function parseRouteHash() {
-  const raw = (window.location.hash || "#dashboard").replace(/^#/, "");
+function parseRouteValue(hashValue = window.location.hash) {
+  const raw = String(hashValue || "#dashboard").replace(/^#/, "");
   const parts = raw.split("/").filter(Boolean);
   const view = parts[0] || "dashboard";
   const id = parts[1] ? decodeURIComponent(parts.slice(1).join("/")) : "";
@@ -100,6 +105,59 @@ function parseRouteHash() {
   return { view: "dashboard" };
 }
 
+function parseRouteHash() {
+  return parseRouteValue(window.location.hash);
+}
+
+function routeLevel(hashValue) {
+  const route = parseRouteValue(hashValue);
+
+  if (route.view === "dashboard") return 0;
+
+  if (
+    (route.view === "gallery" && route.galleryFolderId) ||
+    (route.view === "submit" && route.submitActivityId) ||
+    route.view === "detail"
+  ) {
+    return 2;
+  }
+
+  // success dianggap satu langkah dari Dashboard.
+  return 1;
+}
+
+function parentHashFor(hashValue) {
+  const route = parseRouteValue(hashValue);
+
+  if (route.view === "gallery" && route.galleryFolderId) return "#gallery";
+  if (route.view === "submit" && route.submitActivityId) return "#submit";
+  if (route.view === "detail") return "#gallery";
+
+  return "#dashboard";
+}
+
+function makeNavState(hashValue, level = routeLevel(hashValue)) {
+  return {
+    siAlifRoute: true,
+    siAlifNavVersion: SI_ALIF_NAV_VERSION,
+    siAlifLevel: level,
+    siAlifHash: hashValue
+  };
+}
+
+function stateIsCurrentNav(state) {
+  return Boolean(
+    state?.siAlifRoute &&
+    state?.siAlifNavVersion === SI_ALIF_NAV_VERSION
+  );
+}
+
+function syncSavedRoute(hashValue = window.location.hash) {
+  if (hashValue) {
+    sessionStorage.setItem("si-alif-route", hashValue);
+  }
+}
+
 function showView(view) {
   const target = $(`#view-${view}`);
   if (!target) return false;
@@ -117,8 +175,67 @@ function showView(view) {
   return true;
 }
 
+function pushBoundedState(hashValue, level = routeLevel(hashValue)) {
+  history.pushState(makeNavState(hashValue, level), "", hashValue);
+  currentNavLevel = level;
+  syncSavedRoute(hashValue);
+}
+
+function replaceBoundedState(hashValue, level = routeLevel(hashValue)) {
+  history.replaceState(makeNavState(hashValue, level), "", hashValue);
+  currentNavLevel = level;
+  syncSavedRoute(hashValue);
+}
+
+function buildTargetFromDashboard(hashValue) {
+  const level = routeLevel(hashValue);
+
+  if (level === 0) {
+    replaceBoundedState("#dashboard", 0);
+    applyRouteFromHash();
+    return;
+  }
+
+  if (level === 1) {
+    pushBoundedState(hashValue, 1);
+    applyRouteFromHash();
+    return;
+  }
+
+  const parentHash = parentHashFor(hashValue);
+  pushBoundedState(parentHash, 1);
+  pushBoundedState(hashValue, 2);
+  applyRouteFromHash();
+}
+
+function runPendingBoundedNavigation() {
+  if (!pendingBoundedNavigation) return false;
+
+  const target = pendingBoundedNavigation;
+  pendingBoundedNavigation = null;
+
+  // Kita seharusnya sudah kembali ke Dashboard sentinel.
+  replaceBoundedState("#dashboard", 0);
+  buildTargetFromDashboard(target);
+  return true;
+}
+
+function goBackToDashboardThen(targetHash = null) {
+  if (currentNavLevel <= 0) {
+    if (targetHash) {
+      buildTargetFromDashboard(targetHash);
+    } else {
+      replaceBoundedState("#dashboard", 0);
+      applyRouteFromHash();
+    }
+    return;
+  }
+
+  pendingBoundedNavigation = targetHash;
+  history.go(-currentNavLevel);
+}
+
 function navigateTo(view, options = {}) {
-  const { replace = false } = options;
   const hash = routeHash(view, options);
 
   if (window.location.hash === hash) {
@@ -126,20 +243,85 @@ function navigateTo(view, options = {}) {
     return;
   }
 
-  const state = { siAlifRoute: true };
-
-  if (replace) {
-    history.replaceState(state, "", hash);
-  } else {
-    history.pushState(state, "", hash);
+  // Bila state berasal dari router lama / hash manual, normalkan dulu.
+  if (!stateIsCurrentNav(history.state)) {
+    replaceBoundedState(
+      window.location.hash || "#dashboard",
+      routeLevel(window.location.hash || "#dashboard")
+    );
   }
 
-  sessionStorage.setItem("si-alif-route", hash);
-  applyRouteFromHash();
+  const targetLevel = routeLevel(hash);
+  const currentHash = window.location.hash || "#dashboard";
+  const currentLevel = currentNavLevel;
+  const currentParent = parentHashFor(currentHash);
+  const targetParent = parentHashFor(hash);
+
+  // Dashboard adalah "rumah". Jangan push Dashboard baru.
+  // Mundurkan stack internal sampai sentinel Dashboard yang sama.
+  if (targetLevel === 0) {
+    goBackToDashboardThen(null);
+    return;
+  }
+
+  // Halaman utama: Submit / Galeri / Pesanan / Success.
+  if (targetLevel === 1) {
+    if (currentLevel === 0) {
+      pushBoundedState(hash, 1);
+      applyRouteFromHash();
+      return;
+    }
+
+    if (currentLevel === 1) {
+      // Pindah tab utama = ganti entry, bukan tambah jejak baru.
+      replaceBoundedState(hash, 1);
+      applyRouteFromHash();
+      return;
+    }
+
+    // Dari folder/detail ke parent yang tepat cukup Back sekali.
+    if (currentLevel === 2 && hash === currentParent) {
+      history.back();
+      return;
+    }
+
+    // Dari nested ke tab utama lain: pulang Dashboard dulu lalu buka target.
+    goBackToDashboardThen(hash);
+    return;
+  }
+
+  // Halaman nested: Gallery folder / shared submit / detail.
+  if (targetLevel === 2) {
+    if (currentLevel === 0) {
+      buildTargetFromDashboard(hash);
+      return;
+    }
+
+    if (currentLevel === 1) {
+      // Pastikan entry di bawah nested adalah parent yang benar.
+      if (currentHash !== targetParent) {
+        replaceBoundedState(targetParent, 1);
+      }
+
+      pushBoundedState(hash, 2);
+      applyRouteFromHash();
+      return;
+    }
+
+    // Nested -> nested dalam parent yang sama: replace saja.
+    // Contoh pindah folder A -> folder B tidak menumpuk history.
+    if (currentLevel === 2 && currentParent === targetParent) {
+      replaceBoundedState(hash, 2);
+      applyRouteFromHash();
+      return;
+    }
+
+    // Beda cabang nested: collapse dulu.
+    goBackToDashboardThen(hash);
+  }
 }
 
 function switchView(view, options = {}) {
-  // Compatibility wrapper for existing SI ALIF code.
   navigateTo(view, options);
 }
 
@@ -302,27 +484,83 @@ function initializeRouting() {
 
   routingReady = true;
 
-  if (window.location.hash !== requestedHash) {
-    history.replaceState({ siAlifRoute: true }, "", requestedHash);
-  } else {
-    history.replaceState({ siAlifRoute: true }, "", window.location.href);
+  // Kalau refresh pada router 06.6.1, pertahankan stack yang sudah rapi.
+  if (
+    stateIsCurrentNav(history.state) &&
+    window.location.hash === requestedHash
+  ) {
+    currentNavLevel = Number(history.state.siAlifLevel || routeLevel(requestedHash));
+    syncSavedRoute(requestedHash);
+    applyRouteFromHash();
+    return;
   }
 
-  sessionStorage.setItem("si-alif-route", requestedHash);
-  applyRouteFromHash();
+  // Migrasi dari history lama:
+  // current entry dijadikan sentinel Dashboard,
+  // lalu route yang diminta dibangun maksimal 2 lapis di atasnya.
+  history.replaceState(
+    makeNavState("#dashboard", 0),
+    "",
+    "#dashboard"
+  );
+  currentNavLevel = 0;
+  syncSavedRoute("#dashboard");
+
+  if (requestedHash !== "#dashboard") {
+    buildTargetFromDashboard(requestedHash);
+  } else {
+    applyRouteFromHash();
+  }
 }
 
-window.addEventListener("popstate", () => {
-  if (window.location.hash) {
-    sessionStorage.setItem("si-alif-route", window.location.hash);
+window.addEventListener("popstate", event => {
+  const fromLevel = currentNavLevel;
+
+  // Jika kita sengaja sedang collapse history, jangan render halaman antara.
+  if (pendingBoundedNavigation !== null) {
+    if (
+      stateIsCurrentNav(event.state) &&
+      Number(event.state.siAlifLevel || 0) === 0
+    ) {
+      currentNavLevel = 0;
+      runPendingBoundedNavigation();
+    }
+    return;
   }
+
+  // Dari Dashboard, tombol Back harus keluar SI ALIF.
+  // Skip jejak internal dari router versi lama yang mungkin masih ada di belakang.
+  if (fromLevel === 0 && event.state?.siAlifRoute) {
+    skippingOldHistory = true;
+    history.back();
+    return;
+  }
+
+  if (stateIsCurrentNav(event.state)) {
+    currentNavLevel = Number(event.state.siAlifLevel || 0);
+  } else {
+    currentNavLevel = routeLevel(window.location.hash || "#dashboard");
+  }
+
+  syncSavedRoute(window.location.hash || "#dashboard");
   applyRouteFromHash();
 });
 
 window.addEventListener("hashchange", () => {
-  if (window.location.hash) {
-    sessionStorage.setItem("si-alif-route", window.location.hash);
+  // pushState/replaceState SI ALIF tidak memicu hashchange.
+  // Event ini hanya untuk perubahan hash manual / browser edge case.
+  if (skippingOldHistory) {
+    skippingOldHistory = false;
+    return;
   }
+
+  if (!stateIsCurrentNav(history.state)) {
+    replaceBoundedState(
+      window.location.hash || "#dashboard",
+      routeLevel(window.location.hash || "#dashboard")
+    );
+  }
+
   applyRouteFromHash();
 });
 
@@ -335,11 +573,15 @@ $$("[data-history-back]").forEach(button => {
     const route = parseRouteHash();
 
     if (route.view === "dashboard") {
-      navigateTo("dashboard", { replace: true });
+      history.back();
       return;
     }
 
-    history.back();
+    if (currentNavLevel > 0) {
+      history.back();
+    } else {
+      navigateTo("dashboard");
+    }
   });
 });
 
