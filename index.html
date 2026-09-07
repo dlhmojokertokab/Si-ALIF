@@ -8,7 +8,7 @@
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0612" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0620" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -45,7 +45,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.1.2</strong>
+        <strong>SI ALIF 06.2</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -443,6 +443,36 @@
         </article>
       </section>
 
+      <div class="media-lightbox" id="mediaLightbox" hidden>
+        <div class="media-lightbox-backdrop" data-lightbox-close></div>
+
+        <div class="media-lightbox-dialog" role="dialog" aria-modal="true" aria-labelledby="lightboxFileName">
+          <div class="media-lightbox-top">
+            <div class="media-lightbox-title">
+              <strong id="lightboxFileName">Media</strong>
+              <span id="lightboxFileMeta">-</span>
+            </div>
+            <button class="lightbox-close" type="button" data-lightbox-close aria-label="Tutup">×</button>
+          </div>
+
+          <div class="media-lightbox-stage" id="lightboxStage">
+            <div class="media-lightbox-loading">
+              <span class="gallery-spinner">◌</span>
+              <small>Memuat media...</small>
+            </div>
+          </div>
+
+          <button class="lightbox-nav lightbox-prev" id="lightboxPrev" type="button" aria-label="Sebelumnya">‹</button>
+          <button class="lightbox-nav lightbox-next" id="lightboxNext" type="button" aria-label="Berikutnya">›</button>
+
+          <div class="media-lightbox-actions">
+            <button class="secondary" id="lightboxDownload" type="button">↓ Download</button>
+            <a class="button-link" id="lightboxDrive" href="#" target="_blank" rel="noopener">Drive ↗</a>
+            <button class="danger-button" id="lightboxDelete" type="button">🗑 Hapus Media</button>
+          </div>
+        </div>
+      </div>
+
       <section class="view" id="view-orders">
         <article class="panel orders-panel">
           <div class="orders-head">
@@ -479,7 +509,7 @@
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0612"></script>
-  <script src="./assets/js/app.js?v=0612"></script>
+  <script src="./assets/js/config.js?v=0620"></script>
+  <script src="./assets/js/app.js?v=0620"></script>
 </body>
 </html>

@@ -24,7 +24,11 @@ let galleryActivityId = "";
 let galleryFiles = [];
 let gallerySelected = new Set();
 let galleryObjectUrls = new Map();
+let folderCoverUrls = new Map();
+let galleryFolderFilesCache = new Map();
 let galleryLoading = false;
+let lightboxIndex = -1;
+let lightboxObjectUrl = "";
 
 const filterState = {
   query: "",
@@ -738,6 +742,56 @@ function formatFileSize(bytes) {
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatDurationMillis(value) {
+  const totalSeconds = Math.round(Number(value || 0) / 1000);
+  if (!totalSeconds) return "";
+
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function cleanupFolderCoverUrls() {
+  folderCoverUrls.forEach(url => URL.revokeObjectURL(url));
+  folderCoverUrls.clear();
+}
+
+async function getFolderFiles(activityId, force = false) {
+  const key = String(activityId);
+
+  if (!force && galleryFolderFilesCache.has(key)) {
+    return galleryFolderFilesCache.get(key);
+  }
+
+  const result = await apiFetch(`/api/activities/${encodeURIComponent(activityId)}/files`);
+  const files = result.files || [];
+  galleryFolderFilesCache.set(key, files);
+  return files;
+}
+
+async function loadFolderCover(activity, img, placeholder) {
+  try {
+    const files = await getFolderFiles(activity.id);
+    const cover = files.find(file => String(file.mimeType || "").startsWith("image/")) || files[0];
+
+    if (!cover) return;
+
+    const blob = await apiFetchBlob(`/api/files/${encodeURIComponent(cover.id)}/thumbnail`);
+    const objectUrl = URL.createObjectURL(blob);
+    folderCoverUrls.set(String(activity.id), objectUrl);
+
+    img.src = objectUrl;
+    img.classList.add("loaded");
+    placeholder?.classList.add("has-cover");
+
+    if (String(cover.mimeType || "").startsWith("video/")) {
+      placeholder?.classList.add("video-cover");
+    }
+  } catch (error) {
+    console.warn(`Cover ${activity.name} gagal dimuat:`, error.message);
+  }
+}
+
 function showGalleryFolders() {
   galleryActivityId = "";
   galleryFiles = [];
@@ -757,6 +811,7 @@ function renderGalleryFolders(items) {
   const state = $("#galleryFolderState");
   if (!grid || !state) return;
 
+  cleanupFolderCoverUrls();
   grid.innerHTML = "";
 
   const folders = items.filter(item => Number(item.media || item.photos || 0) > 0);
@@ -768,7 +823,7 @@ function renderGalleryFolders(items) {
     state.querySelector("p").textContent =
       activeFilterCount()
         ? "Coba ubah atau reset filter."
-        : "Aktivitas yang memiliki foto akan tampil di sini.";
+        : "Kegiatan yang memiliki media akan tampil di sini.";
     return;
   }
 
@@ -783,29 +838,33 @@ function renderGalleryFolders(items) {
 
     card.innerHTML = `
       <div class="gallery-folder-visual">
-        <div class="gallery-folder-tab"></div>
-        <div class="gallery-folder-icon">▧</div>
+        <div class="gallery-folder-cover-placeholder">
+          <div class="gallery-folder-tab"></div>
+          <div class="gallery-folder-icon">▧</div>
+        </div>
+        <img class="gallery-folder-cover" alt="" loading="lazy">
         <span class="gallery-folder-count">${Number(item.media || item.photos || 0)} media</span>
+
+        <button
+          class="gallery-folder-delete gallery-folder-delete-top"
+          type="button"
+          title="Hapus folder"
+          aria-label="Hapus folder ${escapeHtml(item.name)}"
+          data-delete-folder="${escapeHtml(item.id)}"
+        >🗑</button>
       </div>
+
       <div class="gallery-folder-content">
         <strong title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</strong>
         <span>${escapeHtml(item.division)} • ${escapeHtml(item.date)}</span>
         <span class="gallery-folder-location">📍 ${escapeHtml(item.place || "-")}</span>
       </div>
+
       <div class="gallery-folder-footer">
         <span class="activity-status ${item.status === "Minim" ? "warn" : ""}">
           ${item.status === "Minim" ? "🟡" : "🟢"} ${escapeHtml(item.status)}
         </span>
-        <div class="gallery-folder-actions">
-          <button
-            class="gallery-folder-delete"
-            type="button"
-            title="Hapus folder"
-            aria-label="Hapus folder ${escapeHtml(item.name)}"
-            data-delete-folder="${escapeHtml(item.id)}"
-          >🗑</button>
-          <span class="gallery-folder-open">Buka →</span>
-        </div>
+        <span class="gallery-folder-open">Buka →</span>
       </div>
     `;
 
@@ -832,6 +891,12 @@ function renderGalleryFolders(items) {
     });
 
     grid.appendChild(card);
+
+    loadFolderCover(
+      item,
+      card.querySelector(".gallery-folder-cover"),
+      card.querySelector(".gallery-folder-cover-placeholder")
+    );
   });
 }
 
@@ -847,7 +912,11 @@ function updateGallerySelectionUi() {
     card.classList.toggle("selected", selected);
     card.setAttribute("aria-checked", String(selected));
     const checkbox = card.querySelector(".gallery-check");
-    if (checkbox) checkbox.textContent = selected ? "✓" : "";
+    if (checkbox) {
+      checkbox.textContent = selected ? "✓" : "";
+      checkbox.classList.toggle("selected", selected);
+      checkbox.setAttribute("aria-pressed", String(selected));
+    }
   });
 }
 
@@ -870,19 +939,185 @@ async function loadGalleryThumbnail(file, img) {
   }
 }
 
-function createGalleryCard(file) {
+
+function closeMediaLightbox() {
+  const box = $("#mediaLightbox");
+  if (!box) return;
+
+  box.hidden = true;
+  document.body.classList.remove("lightbox-open");
+
+  if (lightboxObjectUrl) {
+    URL.revokeObjectURL(lightboxObjectUrl);
+    lightboxObjectUrl = "";
+  }
+
+  $("#lightboxStage").innerHTML = "";
+  lightboxIndex = -1;
+}
+
+async function renderMediaLightbox() {
+  const file = galleryFiles[lightboxIndex];
+  if (!file) {
+    closeMediaLightbox();
+    return;
+  }
+
+  const box = $("#mediaLightbox");
+  const stage = $("#lightboxStage");
+  box.hidden = false;
+  document.body.classList.add("lightbox-open");
+
+  $("#lightboxFileName").textContent = file.name || "Media";
+
+  const meta = [
+    String(file.mimeType || "").startsWith("video/") ? "🎬 Video" : "📷 Foto",
+    file.width && file.height ? `${file.width}×${file.height}` : "",
+    file.durationMillis ? formatDurationMillis(file.durationMillis) : "",
+    formatFileSize(file.size)
+  ].filter(Boolean).join(" • ");
+
+  $("#lightboxFileMeta").textContent = meta || "Media";
+  $("#lightboxDrive").href = file.driveUrl || "#";
+  $("#lightboxPrev").disabled = galleryFiles.length <= 1;
+  $("#lightboxNext").disabled = galleryFiles.length <= 1;
+
+  if (lightboxObjectUrl) {
+    URL.revokeObjectURL(lightboxObjectUrl);
+    lightboxObjectUrl = "";
+  }
+
+  stage.innerHTML = `
+    <div class="media-lightbox-loading">
+      <span class="gallery-spinner">◌</span>
+      <small>Memuat media asli...</small>
+    </div>
+  `;
+
+  try {
+    const blob = await apiFetchBlob(`/api/files/${encodeURIComponent(file.id)}/download`);
+    lightboxObjectUrl = URL.createObjectURL(blob);
+
+    if (String(file.mimeType || "").startsWith("video/")) {
+      stage.innerHTML = `
+        <video class="lightbox-video" controls playsinline preload="metadata">
+          <source src="${lightboxObjectUrl}" type="${escapeHtml(file.mimeType || "video/mp4")}">
+        </video>
+      `;
+    } else {
+      stage.innerHTML = `<img class="lightbox-image" src="${lightboxObjectUrl}" alt="${escapeHtml(file.name)}">`;
+    }
+  } catch (error) {
+    stage.innerHTML = `
+      <div class="media-lightbox-error">
+        <strong>Media gagal dimuat</strong>
+        <span>${escapeHtml(error.message)}</span>
+      </div>
+    `;
+  }
+}
+
+function openMediaLightbox(index) {
+  if (!galleryFiles[index]) return;
+  lightboxIndex = index;
+  renderMediaLightbox();
+}
+
+function moveMediaLightbox(step) {
+  if (!galleryFiles.length || lightboxIndex < 0) return;
+  lightboxIndex = (lightboxIndex + step + galleryFiles.length) % galleryFiles.length;
+  renderMediaLightbox();
+}
+
+async function downloadLightboxMedia() {
+  const file = galleryFiles[lightboxIndex];
+  if (!file) return;
+
+  const button = $("#lightboxDownload");
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Mengunduh...";
+
+  try {
+    const blob = await apiFetchBlob(`/api/files/${encodeURIComponent(file.id)}/download`);
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = file.name || "media";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+  } catch (error) {
+    showToast(`Download gagal: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+async function deleteLightboxMedia() {
+  const file = galleryFiles[lightboxIndex];
+  if (!file) return;
+
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
+  const ok = window.confirm(
+    `Hapus "${file.name}" dari folder ini?\n\nMedia akan dipindahkan ke Trash Google Drive dan bisa dihapus permanen lewat "Kosongkan Trash SI ALIF".`
+  );
+  if (!ok) return;
+
+  const button = $("#lightboxDelete");
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Menghapus...";
+
+  try {
+    await adminApiFetch(`/api/files/${encodeURIComponent(file.id)}`, {
+      method: "DELETE"
+    });
+
+    galleryFolderFilesCache.delete(String(galleryActivityId));
+    galleryFiles.splice(lightboxIndex, 1);
+    await loadActivitiesFromApi();
+
+    if (!galleryFiles.length) {
+      closeMediaLightbox();
+      renderGalleryPhotos();
+      showToast("Media dihapus. Folder sekarang kosong.");
+      return;
+    }
+
+    if (lightboxIndex >= galleryFiles.length) {
+      lightboxIndex = galleryFiles.length - 1;
+    }
+
+    renderGalleryPhotos();
+    await renderMediaLightbox();
+    showToast("Media dipindahkan ke Trash SI ALIF.");
+  } catch (error) {
+    showToast(`Gagal menghapus media: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+function createGalleryCard(file, index) {
   const card = document.createElement("article");
-  card.className = "gallery-card";
+  card.className = "gallery-card gallery-card-preview";
   card.dataset.fileId = file.id;
   card.tabIndex = 0;
-  card.setAttribute("role", "checkbox");
-  card.setAttribute("aria-checked", "false");
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `Preview ${file.name}`);
 
   const dimension = file.width && file.height ? `${file.width}×${file.height}` : "";
   const isVideo = String(file.mimeType || "").startsWith("video/");
   const detail = [
     isVideo ? "🎬 Video" : "📷 Foto",
     dimension,
+    isVideo && file.durationMillis ? formatDurationMillis(file.durationMillis) : "",
     formatFileSize(file.size)
   ].filter(Boolean).join(" • ");
 
@@ -890,25 +1125,33 @@ function createGalleryCard(file) {
     <div class="gallery-photo-frame">
       <div class="gallery-image-skeleton">SI</div>
       <img alt="${escapeHtml(file.name)}" loading="lazy">
-      <span class="gallery-check"></span>
+      ${isVideo ? `<span class="gallery-video-badge">▶ VIDEO</span>` : ""}
+      <button class="gallery-check" type="button" aria-label="Pilih ${escapeHtml(file.name)}"></button>
+      <span class="gallery-preview-hint">Lihat</span>
     </div>
     <div class="gallery-card-info">
       <strong title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</strong>
-      <span>${escapeHtml(detail || "Foto")}</span>
+      <span>${escapeHtml(detail || "Media")}</span>
     </div>
   `;
 
-  const toggle = event => {
-    if (event?.target?.closest?.("a,button")) return;
-    toggleGalleryFile(file.id);
-  };
+  card.addEventListener("click", event => {
+    if (event.target.closest(".gallery-check")) return;
+    openMediaLightbox(index);
+  });
 
-  card.addEventListener("click", toggle);
   card.addEventListener("keydown", event => {
-    if (event.key === "Enter" || event.key === " ") {
+    if (event.key === "Enter") {
       event.preventDefault();
-      toggle(event);
+      openMediaLightbox(index);
     }
+  });
+
+  const check = card.querySelector(".gallery-check");
+  check.addEventListener("click", event => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleGalleryFile(file.id);
   });
 
   loadGalleryThumbnail(file, card.querySelector("img"));
@@ -930,8 +1173,8 @@ function renderGalleryPhotos() {
   $("#galleryState").hidden = true;
   $("#galleryToolbar").hidden = false;
 
-  galleryFiles.forEach(file => {
-    grid.appendChild(createGalleryCard(file));
+  galleryFiles.forEach((file, index) => {
+    grid.appendChild(createGalleryCard(file, index));
   });
 
   updateGallerySelectionUi();
@@ -994,8 +1237,7 @@ async function openGalleryFolder(activityId, options = {}) {
   setGalleryState("loading", "Membuka folder...", "Mengambil thumbnail dari Google Drive.");
 
   try {
-    const result = await apiFetch(`/api/activities/${encodeURIComponent(activity.id)}/files`);
-    galleryFiles = result.files || [];
+    galleryFiles = await getFolderFiles(activity.id);
     renderGalleryPhotos();
   } catch (error) {
     setGalleryState("error", "Folder gagal dibuka", error.message);
@@ -1131,6 +1373,7 @@ async function deleteGalleryFolderById(activityId, button) {
       method: "DELETE"
     });
 
+    galleryFolderFilesCache.delete(String(item.id));
     await loadActivitiesFromApi();
     showToast(`"${item.name}" dipindahkan ke Trash SI ALIF.`);
   } catch (error) {
@@ -1853,6 +2096,23 @@ $("#successViewOrder").addEventListener("click", () => {
 });
 
 $("#emptySiAlifTrash").addEventListener("click", emptyTrashSiAlif);
+
+$$("[data-lightbox-close]").forEach(element => {
+  element.addEventListener("click", closeMediaLightbox);
+});
+
+$("#lightboxPrev").addEventListener("click", () => moveMediaLightbox(-1));
+$("#lightboxNext").addEventListener("click", () => moveMediaLightbox(1));
+$("#lightboxDownload").addEventListener("click", downloadLightboxMedia);
+$("#lightboxDelete").addEventListener("click", deleteLightboxMedia);
+
+window.addEventListener("keydown", event => {
+  if ($("#mediaLightbox")?.hidden) return;
+
+  if (event.key === "Escape") closeMediaLightbox();
+  if (event.key === "ArrowLeft") moveMediaLightbox(-1);
+  if (event.key === "ArrowRight") moveMediaLightbox(1);
+});
 
 $("#galleryBackFromFolder").addEventListener("click", () => {
   const route = parseRouteHash();
