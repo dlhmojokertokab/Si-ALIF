@@ -26,9 +26,19 @@ let galleryObjectUrls = new Map();
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
-function switchView(view) {
+let currentView = "dashboard";
+let handlingPopState = false;
+
+function switchView(view, options = {}) {
+  const { push = true } = options;
+  const target = $(`#view-${view}`);
+  if (!target) return;
+
+  const previousView = currentView;
+
   $$(".view").forEach(el => el.classList.remove("active"));
-  $(`#view-${view}`).classList.add("active");
+  target.classList.add("active");
+  currentView = view;
   $("#pageTitle").textContent = titleMap[view] || "SI ALIF";
 
   $$(".nav-item, .mobile-item").forEach(el => {
@@ -37,13 +47,37 @@ function switchView(view) {
 
   if (view === "gallery") {
     refreshGalleryActivityOptions();
+    ensureGalleryReady();
+  }
+
+  if (push && !handlingPopState && previousView !== view) {
+    history.pushState({ siAlifView: view }, "", window.location.href);
   }
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
+history.replaceState({ siAlifView: "dashboard" }, "", window.location.href);
+
+window.addEventListener("popstate", event => {
+  handlingPopState = true;
+  const targetView = event.state?.siAlifView || "dashboard";
+  switchView(targetView, { push: false });
+  handlingPopState = false;
+});
+
 $$('[data-view]').forEach(button => {
   button.addEventListener("click", () => switchView(button.dataset.view));
+});
+
+$$("[data-history-back]").forEach(button => {
+  button.addEventListener("click", () => {
+    if (history.state?.siAlifView && currentView !== "dashboard") {
+      history.back();
+    } else {
+      switchView("dashboard");
+    }
+  });
 });
 
 function escapeHtml(text = "") {
@@ -104,6 +138,10 @@ function refreshLists() {
   renderActivities("#allActivities", activities);
   updateStats();
   refreshGalleryActivityOptions();
+
+  if (currentView === "gallery") {
+    ensureGalleryReady();
+  }
 }
 
 function filterActivities() {
@@ -313,7 +351,7 @@ function refreshGalleryActivityOptions() {
   if (!select) return;
 
   const previous = galleryActivityId || select.value;
-  select.innerHTML = `<option value="">Pilih aktivitas</option>`;
+  select.innerHTML = `<option value="">Aktivitas terbaru</option>`;
 
   activities.forEach(item => {
     const option = document.createElement("option");
@@ -324,6 +362,44 @@ function refreshGalleryActivityOptions() {
 
   if (previous && activities.some(item => String(item.id) === String(previous))) {
     select.value = previous;
+  }
+}
+
+
+function getDefaultGalleryActivity() {
+  if (!activities.length) return null;
+
+  const current = galleryActivityId
+    ? activities.find(item => String(item.id) === String(galleryActivityId))
+    : null;
+
+  if (current) return current;
+
+  return activities.find(item => Number(item.photos || 0) > 0) || activities[0];
+}
+
+function ensureGalleryReady() {
+  const activity = getDefaultGalleryActivity();
+
+  if (!activity) {
+    galleryActivityId = "";
+    $("#galleryGrid").innerHTML = "";
+    $("#galleryToolbar").hidden = true;
+    $("#galleryActivityBar").hidden = true;
+    setGalleryState("empty", "Belum ada aktivitas", "Setor dokumentasi dulu, nanti fotonya langsung muncul di sini.");
+    return;
+  }
+
+  const targetId = String(activity.id);
+  $("#galleryActivitySelect").value = targetId;
+
+  const alreadyLoaded =
+    String(galleryActivityId) === targetId &&
+    galleryFiles.length > 0 &&
+    $("#galleryGrid").children.length > 0;
+
+  if (!alreadyLoaded) {
+    loadGalleryForActivity(targetId);
   }
 }
 
@@ -443,6 +519,11 @@ function renderGalleryFiles() {
 
 async function loadGalleryForActivity(activityId) {
   if (!activityId) {
+    const fallback = getDefaultGalleryActivity();
+    if (fallback) {
+      return loadGalleryForActivity(String(fallback.id));
+    }
+
     galleryActivityId = "";
     galleryFiles = [];
     gallerySelected.clear();
@@ -450,7 +531,7 @@ async function loadGalleryForActivity(activityId) {
     $("#galleryGrid").innerHTML = "";
     $("#galleryToolbar").hidden = true;
     $("#galleryActivityBar").hidden = true;
-    setGalleryState("empty", "Pilih aktivitas dulu", "Foto kegiatan akan muncul sebagai thumbnail di sini.");
+    setGalleryState("empty", "Belum ada aktivitas", "Setor dokumentasi dulu, nanti fotonya langsung muncul di sini.");
     return;
   }
 
@@ -733,7 +814,13 @@ $("#documentationForm").addEventListener("submit", async event => {
 });
 
 $("#galleryActivitySelect").addEventListener("change", event => {
-  loadGalleryForActivity(event.target.value);
+  const value = event.target.value;
+  if (value) {
+    loadGalleryForActivity(value);
+  } else {
+    galleryActivityId = "";
+    ensureGalleryReady();
+  }
 });
 
 $("#gallerySelectAll").addEventListener("click", () => {
