@@ -4931,3 +4931,74 @@ body.trash-modal-open {
     font-size: 8px;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.8.3 — DOODLE BRAND HEADER
+   ========================= */
+
+.product-brand-row {
+  align-items: center;
+  gap: 12px;
+}
+
+.product-logo-heading {
+  margin: 0;
+  line-height: 0;
+}
+
+.product-logo {
+  display: block;
+  width: clamp(260px, 29vw, 370px);
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 12px rgba(74, 52, 111, .08));
+}
+
+.topbar-product .topbar-actions {
+  padding-top: 8px;
+}
+
+@media (max-width: 760px) {
+  .topbar-product {
+    gap: 10px;
+  }
+
+  .product-brand-row {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .product-logo {
+    width: min(232px, 66vw);
+  }
+
+  .product-brand-row .page-chip {
+    flex: 0 0 auto;
+    max-width: 104px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .product-expansion {
+    max-width: 330px;
+    margin-top: 2px;
+  }
+
+  .topbar-product .topbar-actions {
+    padding-top: 4px;
+  }
+}
+
+@media (max-width: 390px) {
+  .product-logo {
+    width: min(214px, 64vw);
+  }
+
+  .product-brand-row .page-chip {
+    max-width: 92px;
+    padding-inline: 7px;
+  }
+}

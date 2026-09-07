@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-8-2-bulk-gallery-actions";
+const CACHE = "si-alif-06-8-3-doodle-brand-header";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0682",
-  "./assets/js/config.js?v=0682",
-  "./assets/js/app.js?v=0682",
+  "./assets/css/style.css?v=0683",
+  "./assets/js/config.js?v=0683",
+  "./assets/js/app.js?v=0683",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];
