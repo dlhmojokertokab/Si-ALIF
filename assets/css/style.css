@@ -5002,3 +5002,266 @@ body.trash-modal-open {
     padding-inline: 7px;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.9 / 07.0 / 07.1
+   MOVE MEDIA • MERGE ACTIVITY • SIMILAR WARNING
+   ========================= */
+
+body.activity-action-open,
+body.similar-activity-open {
+  overflow: hidden;
+}
+
+.activity-action-modal,
+.similar-activity-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.activity-action-modal[hidden],
+.similar-activity-modal[hidden] {
+  display: none !important;
+}
+
+.activity-action-backdrop,
+.similar-activity-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(25,18,34,.70);
+  backdrop-filter: blur(8px);
+}
+
+.activity-action-dialog,
+.similar-activity-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(720px, 94vw);
+  max-height: 90dvh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 21px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(40,25,60,.25);
+}
+
+.activity-action-head,
+.similar-activity-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 17px;
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-action-head h3,
+.similar-activity-head h3 {
+  margin: 2px 0 0;
+  font-size: 18px;
+}
+
+.activity-action-head p,
+.similar-activity-head p {
+  margin: 5px 0 0;
+  max-width: 590px;
+  color: var(--text-soft);
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.activity-action-body,
+.similar-activity-body {
+  padding: 16px 17px 18px;
+}
+
+.activity-action-source {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 12px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #faf8fd;
+}
+
+.activity-action-source small {
+  color: var(--text-faint);
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+}
+
+.activity-action-source strong {
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.activity-action-note {
+  margin-top: 10px;
+  padding: 10px 11px;
+  border: 1px solid #ddd1ef;
+  border-radius: 12px;
+  background: #f8f3ff;
+  color: var(--text-soft);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.activity-action-note strong {
+  color: var(--primary-strong);
+}
+
+.similar-publication-note {
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  border: 1px solid #eadcae;
+  border-radius: 11px;
+  background: #fffbeb;
+  color: #6c5728;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
+.similar-publication-note[hidden] {
+  display: none !important;
+}
+
+.similar-activity-list {
+  display: grid;
+  gap: 8px;
+}
+
+.similar-activity-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: #fff;
+}
+
+.similar-activity-score {
+  min-width: 72px;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: #f5effd;
+  color: var(--primary-strong);
+}
+
+.similar-activity-score strong {
+  font-size: 7px;
+}
+
+.similar-activity-score span {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.similar-activity-main {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.similar-activity-main > strong {
+  overflow: hidden;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.similar-activity-main > span {
+  color: var(--text-faint);
+  font-size: 7px;
+  line-height: 1.45;
+}
+
+.similar-activity-card > button {
+  min-height: 36px;
+  padding: 8px 10px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+.similar-activity-actions {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#galleryMoveSelected {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .activity-action-modal,
+  .similar-activity-modal {
+    padding: 0;
+  }
+
+  .activity-action-dialog,
+  .similar-activity-dialog {
+    width: 100vw;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .activity-action-head,
+  .similar-activity-head {
+    padding: 14px;
+  }
+
+  .activity-action-body,
+  .similar-activity-body {
+    padding: 14px;
+  }
+
+  .similar-activity-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .similar-activity-card > button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .similar-activity-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .similar-activity-actions button {
+    width: 100%;
+  }
+
+  /* 5 bulk actions: keep a balanced 2-column stack. */
+  .gallery-toolbar-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gallery-toolbar-actions #galleryDeleteSelected {
+    grid-column: 1 / -1;
+  }
+
+  /* Header actions become:
+     Add | Share
+     Edit | Merge
+     Drive full width
+  */
+  .gallery-photo-header-actions #galleryMergeActivity {
+    width: 100%;
+  }
+}
+

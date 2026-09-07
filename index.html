@@ -7,11 +7,11 @@
   <meta name="description" content="SI ALIF — Sistem Informasi Aktivitas, Lokasi, Informasi, dan Foto" />
   <title>SI ALIF</title>
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" href="./assets/icons/favicon.ico?v=0684" sizes="any" />
-  <link rel="icon" href="./assets/icons/si-alif-favicon-32.png?v=0684" type="image/png" sizes="32x32" />
-  <link rel="icon" href="./assets/icons/si-alif-favicon-192.png?v=0684" type="image/png" sizes="192x192" />
-  <link rel="apple-touch-icon" href="./assets/icons/si-alif-favicon-180.png?v=0684" sizes="180x180" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0684" />
+  <link rel="icon" href="./assets/icons/favicon.ico?v=0710" sizes="any" />
+  <link rel="icon" href="./assets/icons/si-alif-favicon-32.png?v=0710" type="image/png" sizes="32x32" />
+  <link rel="icon" href="./assets/icons/si-alif-favicon-192.png?v=0710" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="./assets/icons/si-alif-favicon-180.png?v=0710" sizes="180x180" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0710" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
@@ -48,7 +48,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 06.8.4</strong>
+        <strong>SI ALIF 07.1</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -306,7 +306,7 @@
 
                     <label class="field publication-requester-field">
                       <span>Nama Pemesan</span>
-                      <input id="publicationRequester" maxlength="120" placeholder="Contoh: Pak Eko Wibowo" autocomplete="name">
+                      <input id="publicationRequester" maxlength="120" placeholder="Contoh: Alifand Masrizky" autocomplete="name">
                     </label>
 
                     <label class="field publication-note-field">
@@ -518,6 +518,7 @@
                 <button class="primary" id="galleryAddMaterial" type="button">＋ Tambah Bahan</button>
                 <button class="secondary" id="galleryShareContribution" type="button">🔗 Bagikan</button>
                 <button class="secondary" id="galleryEditInfo" type="button">✎ Edit Info</button>
+                <button class="secondary" id="galleryMergeActivity" type="button">⇄ Gabungkan</button>
                 <a class="button-link" id="galleryFolderDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
                 
               </div>
@@ -532,6 +533,7 @@
                 <button class="secondary" id="gallerySelectAll" type="button">Pilih Semua</button>
                 <button class="secondary" id="galleryClearSelection" type="button">Kosongkan</button>
                 <button class="primary" id="galleryDownloadSelected" type="button" disabled>↓ Download Terpilih</button>
+                <button class="secondary" id="galleryMoveSelected" type="button" disabled>⇄ Pindahkan</button>
                 <button class="danger-button" id="galleryDeleteSelected" type="button" disabled>🗑 Hapus Terpilih</button>
               </div>
             </div>
@@ -630,6 +632,66 @@
         </div>
       </div>
 
+      <div class="activity-action-modal" id="activityTargetModal" hidden>
+        <div class="activity-action-backdrop" data-activity-action-close></div>
+        <div class="activity-action-dialog" role="dialog" aria-modal="true" aria-labelledby="activityTargetTitle">
+          <div class="activity-action-head">
+            <div>
+              <span class="eyebrow">Admin • Rapikan Galeri</span>
+              <h3 id="activityTargetTitle">Pilih kegiatan tujuan</h3>
+              <p id="activityTargetDescription">-</p>
+            </div>
+            <button class="lightbox-close" type="button" data-activity-action-close aria-label="Tutup">×</button>
+          </div>
+
+          <div class="activity-action-body">
+            <div class="activity-action-source">
+              <small>Dari</small>
+              <strong id="activityTargetSource">-</strong>
+            </div>
+
+            <label class="field">
+              <span>Ke kegiatan</span>
+              <select id="activityTargetSelect"></select>
+            </label>
+
+            <div class="activity-action-note" id="activityTargetNote"></div>
+
+            <div class="form-actions">
+              <button class="secondary" type="button" data-activity-action-close>Batal</button>
+              <button class="primary" id="activityTargetConfirm" type="button">Lanjutkan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="similar-activity-modal" id="similarActivityModal" hidden>
+        <div class="similar-activity-backdrop" data-similar-close></div>
+        <div class="similar-activity-dialog" role="dialog" aria-modal="true" aria-labelledby="similarActivityTitle">
+          <div class="similar-activity-head">
+            <div>
+              <span class="eyebrow">SI ALIF 07.1 • Anti folder mirip</span>
+              <h3 id="similarActivityTitle">Eh, kayaknya kegiatan ini sudah ada.</h3>
+              <p>Belum tentu sama. Pilih kegiatan lama kalau memang satu kegiatan; kalau berbeda, tetap buat yang baru.</p>
+            </div>
+            <button class="lightbox-close" type="button" data-similar-close aria-label="Tutup">×</button>
+          </div>
+
+          <div class="similar-activity-body">
+            <div class="similar-publication-note" id="similarPublicationNote" hidden>
+              📣 Kalau digabung ke kegiatan lama, Pesanan Medsos mengikuti kegiatan yang sudah ada dan tidak membuat pesanan baru.
+            </div>
+
+            <div class="similar-activity-list" id="similarActivityList"></div>
+
+            <div class="similar-activity-actions">
+              <button class="secondary" id="similarCancel" type="button">Batal</button>
+              <button class="primary" id="similarCreateNew" type="button">Tetap Buat Kegiatan Baru</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="media-lightbox" id="mediaLightbox" hidden>
         <div class="media-lightbox-backdrop" data-lightbox-close></div>
 
@@ -702,7 +764,7 @@
     </nav>
   </div>
 
-  <script src="./assets/js/config.js?v=0684"></script>
-  <script src="./assets/js/app.js?v=0684"></script>
+  <script src="./assets/js/config.js?v=0710"></script>
+  <script src="./assets/js/app.js?v=0710"></script>
 </body>
 </html>

@@ -1,12 +1,18 @@
-const CACHE = "si-alif-06-8-4-doodle-favicon";
+const CACHE = "si-alif-07-1-move-merge-similar";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0684",
-  "./assets/js/config.js?v=0684",
-  "./assets/js/app.js?v=0684",
+  "./assets/css/style.css?v=0710",
+  "./assets/js/config.js?v=0710",
+  "./assets/js/app.js?v=0710",
   "./manifest.webmanifest",
-  "./assets/icons/icon.svg"
+  "./assets/icons/icon.svg",
+  "./assets/brand/si-alif-doodle-logo.png",
+  "./assets/icons/favicon.ico",
+  "./assets/icons/si-alif-favicon-32.png",
+  "./assets/icons/si-alif-favicon-180.png",
+  "./assets/icons/si-alif-favicon-192.png",
+  "./assets/icons/si-alif-favicon-512.png"
 ];
 
 self.addEventListener("install", event => {

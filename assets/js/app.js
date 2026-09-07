@@ -37,6 +37,9 @@ let selectedExistingActivityId = "";
 let successContext = "new";
 let sharedContributionMode = false;
 let siAlifTrashItems = [];
+let activityTargetAction = "";
+let similarActivityResolver = null;
+let similarActivityMatches = [];
 
 const filterState = {
   query: "",
@@ -1464,6 +1467,7 @@ function updateGallerySelectionUi() {
   const count = gallerySelected.size;
   $("#gallerySelectedCount").textContent = count;
   $("#galleryDownloadSelected").disabled = count === 0;
+  $("#galleryMoveSelected").disabled = count === 0;
   $("#galleryDeleteSelected").disabled = count === 0;
   $("#gallerySelectAll").textContent =
     galleryFiles.length > 0 && count === galleryFiles.length ? "Semua Dipilih" : "Pilih Semua";
@@ -1768,11 +1772,20 @@ function createGalleryCard(file, index) {
   return card;
 }
 
-function renderGalleryPhotos() {
+function renderGalleryPhotos(options = {}) {
+  const preserveSelection = Boolean(options.preserveSelection);
   const grid = $("#galleryGrid");
   grid.innerHTML = "";
   cleanupGalleryObjectUrls();
-  gallerySelected.clear();
+
+  if (preserveSelection) {
+    const existingIds = new Set(galleryFiles.map(file => String(file.id)));
+    gallerySelected = new Set(
+      [...gallerySelected].filter(id => existingIds.has(String(id)))
+    );
+  } else {
+    gallerySelected.clear();
+  }
 
   if (!galleryFiles.length) {
     $("#galleryToolbar").hidden = true;
@@ -1960,7 +1973,7 @@ async function deleteSelectedGalleryFiles() {
         .map(file => file.id)
     );
 
-    renderGalleryPhotos();
+    renderGalleryPhotos({ preserveSelection: true });
 
     if (!failures.length) {
       showToast(
@@ -1985,6 +1998,256 @@ async function deleteSelectedGalleryFiles() {
 
 
 
+
+
+function activityTargetLabel(item) {
+  return [
+    item.date || "-",
+    item.division || "-",
+    item.name || "Tanpa nama",
+    item.place || "-"
+  ].join(" • ");
+}
+
+function closeActivityTargetModal() {
+  $("#activityTargetModal").hidden = true;
+  document.body.classList.remove("activity-action-open");
+  activityTargetAction = "";
+}
+
+function populateActivityTargetSelect(sourceId) {
+  const select = $("#activityTargetSelect");
+  select.innerHTML = "";
+
+  const candidates = activities
+    .filter(item => String(item.id) !== String(sourceId))
+    .sort((a, b) => {
+      const dateSort = String(b.dateIso || "").localeCompare(String(a.dateIso || ""));
+      if (dateSort !== 0) return dateSort;
+      return String(a.name || "").localeCompare(String(b.name || ""), "id");
+    });
+
+  candidates.forEach(item => {
+    const option = document.createElement("option");
+    option.value = item.id;
+    option.textContent = activityTargetLabel(item);
+    select.appendChild(option);
+  });
+
+  return candidates.length;
+}
+
+function openActivityTargetModal(mode) {
+  const source = activities.find(
+    item => String(item.id) === String(galleryActivityId)
+  );
+
+  if (!source) {
+    showToast("Kegiatan asal tidak ditemukan.");
+    return;
+  }
+
+  if (mode === "move" && !gallerySelected.size) {
+    showToast("Pilih media yang mau dipindahkan dulu.");
+    return;
+  }
+
+  if (!populateActivityTargetSelect(source.id)) {
+    showToast("Belum ada kegiatan lain yang bisa dijadikan tujuan.");
+    return;
+  }
+
+  activityTargetAction = mode;
+  $("#activityTargetSource").textContent = activityTargetLabel(source);
+
+  if (mode === "move") {
+    $("#activityTargetTitle").textContent =
+      `Pindahkan ${gallerySelected.size} media`;
+    $("#activityTargetDescription").textContent =
+      "Media asli dipindahkan langsung di Google Drive. Tidak download-upload ulang.";
+    $("#activityTargetNote").innerHTML =
+      `<strong>Aman:</strong> folder asal dan tujuan akan dihitung ulang otomatis.`;
+    $("#activityTargetConfirm").textContent = "⇄ Pindahkan Media";
+  } else {
+    $("#activityTargetTitle").textContent = "Gabungkan kegiatan";
+    $("#activityTargetDescription").textContent =
+      "Semua media dari kegiatan saat ini akan dipindahkan ke kegiatan tujuan.";
+    $("#activityTargetNote").innerHTML =
+      `<strong>Info kegiatan tujuan dipertahankan.</strong> Folder saat ini masuk Trash setelah seluruh media sukses dipindahkan.`;
+    $("#activityTargetConfirm").textContent = "⇄ Gabungkan Kegiatan";
+  }
+
+  $("#activityTargetModal").hidden = false;
+  document.body.classList.add("activity-action-open");
+}
+
+async function moveSelectedMediaToActivity(targetActivityId) {
+  const sourceActivityId = String(galleryActivityId);
+  const chosenIds = galleryFiles
+    .filter(file => gallerySelected.has(file.id))
+    .map(file => file.id);
+
+  if (!chosenIds.length) {
+    showToast("Tidak ada media yang dipilih.");
+    return;
+  }
+
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
+  const target = activities.find(
+    item => String(item.id) === String(targetActivityId)
+  );
+  if (!target) {
+    showToast("Kegiatan tujuan tidak ditemukan.");
+    return;
+  }
+
+  const ok = window.confirm(
+    `Pindahkan ${chosenIds.length} media ke "${target.name}"?\n\nFile asli akan dipindahkan langsung di Google Drive.`
+  );
+  if (!ok) return;
+
+  const button = $("#activityTargetConfirm");
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Memindahkan...";
+
+  try {
+    const result = await adminApiFetch("/api/admin/media/move", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileIds: chosenIds,
+        targetActivityId
+      })
+    });
+
+    const movedIds = new Set((result.movedIds || []).map(String));
+    const failedIds = new Set((result.failures || []).map(item => String(item.id)));
+
+    galleryFolderFilesCache.delete(sourceActivityId);
+    galleryFolderFilesCache.delete(String(targetActivityId));
+
+    galleryFiles = galleryFiles.filter(
+      file => !movedIds.has(String(file.id))
+    );
+
+    gallerySelected = new Set(
+      galleryFiles
+        .filter(file => failedIds.has(String(file.id)))
+        .map(file => file.id)
+    );
+
+    await loadActivitiesFromApi();
+    renderGalleryPhotos({ preserveSelection: true });
+    closeActivityTargetModal();
+
+    if (result.failures?.length) {
+      showToast(
+        `${result.movedCount || 0} media pindah • ${result.failures.length} gagal. Yang gagal tetap terpilih.`
+      );
+    } else {
+      showToast(
+        `${result.movedCount || chosenIds.length} media dipindahkan ke "${target.name}".`
+      );
+    }
+  } catch (error) {
+    showToast(`Gagal memindahkan media: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+async function mergeCurrentActivityInto(targetActivityId) {
+  const sourceActivityId = String(galleryActivityId);
+
+  const source = activities.find(
+    item => String(item.id) === sourceActivityId
+  );
+  const target = activities.find(
+    item => String(item.id) === String(targetActivityId)
+  );
+
+  if (!source || !target) {
+    showToast("Kegiatan asal/tujuan tidak ditemukan.");
+    return;
+  }
+
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
+  const ok = window.confirm(
+    `Gabungkan "${source.name}" ke "${target.name}"?\n\nSemua media akan masuk ke folder tujuan. Info kegiatan tujuan dipertahankan. Folder asal masuk Trash.`
+  );
+  if (!ok) return;
+
+  const button = $("#activityTargetConfirm");
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "Menggabungkan...";
+
+  try {
+    const result = await adminApiFetch("/api/admin/activities/merge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceActivityId,
+        targetActivityId
+      })
+    });
+
+    galleryFolderFilesCache.delete(sourceActivityId);
+    galleryFolderFilesCache.delete(String(targetActivityId));
+    await loadActivitiesFromApi();
+
+    if (result.merged) {
+      closeActivityTargetModal();
+      showToast(
+        `${result.movedCount || 0} media digabung ke "${target.name}". Folder asal masuk Trash.`
+      );
+      navigateTo("gallery", {
+        galleryFolderId: targetActivityId,
+        replace: true
+      });
+      return;
+    }
+
+    // Partial merge: source is intentionally NOT trashed.
+    closeActivityTargetModal();
+
+    if (activities.some(item => String(item.id) === sourceActivityId)) {
+      await openGalleryFolder(sourceActivityId, { updateRoute: false });
+    }
+
+    showToast(
+      `${result.movedCount || 0} media sudah pindah • ${result.failedCount || result.failures?.length || 0} gagal. Folder asal belum dihapus. Coba merge lagi.`
+    );
+  } catch (error) {
+    showToast(`Gagal menggabungkan kegiatan: ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
+async function confirmActivityTargetAction() {
+  const targetActivityId = $("#activityTargetSelect").value;
+  if (!targetActivityId) {
+    showToast("Pilih kegiatan tujuan.");
+    return;
+  }
+
+  if (activityTargetAction === "move") {
+    await moveSelectedMediaToActivity(targetActivityId);
+    return;
+  }
+
+  if (activityTargetAction === "merge") {
+    await mergeCurrentActivityInto(targetActivityId);
+  }
+}
 
 function closeEditActivityModal() {
   $("#editActivityModal").hidden = true;
@@ -2228,7 +2491,7 @@ function renderSiAlifTrash() {
 
         <p>${escapeHtml(detail || "-")}</p>
         ${item.modifiedAt ? `<small>Masuk/berubah di Trash • ${escapeHtml(formatTrashDate(item.modifiedAt))}</small>` : ""}
-        ${!item.canRestore ? `<small class="trash-warning">Folder asal sudah tidak tersedia — hanya bisa dihapus permanen.</small>` : ""}
+        ${!item.canRestore ? `<small class="trash-warning">${escapeHtml(item.restoreNote || "Item ini tidak bisa dipulihkan — hanya bisa dihapus permanen.")}</small>` : ""}
       </div>
 
       <div class="trash-item-actions">
@@ -3132,6 +3395,90 @@ async function processUploadQueue(activityId, { retryFailedOnly = false } = {}) 
   return uploadQueueStats();
 }
 
+
+function closeSimilarActivityModal(choice = { action: "cancel" }) {
+  $("#similarActivityModal").hidden = true;
+  document.body.classList.remove("similar-activity-open");
+
+  const resolver = similarActivityResolver;
+  similarActivityResolver = null;
+  similarActivityMatches = [];
+
+  if (resolver) resolver(choice);
+}
+
+function renderSimilarActivityMatches(matches) {
+  const list = $("#similarActivityList");
+  list.innerHTML = "";
+
+  matches.forEach(item => {
+    const card = document.createElement("article");
+    card.className = "similar-activity-card";
+
+    const scoreLabel = Number(item.score || 0) >= 90
+      ? "Sangat mirip"
+      : "Kemungkinan sama";
+
+    card.innerHTML = `
+      <div class="similar-activity-score">
+        <strong>${escapeHtml(scoreLabel)}</strong>
+        <span>${Number(item.score || 0)}%</span>
+      </div>
+
+      <div class="similar-activity-main">
+        <strong>${escapeHtml(item.name || "Kegiatan")}</strong>
+        <span>${escapeHtml([
+          item.division || "-",
+          formatDate(item.date),
+          item.location || "-",
+          `${Number(item.mediaCount || 0)} media`
+        ].join(" • "))}</span>
+      </div>
+
+      <button
+        class="primary"
+        type="button"
+        data-use-similar="${escapeHtml(item.id)}"
+      >↳ Tambah ke sini</button>
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+async function askSimilarActivityChoice(payload) {
+  // Offline fallback cannot search Drive, so continue with old behavior.
+  if (!backendOnline) return { action: "create" };
+
+  const result = await apiFetch("/api/activities/similar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: payload.name,
+      division: payload.division,
+      date: payload.date,
+      location: payload.location,
+      description: payload.description || ""
+    })
+  });
+
+  const matches = result.matches || [];
+  if (!matches.length) {
+    return { action: "create" };
+  }
+
+  similarActivityMatches = matches;
+  renderSimilarActivityMatches(matches);
+  $("#similarPublicationNote").hidden = !payload.publication?.requested;
+
+  $("#similarActivityModal").hidden = false;
+  document.body.classList.add("similar-activity-open");
+
+  return new Promise(resolve => {
+    similarActivityResolver = resolve;
+  });
+}
+
 async function createRemoteActivity(payload) {
   setUploadProgress(
     0,
@@ -3389,16 +3736,49 @@ $("#documentationForm").addEventListener("submit", async event => {
         notificationSent: false
       };
     } else if (backendOnline) {
-      const created = await createRemoteActivity(payload);
+      submitButton.textContent = "Mengecek kegiatan mirip...";
+      const similarChoice = await askSimilarActivityChoice(payload);
 
-      activeUploadSession = {
-        kind: "new",
-        activityId: created.id,
-        payload,
-        created,
-        publicationRequested: Boolean(publication.requested),
-        notificationSent: false
-      };
+      if (similarChoice?.action === "cancel") {
+        submitButton.disabled = false;
+        submitButton.textContent = "Kirim Dokumentasi";
+        return;
+      }
+
+      if (similarChoice?.action === "useExisting") {
+        const existingTarget = activities.find(
+          item => String(item.id) === String(similarChoice.activityId)
+        );
+
+        if (!existingTarget) {
+          throw new Error("Kegiatan lama yang dipilih sudah tidak tersedia.");
+        }
+
+        activeUploadSession = {
+          kind: "existing",
+          activityId: existingTarget.id,
+          payload: null,
+          created: null,
+          publicationRequested: false,
+          notificationSent: false
+        };
+
+        showToast(
+          `Dokumentasi akan digabung ke "${existingTarget.name}".`
+        );
+      } else {
+        submitButton.textContent = "Membuat / mencari folder...";
+        const created = await createRemoteActivity(payload);
+
+        activeUploadSession = {
+          kind: "new",
+          activityId: created.id,
+          payload,
+          created,
+          publicationRequested: Boolean(publication.requested),
+          notificationSent: false
+        };
+      }
     } else {
       // Fallback lama tetap dipertahankan untuk kondisi backend offline.
       const photoCount = selectedFiles.filter(file => file.type.startsWith("image/")).length;
@@ -3490,6 +3870,40 @@ $("#galleryShareContribution").addEventListener("click", () => {
 
 $("#galleryEditInfo").addEventListener("click", openEditActivityModal);
 
+$("#galleryMergeActivity").addEventListener("click", () => {
+  openActivityTargetModal("merge");
+});
+
+$("#activityTargetConfirm").addEventListener("click", confirmActivityTargetAction);
+
+$$("[data-activity-action-close]").forEach(element => {
+  element.addEventListener("click", closeActivityTargetModal);
+});
+
+$("#similarActivityList").addEventListener("click", event => {
+  const button = event.target.closest("[data-use-similar]");
+  if (!button) return;
+
+  closeSimilarActivityModal({
+    action: "useExisting",
+    activityId: button.dataset.useSimilar
+  });
+});
+
+$("#similarCreateNew").addEventListener("click", () => {
+  closeSimilarActivityModal({ action: "create" });
+});
+
+$("#similarCancel").addEventListener("click", () => {
+  closeSimilarActivityModal({ action: "cancel" });
+});
+
+$$("[data-similar-close]").forEach(element => {
+  element.addEventListener("click", () => {
+    closeSimilarActivityModal({ action: "cancel" });
+  });
+});
+
 $$("[data-edit-close]").forEach(element => {
   element.addEventListener("click", closeEditActivityModal);
 });
@@ -3513,6 +3927,16 @@ $("#lightboxDownload").addEventListener("click", downloadLightboxMedia);
 $("#lightboxDelete").addEventListener("click", deleteLightboxMedia);
 
 window.addEventListener("keydown", event => {
+  if (!$("#activityTargetModal")?.hidden && event.key === "Escape") {
+    closeActivityTargetModal();
+    return;
+  }
+
+  if (!$("#similarActivityModal")?.hidden && event.key === "Escape") {
+    closeSimilarActivityModal({ action: "cancel" });
+    return;
+  }
+
   if (!$("#siAlifTrashModal")?.hidden && event.key === "Escape") {
     closeSiAlifTrash();
     return;
@@ -3550,6 +3974,9 @@ $("#galleryClearSelection").addEventListener("click", () => {
 });
 
 $("#galleryDownloadSelected").addEventListener("click", downloadSelectedGalleryFiles);
+$("#galleryMoveSelected").addEventListener("click", () => {
+  openActivityTargetModal("move");
+});
 $("#galleryDeleteSelected").addEventListener("click", deleteSelectedGalleryFiles);
 
 $("#detailOpenGallery").addEventListener("click", () => {
