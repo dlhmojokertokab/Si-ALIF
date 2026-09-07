@@ -1998,12 +1998,15 @@ async function completeOrder(activityId, button) {
 }
 
 async function removeOrder(activityId, button) {
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
   const original = button.textContent;
   button.disabled = true;
   button.textContent = "Menghapus...";
 
   try {
-    await apiFetch(`/api/activities/${encodeURIComponent(activityId)}/publication`, {
+    await adminApiFetch(`/api/activities/${encodeURIComponent(activityId)}/publication`, {
       method: "DELETE"
     });
 

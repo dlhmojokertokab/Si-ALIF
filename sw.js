@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-5-dashboard-2";
+const CACHE = "si-alif-06-5-1-lock-delete-order";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0650",
-  "./assets/js/config.js?v=0650",
-  "./assets/js/app.js?v=0650",
+  "./assets/css/style.css?v=0651",
+  "./assets/js/config.js?v=0651",
+  "./assets/js/app.js?v=0651",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];
