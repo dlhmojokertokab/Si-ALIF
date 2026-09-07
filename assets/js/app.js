@@ -1464,6 +1464,7 @@ function updateGallerySelectionUi() {
   const count = gallerySelected.size;
   $("#gallerySelectedCount").textContent = count;
   $("#galleryDownloadSelected").disabled = count === 0;
+  $("#galleryDeleteSelected").disabled = count === 0;
   $("#gallerySelectAll").textContent =
     galleryFiles.length > 0 && count === galleryFiles.length ? "Semua Dipilih" : "Pilih Semua";
 
@@ -1893,6 +1894,91 @@ async function downloadSelectedGalleryFiles() {
   } finally {
     button.textContent = original;
     button.disabled = false;
+    updateGallerySelectionUi();
+  }
+}
+
+async function deleteSelectedGalleryFiles() {
+  const chosen = galleryFiles.filter(file => gallerySelected.has(file.id));
+  if (!chosen.length) return;
+
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
+  const ok = window.confirm(
+    `Hapus ${chosen.length} media terpilih?\n\nSemua media akan dipindahkan ke Trash SI ALIF dan masih bisa dipulihkan.`
+  );
+  if (!ok) return;
+
+  const button = $("#galleryDeleteSelected");
+  const downloadButton = $("#galleryDownloadSelected");
+  const selectAllButton = $("#gallerySelectAll");
+  const clearButton = $("#galleryClearSelection");
+
+  const original = button.textContent;
+
+  button.disabled = true;
+  downloadButton.disabled = true;
+  selectAllButton.disabled = true;
+  clearButton.disabled = true;
+
+  const deletedIds = new Set();
+  const failedIds = new Set();
+  const failures = [];
+
+  try {
+    for (let i = 0; i < chosen.length; i++) {
+      const file = chosen[i];
+      button.textContent = `🗑 Menghapus ${i + 1}/${chosen.length}...`;
+
+      try {
+        await adminApiFetch(`/api/files/${encodeURIComponent(file.id)}`, {
+          method: "DELETE"
+        });
+        deletedIds.add(String(file.id));
+      } catch (error) {
+        failedIds.add(String(file.id));
+        failures.push({
+          file,
+          error
+        });
+      }
+    }
+
+    if (deletedIds.size) {
+      galleryFiles = galleryFiles.filter(
+        file => !deletedIds.has(String(file.id))
+      );
+
+      galleryFolderFilesCache.delete(String(galleryActivityId));
+      await loadActivitiesFromApi();
+    }
+
+    gallerySelected = new Set(
+      galleryFiles
+        .filter(file => failedIds.has(String(file.id)))
+        .map(file => file.id)
+    );
+
+    renderGalleryPhotos();
+
+    if (!failures.length) {
+      showToast(
+        `${deletedIds.size} media masuk Trash SI ALIF. Masih bisa dipulihkan.`
+      );
+    } else if (deletedIds.size) {
+      showToast(
+        `${deletedIds.size} berhasil dihapus • ${failures.length} gagal. Yang gagal tetap terpilih.`
+      );
+    } else {
+      showToast(
+        `Semua penghapusan gagal. ${failures[0]?.error?.message || "Coba lagi."}`
+      );
+    }
+  } finally {
+    button.textContent = original;
+    selectAllButton.disabled = false;
+    clearButton.disabled = false;
     updateGallerySelectionUi();
   }
 }
@@ -3464,6 +3550,7 @@ $("#galleryClearSelection").addEventListener("click", () => {
 });
 
 $("#galleryDownloadSelected").addEventListener("click", downloadSelectedGalleryFiles);
+$("#galleryDeleteSelected").addEventListener("click", deleteSelectedGalleryFiles);
 
 $("#detailOpenGallery").addEventListener("click", () => {
   if (currentDetailActivityId) openActivityGallery(currentDetailActivityId);

@@ -4895,3 +4895,39 @@ body.trash-modal-open {
     font-size: 10px;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.8.2 — BULK GALLERY ACTIONS
+   ========================= */
+
+#galleryDeleteSelected {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .gallery-toolbar-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .gallery-toolbar-actions #galleryDownloadSelected,
+  .gallery-toolbar-actions #galleryDeleteSelected {
+    grid-column: auto;
+  }
+
+  .gallery-toolbar-actions button {
+    min-height: 38px;
+    padding: 8px 7px;
+    font-size: 9px;
+  }
+
+  .gallery-selection {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 390px) {
+  .gallery-toolbar-actions button {
+    font-size: 8px;
+  }
+}

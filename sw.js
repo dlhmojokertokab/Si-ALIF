@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-8-1-mobile-form-compact";
+const CACHE = "si-alif-06-8-2-bulk-gallery-actions";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0681",
-  "./assets/js/config.js?v=0681",
-  "./assets/js/app.js?v=0681",
+  "./assets/css/style.css?v=0682",
+  "./assets/js/config.js?v=0682",
+  "./assets/js/app.js?v=0682",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];
