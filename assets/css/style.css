@@ -3242,3 +3242,53 @@ body.lightbox-open {
 .success-publication small {
   line-height: 1.45;
 }
+
+
+/* =========================
+   SI ALIF 06.2.2 — DIRECT MEDIA DELETE
+   ========================= */
+
+.gallery-media-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.82);
+  border-radius: 9px;
+  background: rgba(35,24,49,.54);
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 5px 14px rgba(24,16,35,.14);
+  transition: .15s ease;
+}
+
+.gallery-media-delete:hover {
+  border-color: rgba(255,255,255,.96);
+  background: rgba(165,62,80,.94);
+  transform: translateY(-1px);
+}
+
+.gallery-media-delete:disabled {
+  opacity: .5;
+  cursor: wait;
+  transform: none;
+}
+
+.gallery-card-preview:has(.gallery-media-delete:hover) {
+  cursor: default;
+}
+
+@media (max-width: 760px) {
+  .gallery-media-delete {
+    width: 34px;
+    height: 34px;
+    top: 7px;
+    right: 7px;
+  }
+}

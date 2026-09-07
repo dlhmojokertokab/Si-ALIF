@@ -1107,6 +1107,42 @@ async function deleteLightboxMedia() {
   }
 }
 
+
+async function deleteGalleryMediaById(file, button) {
+  if (!file?.id) return;
+
+  const unlocked = await ensureAdminUnlock();
+  if (!unlocked) return;
+
+  const ok = window.confirm(
+    `Hapus "${file.name}" dari folder ini?\n\nMedia akan dipindahkan ke Trash Google Drive dan bisa dihapus permanen lewat "Kosongkan Trash SI ALIF".`
+  );
+  if (!ok) return;
+
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = "…";
+
+  try {
+    await adminApiFetch(`/api/files/${encodeURIComponent(file.id)}`, {
+      method: "DELETE"
+    });
+
+    galleryFolderFilesCache.delete(String(galleryActivityId));
+    galleryFiles = galleryFiles.filter(item => String(item.id) !== String(file.id));
+    gallerySelected.delete(file.id);
+
+    await loadActivitiesFromApi();
+    renderGalleryPhotos();
+
+    showToast(`"${file.name}" dipindahkan ke Trash SI ALIF.`);
+  } catch (error) {
+    showToast(`Gagal menghapus media: ${error.message}`);
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
 function createGalleryCard(file, index) {
   const card = document.createElement("article");
   card.className = "gallery-card gallery-card-preview";
@@ -1130,6 +1166,12 @@ function createGalleryCard(file, index) {
       <img alt="${escapeHtml(file.name)}" loading="lazy">
       ${isVideo ? `<span class="gallery-video-badge">▶ VIDEO</span>` : ""}
       <button class="gallery-check" type="button" aria-label="Pilih ${escapeHtml(file.name)}"></button>
+      <button
+        class="gallery-media-delete"
+        type="button"
+        title="Hapus media"
+        aria-label="Hapus ${escapeHtml(file.name)}"
+      >🗑</button>
       <span class="gallery-preview-hint">Lihat</span>
     </div>
     <div class="gallery-card-info">
@@ -1139,7 +1181,7 @@ function createGalleryCard(file, index) {
   `;
 
   card.addEventListener("click", event => {
-    if (event.target.closest(".gallery-check")) return;
+    if (event.target.closest(".gallery-check, .gallery-media-delete")) return;
     openMediaLightbox(index);
   });
 
@@ -1155,6 +1197,13 @@ function createGalleryCard(file, index) {
     event.preventDefault();
     event.stopPropagation();
     toggleGalleryFile(file.id);
+  });
+
+  const deleteButton = card.querySelector(".gallery-media-delete");
+  deleteButton.addEventListener("click", async event => {
+    event.preventDefault();
+    event.stopPropagation();
+    await deleteGalleryMediaById(file, deleteButton);
   });
 
   loadGalleryThumbnail(file, card.querySelector("img"));

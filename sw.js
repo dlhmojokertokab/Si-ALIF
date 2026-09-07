@@ -1,10 +1,10 @@
-const CACHE = "si-alif-06-2-1-success-polish";
+const CACHE = "si-alif-06-2-2-direct-media-delete";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0621",
-  "./assets/js/config.js?v=0621",
-  "./assets/js/app.js?v=0621",
+  "./assets/css/style.css?v=0622",
+  "./assets/js/config.js?v=0622",
+  "./assets/js/app.js?v=0622",
   "./manifest.webmanifest",
   "./assets/icons/icon.svg"
 ];
