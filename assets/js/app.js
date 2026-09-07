@@ -1295,7 +1295,7 @@ $("#photoInput").addEventListener("change", event => {
   if (videoCount) {
     const note = document.createElement("div");
     note.className = "direct-video-note";
-    note.innerHTML = `<strong>🎬 ${videoCount} video</strong><span>Video akan dikirim langsung dari perangkat ke Google Drive.</span>`;
+    note.innerHTML = `<strong>🎬 ${videoCount} video</strong><span>Video akan dikirim bertahap per chunk agar lebih stabil.</span>`;
     grid.insertAdjacentElement("afterend", note);
   }
 });
@@ -1332,7 +1332,10 @@ function resetUploadProgress() {
   $("#uploadProgressBar").style.width = "0%";
 }
 
-async function createDirectUploadSession(activityId, file) {
+
+const VIDEO_CHUNK_SIZE = 4 * 1024 * 1024; // 4 MB, kelipatan 256 KB
+
+async function createVideoUploadSession(activityId, file) {
   return apiFetch(
     `/api/activities/${encodeURIComponent(activityId)}/uploads/resumable`,
     {
@@ -1347,71 +1350,115 @@ async function createDirectUploadSession(activityId, file) {
   );
 }
 
-function uploadFileDirectToDrive(uploadUrl, file, onProgress) {
+function uploadChunkViaWorker(activityId, uploadUrl, chunk, contentRange, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
-    xhr.open("PUT", uploadUrl, true);
-    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    xhr.timeout = 30 * 60 * 1000;
+    xhr.open(
+      "POST",
+      `${API_BASE_URL}/api/activities/${encodeURIComponent(activityId)}/uploads/chunk`,
+      true
+    );
+
+    xhr.setRequestHeader("Content-Type", chunk.type || "application/octet-stream");
+    xhr.setRequestHeader("X-SI-ALIF-Upload-URL", uploadUrl);
+    xhr.setRequestHeader("X-SI-ALIF-Content-Range", contentRange);
+
+    if (apiPin) {
+      xhr.setRequestHeader("X-SI-ALIF-PIN", apiPin);
+    }
+
+    xhr.timeout = 10 * 60 * 1000;
 
     xhr.upload.addEventListener("progress", event => {
       if (!event.lengthComputable) return;
       const ratio = event.total ? event.loaded / event.total : 0;
-      onProgress?.(ratio, event.loaded, event.total);
+      onProgress?.(ratio);
     });
 
     xhr.addEventListener("load", () => {
+      let payload = {};
+      try {
+        payload = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+      } catch (_) {}
+
       if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          const payload = xhr.responseText ? JSON.parse(xhr.responseText) : {};
-          resolve(payload);
-        } catch (_) {
-          reject(new Error("Google Drive mengembalikan respons upload yang tidak valid."));
-        }
+        resolve(payload);
         return;
       }
 
-      reject(new Error(`Upload langsung ke Google Drive gagal (HTTP ${xhr.status}).`));
+      reject(
+        new Error(
+          payload?.error ||
+          payload?.message ||
+          `Upload chunk gagal (HTTP ${xhr.status}).`
+        )
+      );
     });
 
     xhr.addEventListener("error", () => {
-      reject(new Error("Koneksi ke Google Drive terputus saat mengunggah video."));
+      reject(new Error("Koneksi ke SI ALIF terputus saat mengunggah video."));
     });
 
     xhr.addEventListener("timeout", () => {
-      reject(new Error("Upload video terlalu lama dan mencapai batas waktu."));
+      reject(new Error("Upload chunk video terlalu lama dan mencapai batas waktu."));
     });
 
     xhr.addEventListener("abort", () => {
       reject(new Error("Upload video dibatalkan."));
     });
 
-    xhr.send(file);
+    xhr.send(chunk);
   });
 }
 
-async function uploadVideoDirect(activityId, file, fileIndex, totalFiles) {
-  const session = await createDirectUploadSession(activityId, file);
+async function uploadVideoChunked(activityId, file, fileIndex, totalFiles) {
+  const session = await createVideoUploadSession(activityId, file);
 
   if (!session?.uploadUrl) {
     throw new Error("Tiket upload Google Drive tidak tersedia.");
   }
 
-  const uploaded = await uploadFileDirectToDrive(
-    session.uploadUrl,
-    file,
-    ratio => {
-      const percent = overallUploadPercent(fileIndex, totalFiles, ratio);
-      setUploadProgressPercent(
-        percent,
-        `🎬 ${fileIndex + 1}/${totalFiles} • ${file.name} • ${Math.round(ratio * 100)}%`
-      );
-    }
-  );
+  const totalBytes = file.size;
+  let start = 0;
+  let finalFile = null;
 
-  if (!uploaded?.id) {
-    throw new Error("Google Drive tidak mengembalikan ID video setelah upload.");
+  while (start < totalBytes) {
+    const endExclusive = Math.min(start + VIDEO_CHUNK_SIZE, totalBytes);
+    const endInclusive = endExclusive - 1;
+    const chunk = file.slice(start, endExclusive, file.type || "application/octet-stream");
+
+    const chunkNumber = Math.floor(start / VIDEO_CHUNK_SIZE) + 1;
+    const chunkTotal = Math.ceil(totalBytes / VIDEO_CHUNK_SIZE);
+
+    const result = await uploadChunkViaWorker(
+      activityId,
+      session.uploadUrl,
+      chunk,
+      `bytes ${start}-${endInclusive}/${totalBytes}`,
+      chunkRatio => {
+        const uploadedWithinFile = start + (chunk.size * chunkRatio);
+        const fileRatio = totalBytes ? uploadedWithinFile / totalBytes : 0;
+        const overallPercent = overallUploadPercent(fileIndex, totalFiles, fileRatio);
+
+        setUploadProgressPercent(
+          overallPercent,
+          `🎬 ${fileIndex + 1}/${totalFiles} • ${file.name} • chunk ${chunkNumber}/${chunkTotal} • ${Math.round(fileRatio * 100)}%`
+        );
+      }
+    );
+
+    if (result?.complete) {
+      finalFile = result.file || null;
+      start = totalBytes;
+      break;
+    }
+
+    start = endExclusive;
+  }
+
+  if (!finalFile?.id) {
+    throw new Error("Google Drive belum mengembalikan ID video setelah semua chunk dikirim.");
   }
 
   await apiFetch(
@@ -1419,11 +1466,11 @@ async function uploadVideoDirect(activityId, file, fileIndex, totalFiles) {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileId: uploaded.id })
+      body: JSON.stringify({ fileId: finalFile.id })
     }
   );
 
-  return uploaded;
+  return finalFile;
 }
 
 async function submitRemoteActivity(payload) {
@@ -1451,11 +1498,11 @@ async function submitRemoteActivity(payload) {
         `Menyiapkan upload video ${i + 1}/${total}: ${file.name}`
       );
 
-      await uploadVideoDirect(activity.id, file, i, total);
+      await uploadVideoChunked(activity.id, file, i, total);
 
       setUploadProgressPercent(
         overallUploadPercent(i, total, 1),
-        `🎬 Video ${i + 1}/${total} tersimpan di Google Drive.`
+        `🎬 Video ${i + 1}/${total} tersimpan utuh di Google Drive.`
       );
       continue;
     }

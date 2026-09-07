@@ -2664,3 +2664,24 @@ body.route-pending .route-boot {
     gap: 3px;
   }
 }
+
+
+/* =========================
+   SI ALIF 06.0.2 — CHUNKED VIDEO
+   ========================= */
+
+.direct-video-note::after {
+  content: "Kualitas asli • tanpa resize • tanpa kompres";
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 8px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .direct-video-note::after {
+    margin-left: 0;
+    white-space: normal;
+  }
+}
