@@ -1,8 +1,8 @@
-const CACHE = "si-alif-07-3-1-app-icon-sync";
+const CACHE = "si-alif-07-3-2-sidebar-brand-sync";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0731",
+  "./assets/css/style.css?v=0732",
   "./assets/js/config.js?v=0731",
   "./assets/js/app.js?v=0731",
   "./manifest.webmanifest?v=0731",
