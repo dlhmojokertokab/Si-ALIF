@@ -1,12 +1,13 @@
-const CACHE = "si-alif-07-3-admin-workspace";
+const CACHE = "si-alif-07-3-1-app-icon-sync";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0730",
-  "./assets/js/config.js?v=0730",
-  "./assets/js/app.js?v=0730",
-  "./manifest.webmanifest",
+  "./assets/css/style.css?v=0731",
+  "./assets/js/config.js?v=0731",
+  "./assets/js/app.js?v=0731",
+  "./manifest.webmanifest?v=0731",
   "./assets/icons/icon.svg",
+  "./assets/icons/icon.png",
   "./assets/brand/si-alif-doodle-logo.png",
   "./assets/icons/favicon.ico",
   "./assets/icons/si-alif-favicon-32.png",
