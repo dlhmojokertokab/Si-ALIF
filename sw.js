@@ -1,11 +1,11 @@
-const CACHE = "si-alif-07-4-5-mobile-gallery-split-media";
+const CACHE = "si-alif-07-4-6-gallery-open-hotfix";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0745",
+  "./assets/css/style.css?v=0746",
   "./assets/js/config.js?v=0731",
-  "./assets/js/app.js?v=0745",
-  "./manifest.webmanifest?v=0745",
+  "./assets/js/app.js?v=0746",
+  "./manifest.webmanifest?v=0746",
   "./assets/icons/icon.svg",
   "./assets/icons/icon.png",
   "./assets/brand/si-alif-doodle-logo.png",

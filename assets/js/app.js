@@ -58,7 +58,7 @@ let currentView = adminMode ? "dashboard" : "submit";
 let routingReady = false;
 let handlingRoute = false;
 
-const SI_ALIF_NAV_VERSION = 730;
+const SI_ALIF_NAV_VERSION = 746;
 let currentNavLevel = 0;
 let pendingBoundedNavigation = null;
 let skippingOldHistory = false;
@@ -1300,10 +1300,32 @@ async function getFolderFiles(activityId, force = false) {
     return galleryFolderFilesCache.get(key);
   }
 
-  const result = await apiFetch(`/api/activities/${encodeURIComponent(activityId)}/files`);
-  const files = result.files || [];
-  galleryFolderFilesCache.set(key, files);
-  return files;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    20000
+  );
+
+  try {
+    const result = await apiFetch(
+      `/api/activities/${encodeURIComponent(activityId)}/files`,
+      { signal: controller.signal }
+    );
+
+    const files = result.files || [];
+    galleryFolderFilesCache.set(key, files);
+    return files;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error(
+        "Folder terlalu lama dibuka. Coba lagi setelah Worker 07.4.6 aktif."
+      );
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function loadFolderCover(activity, img, placeholder) {
@@ -1339,7 +1361,7 @@ function showGalleryFolders() {
   $("#galleryFolderView").hidden = false;
   $("#galleryGrid").innerHTML = "";
   $("#galleryToolbar").hidden = true;
-  $("#galleryMediaTabs").hidden = true;
+  if ($("#galleryMediaTabs")) $("#galleryMediaTabs").hidden = true;
 
   applyGalleryFilters();
 }
@@ -1481,20 +1503,34 @@ function chooseDefaultGalleryMediaFilter() {
 
 function updateGalleryMediaTabs() {
   const tabs = $("#galleryMediaTabs");
-  if (!tabs) return;
+  const photoCountEl = $("#galleryPhotoCount");
+  const videoCountEl = $("#galleryVideoCount");
+  const allCountEl = $("#galleryAllCount");
 
-  const photoCount = galleryFiles.filter(file => !isGalleryVideo(file)).length;
-  const videoCount = galleryFiles.filter(isGalleryVideo).length;
+  const photoCount = galleryFiles.filter(
+    file => !isGalleryVideo(file)
+  ).length;
+
+  const videoCount = galleryFiles.filter(
+    isGalleryVideo
+  ).length;
+
   const allCount = galleryFiles.length;
 
-  $("#galleryPhotoCount").textContent = photoCount;
-  $("#galleryVideoCount").textContent = videoCount;
-  $("#galleryAllCount").textContent = allCount;
+  if (photoCountEl) photoCountEl.textContent = photoCount;
+  if (videoCountEl) videoCountEl.textContent = videoCount;
+  if (allCountEl) allCountEl.textContent = allCount;
+
+  // During PWA/service-worker rollout, old index.html and new app.js can briefly
+  // coexist. Missing tab markup must NEVER prevent a folder from opening.
+  if (!tabs) return;
 
   tabs.hidden = allCount === 0;
 
   $$("[data-gallery-media-filter]").forEach(button => {
-    const active = button.dataset.galleryMediaFilter === galleryMediaFilter;
+    const active =
+      button.dataset.galleryMediaFilter === galleryMediaFilter;
+
     button.classList.toggle("active", active);
     button.setAttribute("aria-selected", String(active));
 
@@ -1873,7 +1909,7 @@ function renderGalleryPhotos(options = {}) {
 
   if (!galleryFiles.length) {
     $("#galleryToolbar").hidden = true;
-    $("#galleryMediaTabs").hidden = true;
+    if ($("#galleryMediaTabs")) $("#galleryMediaTabs").hidden = true;
     setGalleryState(
       "empty",
       "Folder ini kosong",
@@ -1958,10 +1994,17 @@ async function openGalleryFolder(activityId, options = {}) {
   gallerySelected.clear();
   cleanupGalleryObjectUrls();
 
-  $("#galleryFolderView").hidden = true;
-  $("#galleryPhotoView").hidden = false;
-  $("#galleryToolbar").hidden = true;
-  $("#galleryGrid").innerHTML = "";
+  const folderView = $("#galleryFolderView");
+  const photoView = $("#galleryPhotoView");
+  const toolbar = $("#galleryToolbar");
+  const grid = $("#galleryGrid");
+  const tabs = $("#galleryMediaTabs");
+
+  if (folderView) folderView.hidden = true;
+  if (photoView) photoView.hidden = false;
+  if (toolbar) toolbar.hidden = true;
+  if (tabs) tabs.hidden = true;
+  if (grid) grid.innerHTML = "";
 
   $("#galleryFolderName").textContent = activity.name || "Aktivitas";
   $("#galleryFolderMeta").textContent =
