@@ -6741,3 +6741,227 @@ body:not(.admin-mode) .gallery-toolbar-actions #galleryDownloadSelected {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* =========================================================
+   SI ALIF 07.4.9 — Government-friendly wording + purpose gate
+   ========================================================= */
+.publication-field {
+  padding: 16px;
+  border: 1px solid #ddd4ea;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #fbf9ff, #ffffff);
+  gap: 11px;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.publication-field.selection-missing {
+  border-color: #d8c48e;
+  background: linear-gradient(145deg, #fffdf7, #ffffff);
+}
+
+.publication-field.needs-attention {
+  box-shadow: 0 0 0 4px rgba(216, 196, 142, .18);
+}
+
+.publication-question-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.publication-question-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.publication-question-title em {
+  display: inline-flex;
+  align-items: center;
+  min-height: 21px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f2ecfb;
+  color: #654a9d;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.publication-question-head small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.publication-choice-grid.publication-tabs {
+  gap: 10px;
+}
+
+.publication-choice.publication-tab {
+  min-height: 82px;
+  padding: 14px;
+  align-items: center;
+  gap: 11px;
+  border-radius: 15px;
+}
+
+.publication-choice-icon {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #f6f2fb;
+  font-size: 18px;
+}
+
+.publication-choice-copy {
+  min-width: 0;
+  display: block;
+}
+
+.publication-choice.publication-tab strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.publication-choice.publication-tab small {
+  margin-top: 4px;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.publication-choice.publication-tab.active .publication-choice-icon {
+  background: #ffffff;
+}
+
+.publication-request-choice:not(.active) {
+  border-color: #d8cbea;
+  background: linear-gradient(145deg, #fbf8ff, #ffffff);
+}
+
+.publication-required-hint {
+  padding: 9px 11px;
+  border-radius: 11px;
+  background: #fff8df;
+  color: #745b17;
+  font-size: 10.5px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.publication-required-hint[hidden] {
+  display: none !important;
+}
+
+.publication-options {
+  margin-top: 1px;
+  padding: 15px;
+}
+
+.publication-options-head strong {
+  font-size: 12px;
+}
+
+.publication-options-head small {
+  font-size: 10px;
+}
+
+.publication-guidance {
+  margin-top: 12px;
+}
+
+.publication-guidance strong,
+.publication-guidance span {
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .publication-field {
+    padding: 12px;
+    border-radius: 15px;
+    gap: 9px;
+  }
+
+  .publication-question-title {
+    font-size: 12.5px;
+  }
+
+  .publication-question-title em {
+    min-height: 19px;
+    padding: 1px 7px;
+    font-size: 8.5px;
+  }
+
+  .publication-question-head small {
+    font-size: 10.5px;
+  }
+
+  .publication-choice-grid.publication-tabs {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .publication-choice.publication-tab {
+    min-height: 68px;
+    padding: 10px 11px;
+    gap: 10px;
+  }
+
+  .publication-choice-icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    font-size: 16px;
+  }
+
+  .publication-choice.publication-tab strong {
+    font-size: 11.5px;
+  }
+
+  .publication-choice.publication-tab small {
+    font-size: 10px;
+  }
+
+  .publication-required-hint {
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+
+  .publication-options {
+    padding: 11px;
+    border-radius: 13px;
+  }
+
+  .publication-options-head strong {
+    font-size: 11px;
+  }
+
+  .publication-options-head small {
+    font-size: 9.5px;
+  }
+
+  .publication-type {
+    min-height: 54px;
+  }
+
+  .publication-type strong {
+    font-size: 10.5px;
+  }
+
+  .publication-type small {
+    font-size: 9.5px;
+  }
+}

@@ -2,7 +2,7 @@ const titleMap = {
   dashboard: "Dashboard",
   submit: "Setor Dokumentasi",
   gallery: "Galeri",
-  orders: "Pesanan Medsos",
+  orders: "Permintaan Konten",
   success: "Tersimpan",
   detail: "Detail Aktivitas"
 };
@@ -58,7 +58,7 @@ let currentView = adminMode ? "dashboard" : "submit";
 let routingReady = false;
 let handlingRoute = false;
 
-const SI_ALIF_NAV_VERSION = 746;
+const SI_ALIF_NAV_VERSION = 749;
 let currentNavLevel = 0;
 let pendingBoundedNavigation = null;
 let skippingOldHistory = false;
@@ -362,15 +362,15 @@ function renderSuccessForActivity(item) {
   if (successContext === "existing") {
     $("#successEyebrow").textContent = "Dokumentasi ditambahkan";
     $("#successTitle").textContent = "Berhasil masuk ke folder";
-    $("#successLead").textContent = "Foto/video tambahan sudah masuk ke kegiatan yang sama. Nggak bikin folder kembar. 💜";
+    $("#successLead").textContent = "Foto dan video tambahan sudah masuk ke kegiatan yang sama tanpa membuat folder baru.";
   } else if (successContext === "merged") {
-    $("#successEyebrow").textContent = "Anti-tubrukan bekerja";
+    $("#successEyebrow").textContent = "Kegiatan yang sama ditemukan";
     $("#successTitle").textContent = "Kegiatan yang sama sudah ditemukan";
-    $("#successLead").textContent = "Dokumentasimu otomatis digabung ke folder yang sudah lebih dulu dibuat. Tidak lahir folder kembar. 💜";
+    $("#successLead").textContent = "Dokumentasi otomatis digabung ke folder kegiatan yang sudah tercatat.";
   } else {
     $("#successEyebrow").textContent = "Dokumentasi tersimpan";
     $("#successTitle").textContent = "Berhasil masuk SI ALIF";
-    $("#successLead").textContent = "Dokumentasi asli sudah tersimpan rapi di Google Drive. 💜";
+    $("#successLead").textContent = "Dokumentasi asli sudah tersimpan di Google Drive.";
   }
 
   const mergeNote = $("#successMergeNote");
@@ -392,8 +392,8 @@ function renderSuccessForActivity(item) {
     publicationBox.hidden = false;
     publicationText.textContent = [
       publicationTypeLabel(item.publication.type),
-      item.publication.requesterName ? `Pemesan: ${item.publication.requesterName}` : "",
-      "masuk To Do List"
+      item.publication.requesterName ? `Pemohon: ${item.publication.requesterName}` : "",
+      "masuk antrean Tim Konten"
     ].filter(Boolean).join(" • ");
   } else {
     publicationBox.hidden = true;
@@ -428,7 +428,7 @@ function renderDetailForActivity(item) {
   if (adminMode && item.publication?.requested) {
     publicationField.hidden = false;
     $("#detailPublication").textContent =
-      `${publicationTypeLabel(item.publication.type)} • Pemesan: ${item.publication.requesterName || "-"} • ${publicationStatusLabel(item.publication.status)}`;
+      `${publicationTypeLabel(item.publication.type)} • Pemohon: ${item.publication.requesterName || "-"} • ${publicationStatusLabel(item.publication.status)}`;
   } else {
     publicationField.hidden = true;
   }
@@ -737,7 +737,7 @@ async function shareContributionLink(activityId) {
       await copyTextFallback(url);
     }
 
-    showToast("Link tambah dokumentasi disalin. Tinggal kirim ke WhatsApp/grup.");
+    showToast("Link tambah dokumentasi sudah disalin dan siap dibagikan.");
   } catch (error) {
     window.prompt("Salin link tambah dokumentasi:", url);
   }
@@ -809,7 +809,7 @@ function clearSharedContributionTarget() {
     if (field) field.required = true;
   });
 
-  $("#submitDocumentation").textContent = "Kirim Dokumentasi";
+  updateSubmitActionLabel();
 }
 
 function setDocumentationMode(mode, activityId = "") {
@@ -841,8 +841,8 @@ function renderDashboardOrdersPreview() {
       <div class="dashboard-clear-state">
         <span>✓</span>
         <div>
-          <strong>To do list aman.</strong>
-          <small>Belum ada pesanan medsos yang menunggu.</small>
+          <strong>Antrean konten kosong.</strong>
+          <small>Belum ada permintaan konten yang menunggu.</small>
         </div>
       </div>
     `;
@@ -855,7 +855,7 @@ function renderDashboardOrdersPreview() {
     row.className = "dashboard-order-row";
 
     const typeIcon = item.publication?.type === "instagram_reels" ? "▶" : "▧";
-    const requester = item.publication?.requesterName || "Pemesan";
+    const requester = item.publication?.requesterName || "Pemohon";
 
     row.innerHTML = `
       <span class="dashboard-order-type">${typeIcon}</span>
@@ -891,7 +891,7 @@ function updateDashboardSummary() {
   if (orderLabel) {
     orderLabel.textContent = activeOrders
       ? `${activeOrders} perlu diselesaikan`
-      : "tidak ada yang menunggu";
+      : "belum ada permintaan aktif";
   }
 
   renderDashboardOrdersPreview();
@@ -2835,7 +2835,7 @@ async function activateAdminWorkspace() {
     updateAdminWorkspaceUi();
     refreshLists();
     resetWorkspaceRoute();
-    showToast("Mode Admin aktif. Dashboard & Pesanan dibuka.");
+    showToast("Mode Admin aktif. Dashboard dan Permintaan Konten tersedia.");
     return true;
   } catch (error) {
     clearAdminSession();
@@ -3240,8 +3240,8 @@ function renderOrders() {
     box.innerHTML = `
       <div class="orders-empty">
         <div>✓</div>
-        <strong>To do list kosong</strong>
-        <span>Pesanan yang selesai atau dihapus otomatis hilang dari sini.</span>
+        <strong>Antrean konten kosong</strong>
+        <span>Permintaan yang selesai atau dihapus akan otomatis hilang dari antrean.</span>
       </div>
     `;
     return;
@@ -3264,13 +3264,13 @@ function renderOrders() {
       </div>
 
       <div class="order-requester">
-        <span>👤 Pemesan</span>
+        <span>👤 Pemohon</span>
         <strong>${escapeHtml(item.publication.requesterName || "-")}</strong>
       </div>
 
       <div class="order-media-line">
         <span>📎 ${escapeHtml(mediaSummary(item))}</span>
-        ${item.publication.notifiedAt ? `<span>🤖 bot terkirim</span>` : ""}
+        ${item.publication.notifiedAt ? `<span>🤖 notifikasi terkirim</span>` : ""}
       </div>
 
       ${item.publication.note ? `
@@ -3281,10 +3281,10 @@ function renderOrders() {
       ` : ""}
 
       <div class="order-actions">
-        <button class="secondary order-gallery-action" data-order-gallery="${escapeHtml(item.id)}">▧ Buka Bahan</button>
+        <button class="secondary order-gallery-action" data-order-gallery="${escapeHtml(item.id)}">▧ Buka Dokumentasi</button>
         ${item.folderUrl ? `<a class="button-link" href="${escapeHtml(item.folderUrl)}" target="_blank" rel="noopener">Drive ↗</a>` : ""}
-        <button class="danger-ghost order-remove-action" data-order-remove="${escapeHtml(item.id)}">Hapus Pesanan</button>
-        <button class="primary order-complete-action" data-order-complete="${escapeHtml(item.id)}">✓ Sudah selesai dibuat</button>
+        <button class="danger-ghost order-remove-action" data-order-remove="${escapeHtml(item.id)}">Hapus Permintaan</button>
+        <button class="primary order-complete-action" data-order-complete="${escapeHtml(item.id)}">✓ Sudah Selesai Dibuat</button>
       </div>
     `;
 
@@ -3297,7 +3297,7 @@ function renderOrders() {
       if (!item) return;
 
       const ok = window.confirm(
-        `Tandai pesanan "${item.name}" sudah selesai dibuat?\n\nPesanan akan langsung hilang dari To Do List.`
+        `Tandai permintaan "${item.name}" sebagai selesai?\n\nPermintaan akan dihapus dari antrean aktif.`
       );
       if (!ok) return;
 
@@ -3311,7 +3311,7 @@ function renderOrders() {
       if (!item) return;
 
       const ok = window.confirm(
-        `Hapus "${item.name}" dari daftar Pesanan Medsos?\n\nAktivitas dan file Drive TIDAK akan dihapus.`
+        `Hapus "${item.name}" dari daftar Permintaan Konten?\n\nKegiatan dan file di Google Drive tidak akan dihapus.`
       );
       if (!ok) return;
 
@@ -3342,9 +3342,9 @@ async function completeOrder(activityId, button) {
     });
 
     await loadActivitiesFromApi();
-    showToast("Pesanan selesai dan dihapus dari To Do List.");
+    showToast("Permintaan selesai dan dihapus dari antrean aktif.");
   } catch (error) {
-    showToast(`Gagal menyelesaikan pesanan: ${error.message}`);
+    showToast(`Gagal menyelesaikan permintaan: ${error.message}`);
     button.disabled = false;
     button.textContent = original;
   }
@@ -3364,9 +3364,9 @@ async function removeOrder(activityId, button) {
     });
 
     await loadActivitiesFromApi();
-    showToast("Pesanan dihapus dari daftar.");
+    showToast("Permintaan dihapus dari daftar.");
   } catch (error) {
-    showToast(`Gagal menghapus pesanan: ${error.message}`);
+    showToast(`Gagal menghapus permintaan: ${error.message}`);
     button.disabled = false;
     button.textContent = original;
   }
@@ -3379,7 +3379,7 @@ function updateBotStatus() {
 
   box.classList.toggle("online", telegramConfigured);
   box.innerHTML = telegramConfigured
-    ? `<span class="bot-dot"></span><div><strong>Bot aktif</strong><small>Pesanan baru akan dikirim ke Telegram.</small></div>`
+    ? `<span class="bot-dot"></span><div><strong>Bot aktif</strong><small>Permintaan baru akan dikirim ke Telegram.</small></div>`
     : `<span class="bot-dot"></span><div><strong>Bot belum aktif</strong><small>Antrean tetap tersimpan di SI ALIF.</small></div>`;
 }
 
@@ -3445,9 +3445,31 @@ async function loadActivitiesFromApi(options = {}) {
 }
 
 
+function currentPublicationMode() {
+  return document.querySelector('input[name="publicationMode"]:checked')?.value || "";
+}
+
+function updateSubmitActionLabel() {
+  const submitButton = $("#submitDocumentation");
+  if (!submitButton || uploadQueueRunning) return;
+
+  if (documentationMode === "existing") {
+    submitButton.textContent = "Tambahkan Dokumentasi";
+    return;
+  }
+
+  const mode = currentPublicationMode();
+  submitButton.textContent = mode === "request"
+    ? "Kirim & Ajukan Konten"
+    : mode === "documentation"
+      ? "Simpan Dokumentasi"
+      : "Kirim Dokumentasi";
+}
+
 function syncPublicationUi() {
-  const mode = document.querySelector('input[name="publicationMode"]:checked')?.value || "documentation";
+  const mode = currentPublicationMode();
   const requested = mode === "request";
+  const isExisting = documentationMode === "existing";
   $("#publicationOptions").hidden = !requested;
 
   $$(".publication-choice").forEach(label => {
@@ -3457,6 +3479,19 @@ function syncPublicationUi() {
   $$(".publication-type").forEach(label => {
     label.classList.toggle("active", label.querySelector("input")?.checked);
   });
+
+  const purposeBox = $("#publicationPurposeBox");
+  const requiredHint = $("#publicationRequiredHint");
+  const selectionMissing = !isExisting && !mode;
+
+  if (purposeBox) {
+    purposeBox.classList.toggle("selection-missing", selectionMissing);
+  }
+  if (requiredHint) {
+    requiredHint.hidden = !selectionMissing;
+  }
+
+  updateSubmitActionLabel();
 }
 
 $$('input[name="publicationMode"], input[name="publicationType"]').forEach(input => {
@@ -4055,9 +4090,7 @@ $("#photoInput").addEventListener("change", event => {
   const submitButton = $("#submitDocumentation");
   if (submitButton) {
     submitButton.disabled = false;
-    submitButton.textContent = documentationMode === "existing"
-      ? "Tambahkan Dokumentasi"
-      : "Kirim Dokumentasi";
+    updateSubmitActionLabel();
   }
 });
 
@@ -4445,7 +4478,7 @@ async function createRemoteActivity(payload) {
   setUploadProgress(
     0,
     Math.max(uploadQueueEntries.length, 1),
-    "Membuat / mencari folder kegiatan di Google Drive..."
+    "Menyiapkan folder kegiatan di Google Drive..."
   );
 
   return apiFetch("/api/activities", {
@@ -4538,8 +4571,9 @@ async function finalizeSuccessfulUploadSession() {
   const optionalDetails = $("#activityOptionalDetails");
   if (optionalDetails) optionalDetails.open = false;
 
-  const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
-  if (docMode) docMode.checked = true;
+  document.querySelectorAll('input[name="publicationMode"]').forEach(input => {
+    input.checked = false;
+  });
 
   const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
   if (postType) postType.checked = true;
@@ -4573,7 +4607,7 @@ async function handleQueueResult() {
   );
 
   showToast(
-    `${stats.success} berhasil • ${stats.failed} gagal. File sukses nggak akan diupload ulang.`
+    `${stats.success} berhasil • ${stats.failed} gagal. File yang sudah berhasil tidak akan diunggah ulang.`
   );
 
   renderUploadQueue();
@@ -4585,7 +4619,7 @@ async function retryFailedQueueEntries() {
 
   const failed = uploadQueueEntries.filter(entry => entry.status === "failed");
   if (!failed.length) {
-    showToast("Nggak ada file gagal yang perlu dicoba lagi.");
+    showToast("Tidak ada file gagal yang perlu dicoba lagi.");
     return;
   }
 
@@ -4615,7 +4649,7 @@ $("#documentationForm").addEventListener("submit", async event => {
   if (uploadQueueRunning) return;
 
   if (activeUploadSession && uploadQueueEntries.some(entry => entry.status === "failed")) {
-    showToast("Masih ada file gagal. Pakai tombol 'Coba Lagi yang Gagal'.");
+    showToast("Masih ada file gagal. Gunakan tombol 'Coba Lagi yang Gagal'.");
     return;
   }
 
@@ -4642,8 +4676,16 @@ $("#documentationForm").addEventListener("submit", async event => {
     return;
   }
 
-  const publicationMode =
-    document.querySelector('input[name="publicationMode"]:checked')?.value || "documentation";
+  const publicationMode = currentPublicationMode();
+
+  if (!isExisting && !publicationMode) {
+    const purposeBox = $("#publicationPurposeBox");
+    purposeBox?.classList.add("selection-missing", "needs-attention");
+    showToast("Pilih tujuan dokumentasi: simpan saja atau ajukan konten.");
+    purposeBox?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => purposeBox?.classList.remove("needs-attention"), 900);
+    return;
+  }
 
   const publication = !isExisting && publicationMode === "request"
     ? {
@@ -4655,7 +4697,7 @@ $("#documentationForm").addEventListener("submit", async event => {
     : { requested: false };
 
   if (publication.requested && !publication.requesterName) {
-    showToast("Nama pemesan wajib diisi untuk pengajuan publikasi.");
+    showToast("Nama pemohon wajib diisi untuk permintaan konten.");
     $("#publicationRequester").focus();
     return;
   }
@@ -4678,12 +4720,16 @@ $("#documentationForm").addEventListener("submit", async event => {
   }
 
   submitButton.disabled = true;
-  submitButton.textContent = isExisting ? "Menambahkan dokumentasi..." : "Mengirim...";
+  submitButton.textContent = isExisting
+    ? "Menambahkan dokumentasi..."
+    : publication.requested
+      ? "Mengirim & mengajukan konten..."
+      : "Menyimpan dokumentasi...";
 
   try {
     if (isExisting) {
       if (!backendOnline) {
-        throw new Error("Tambah ke kegiatan lama membutuhkan koneksi ke SI ALIF.");
+        throw new Error("Menambahkan dokumentasi ke kegiatan lama membutuhkan koneksi ke SI ALIF.");
       }
 
       activeUploadSession = {
@@ -4695,12 +4741,12 @@ $("#documentationForm").addEventListener("submit", async event => {
         notificationSent: false
       };
     } else if (backendOnline) {
-      submitButton.textContent = "Mengecek kegiatan mirip...";
+      submitButton.textContent = "Memeriksa kegiatan serupa...";
       const similarChoice = await askSimilarActivityChoice(payload);
 
       if (similarChoice?.action === "cancel") {
         submitButton.disabled = false;
-        submitButton.textContent = "Kirim Dokumentasi";
+        updateSubmitActionLabel();
         return;
       }
 
@@ -4726,7 +4772,7 @@ $("#documentationForm").addEventListener("submit", async event => {
           `Dokumentasi akan digabung ke "${existingTarget.name}".`
         );
       } else {
-        submitButton.textContent = "Membuat / mencari folder...";
+        submitButton.textContent = "Menyiapkan folder...";
         const created = await createRemoteActivity(payload);
 
         activeUploadSession = {
@@ -4766,7 +4812,7 @@ $("#documentationForm").addEventListener("submit", async event => {
       successContext = "new";
       showSuccessScreen(savedActivity);
       submitButton.disabled = false;
-      submitButton.textContent = "Kirim Dokumentasi";
+      updateSubmitActionLabel();
       return;
     }
 
@@ -4784,9 +4830,7 @@ $("#documentationForm").addEventListener("submit", async event => {
     // Kalau folder belum berhasil dibuat, aman untuk mencoba submit lagi.
     if (!activeUploadSession) {
       submitButton.disabled = false;
-      submitButton.textContent = isExisting
-        ? "Tambahkan Bahan"
-        : "Kirim Dokumentasi";
+      updateSubmitActionLabel();
     } else {
       // Folder sudah ada, tapi error pipeline global. Jadikan entry yang belum
       // sukses sebagai failed agar retry tidak membuat folder baru.
@@ -4984,8 +5028,9 @@ $("#resetButton").addEventListener("click", () => {
   const optionalDetails = $("#activityOptionalDetails");
   if (optionalDetails) optionalDetails.open = false;
 
-  const docMode = document.querySelector('input[name="publicationMode"][value="documentation"]');
-  if (docMode) docMode.checked = true;
+  document.querySelectorAll('input[name="publicationMode"]').forEach(input => {
+    input.checked = false;
+  });
   const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
   if (postType) postType.checked = true;
   clearSharedContributionTarget();

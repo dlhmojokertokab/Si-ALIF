@@ -6,17 +6,17 @@
   <meta name="theme-color" content="#0f766e" />
   <meta name="description" content="SI ALIF — Sistem Informasi Aktivitas, Lokasi, Informasi, dan Foto" />
   <title>SI ALIF</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0746" />
+  <link rel="manifest" href="./manifest.webmanifest?v=0749" />
   <link rel="icon" href="./assets/icons/favicon.ico?v=0731" sizes="any" />
   <link rel="icon" href="./assets/icons/si-alif-favicon-32.png?v=0731" type="image/png" sizes="32x32" />
   <link rel="icon" href="./assets/icons/si-alif-favicon-192.png?v=0731" type="image/png" sizes="192x192" />
   <link rel="apple-touch-icon" href="./assets/icons/si-alif-favicon-180.png?v=0731" sizes="180x180" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0746" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0749" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
     <div class="route-boot-mark route-boot-mark-image" aria-hidden="true">
-      <img src="./assets/icons/si-alif-favicon-192.png?v=0746" alt="" />
+      <img src="./assets/icons/si-alif-favicon-192.png?v=0749" alt="" />
     </div>
     <strong>SI ALIF</strong>
     <small>Membuka halaman...</small>
@@ -27,7 +27,7 @@
     <aside class="sidebar" aria-label="Navigasi utama">
       <div class="brand">
         <div class="brand-mark brand-mark-image" aria-hidden="true">
-          <img src="./assets/icons/si-alif-favicon-192.png?v=0746" alt="" />
+          <img src="./assets/icons/si-alif-favicon-192.png?v=0749" alt="" />
         </div>
         <div>
           <div class="brand-title">SI ALIF</div>
@@ -46,13 +46,13 @@
           <span>▧</span><span>Galeri</span>
         </button>
         <button class="nav-item nav-orders admin-nav-only" data-view="orders">
-          <span>✦</span><span>Pesanan Medsos</span>
+          <span>✦</span><span>Permintaan Konten</span>
           <b class="nav-count" id="ordersNavCount" hidden>0</b>
         </button>
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 07.4.6</strong>
+        <strong>SI ALIF 07.4.9</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -87,9 +87,9 @@
       <section class="view active" id="view-dashboard">
         <div class="dashboard-hero">
           <div>
-            <span class="eyebrow">Pusat Kerja SI ALIF</span>
-            <h2>Yang perlu dilihat hari ini.</h2>
-            <p>Setor dokumentasi, cek pesanan, atau buka bahan terbaru tanpa muter-muter menu.</p>
+            <span class="eyebrow">Ringkasan SI ALIF</span>
+            <h2>Ringkasan dokumentasi hari ini.</h2>
+            <p>Setor dokumentasi, pantau permintaan konten, dan temukan bahan kegiatan dari satu tempat.</p>
           </div>
           <div class="dashboard-hero-actions">
             <button class="primary big" type="button" data-view="submit">＋ Setor Dokumentasi</button>
@@ -101,9 +101,9 @@
           <button class="dashboard-summary-card dashboard-summary-attention" type="button" data-view="orders">
             <span class="dashboard-summary-icon">✦</span>
             <div>
-              <small>Pesanan Medsos</small>
+              <small>Permintaan Konten</small>
               <strong id="dashOrderCount">0</strong>
-              <span id="dashOrderLabel">tidak ada yang menunggu</span>
+              <span id="dashOrderLabel">belum ada permintaan aktif</span>
             </div>
           </button>
 
@@ -130,10 +130,10 @@
           <article class="panel dashboard-todo-panel">
             <div class="panel-head">
               <div>
-                <span class="eyebrow">Perlu Dikerjakan</span>
-                <h3>Pesanan Medsos</h3>
+                <span class="eyebrow">Perlu Ditindaklanjuti</span>
+                <h3>Permintaan Konten</h3>
               </div>
-              <button class="link-button" type="button" data-view="orders">Buka To Do List</button>
+              <button class="link-button" type="button" data-view="orders">Buka Antrean</button>
             </div>
             <div class="dashboard-orders-preview" id="dashboardOrdersPreview"></div>
           </article>
@@ -141,8 +141,8 @@
           <article class="panel dashboard-recent-panel">
             <div class="panel-head">
               <div>
-                <span class="eyebrow">Baru Masuk</span>
-                <h3>Dokumentasi Terbaru</h3>
+                <span class="eyebrow">Dokumentasi Terbaru</span>
+                <h3>Kegiatan Terbaru</h3>
               </div>
               <button class="link-button" type="button" data-view="gallery">Lihat Galeri</button>
             </div>
@@ -154,7 +154,7 @@
           <div class="panel-head">
             <div>
               <span class="eyebrow">Akses Cepat</span>
-              <h3>Mau ngapain?</h3>
+              <h3>Akses yang sering digunakan</h3>
             </div>
           </div>
 
@@ -163,7 +163,7 @@
               <span>＋</span>
               <div>
                 <strong>Setor Dokumentasi</strong>
-                <small>Isi kegiatan, SI-ALIF yang menentukan foldernya.</small>
+                <small>Isi kegiatan sekali, SI-ALIF yang mengatur foldernya.</small>
               </div>
             </button>
 
@@ -171,15 +171,15 @@
               <span>▧</span>
               <div>
                 <strong>Buka Galeri</strong>
-                <small>Cari folder dan media.</small>
+                <small>Cari kegiatan, foto, dan video.</small>
               </div>
             </button>
 
             <button class="dashboard-quick-action" type="button" data-view="orders">
               <span>✦</span>
               <div>
-                <strong>Pesanan Medsos</strong>
-                <small>Lihat yang belum selesai.</small>
+                <strong>Permintaan Konten</strong>
+                <small>Lihat permintaan yang masih aktif.</small>
               </div>
             </button>
 
@@ -201,7 +201,7 @@
               <div class="title-with-icon">
                 <div class="title-icon">＋</div>
                 <div>
-                  <span class="eyebrow">30 detik selesai</span>
+                  <span class="eyebrow">Dokumentasi Kegiatan</span>
                   <h3>Setor Dokumentasi</h3>
                 </div>
               </div>
@@ -211,8 +211,8 @@
               <div class="smart-submit-note new-activity-only">
                 <span>✦</span>
                 <div>
-                  <strong>Cukup isi dan kirim.</strong>
-                  <small>Kalau kegiatan yang sama sudah ada, SI-ALIF otomatis menggabungkan dokumentasi ke folder tersebut.</small>
+                  <strong>Isi sekali, SI-ALIF yang merapikan.</strong>
+                  <small>Jika kegiatan yang sama sudah tercatat, dokumentasi otomatis digabung ke folder yang sesuai.</small>
                 </div>
               </div>
 
@@ -257,63 +257,80 @@
 
                 <details class="optional-details field-wide new-activity-only" id="activityOptionalDetails">
                   <summary>
-                    <span>＋ Tambahan opsional</span>
-                    <small>Keterangan kegiatan</small>
+                    <span>＋ Informasi tambahan</span>
+                    <small>Opsional</small>
                   </summary>
                   <label class="field optional-details-body">
                     <span>Keterangan singkat</span>
-                    <textarea id="description" rows="2" maxlength="300" placeholder="Apa yang dilakukan / hasil singkat kegiatan"></textarea>
+                    <textarea id="description" rows="2" maxlength="300" placeholder="Contoh: kegiatan yang dilakukan atau hasil singkat"></textarea>
                   </label>
                 </details>
 
-                <div class="field field-wide publication-field new-activity-only">
-                  <span>Tujuan setor</span>
+                <div class="field field-wide publication-field new-activity-only" id="publicationPurposeBox">
+                  <div class="publication-question-head">
+                    <div>
+                      <span class="publication-question-title">Dokumentasi ini digunakan untuk apa? <em>Wajib</em></span>
+                      <small>Pilih salah satu sebelum dokumentasi dikirim.</small>
+                    </div>
+                  </div>
 
-                  <div class="publication-choice-grid publication-tabs">
-                    <label class="publication-choice publication-tab active">
-                      <input type="radio" name="publicationMode" value="documentation" checked>
-                      <strong>📁 Dokumentasi</strong>
+                  <div class="publication-choice-grid publication-tabs" role="radiogroup" aria-label="Tujuan dokumentasi" aria-required="true">
+                    <label class="publication-choice publication-tab publication-documentation-choice">
+                      <input type="radio" name="publicationMode" value="documentation">
+                      <span class="publication-choice-icon">📁</span>
+                      <span class="publication-choice-copy">
+                        <strong>Simpan Dokumentasi</strong>
+                        <small>Simpan foto dan video di Galeri SI ALIF.</small>
+                      </span>
                     </label>
 
-                    <label class="publication-choice publication-tab">
+                    <label class="publication-choice publication-tab publication-request-choice">
                       <input type="radio" name="publicationMode" value="request">
-                      <strong>📣 Pesanan Medsos</strong>
+                      <span class="publication-choice-icon">📣</span>
+                      <span class="publication-choice-copy">
+                        <strong>Minta Dibuatkan Konten</strong>
+                        <small>Masuk ke antrean Tim Konten untuk Post atau Reels.</small>
+                      </span>
                     </label>
+                  </div>
+
+                  <div class="publication-required-hint" id="publicationRequiredHint">
+                    Pilihan ini wajib agar permintaan konten tidak terlewat.
                   </div>
 
                   <div class="publication-options" id="publicationOptions" hidden>
                     <div class="publication-options-head">
-                      <strong>Bentuk konten</strong>
-                      <small>Pilih bentuk konten.</small>
+                      <strong>Jenis konten</strong>
+                      <small>Pilih format yang dibutuhkan.</small>
                     </div>
 
                     <div class="publication-type-grid">
                       <label class="publication-type active">
                         <input type="radio" name="publicationType" value="instagram_post" checked>
                         <span>▧</span>
-                        <div><strong>Post Instagram</strong><small>Foto / carousel</small></div>
+                        <div><strong>Post Instagram</strong><small>Foto atau carousel</small></div>
                       </label>
 
                       <label class="publication-type">
                         <input type="radio" name="publicationType" value="instagram_reels">
                         <span>▶</span>
-                        <div><strong>Reels Instagram</strong><small>Utamakan bahan video</small></div>
+                        <div><strong>Reels Instagram</strong><small>Konten video vertikal</small></div>
                       </label>
                     </div>
 
                     <label class="field publication-requester-field">
-                      <span>Nama Pemesan</span>
+                      <span>Nama Pemohon</span>
                       <input id="publicationRequester" maxlength="120" placeholder="Contoh: Alifand Masrizky" autocomplete="name">
                     </label>
 
                     <label class="field publication-note-field">
-                      <span>Catatan Pesanan <small>(opsional)</small></span>
-                      <textarea id="publicationNote" rows="2" maxlength="500" placeholder="Contoh: mohon tayang minggu ini / ada poin yang perlu ditonjolkan"></textarea>
+                      <span>Catatan untuk Tim Konten <small>(opsional)</small></span>
+                      <textarea id="publicationNote" rows="2" maxlength="500" placeholder="Contoh: mohon tayang minggu ini / poin yang perlu ditonjolkan"></textarea>
                     </label>
 
-                    <div class="publication-warning">
-                      <strong>Yang pesan wajib setor bahan.</strong>
-                      <span>Jangan cuma centang Reels lalu ninggalin satu foto blur. 😭</span>
+                    <div class="publication-warning publication-guidance">
+                      <strong>Pastikan bahan utama sudah disertakan.</strong>
+                      <span>Unggah foto atau video yang paling relevan agar Tim Konten tidak perlu meminta ulang melalui chat.</span>
                     </div>
                   </div>
                 </div>
@@ -324,7 +341,7 @@
                     <input id="photoInput" type="file" accept="image/*,video/*" multiple />
                     <div class="upload-copy">
                       <strong>＋ Pilih Foto / Video</strong>
-                      <span>Pilih beberapa file sekaligus. Foto dikirim seperti biasa; video dikirim bertahap per chunk agar upload lebih stabil.</span>
+                      <span>Pilih beberapa file sekaligus. File asli disimpan tanpa kompresi; video besar diunggah bertahap agar lebih stabil.</span>
                     </div>
                   </div>
                   <div class="preview-grid" id="previewGrid"></div>
@@ -359,14 +376,14 @@
           </article>
 
           <aside class="panel tips-panel">
-            <span class="eyebrow">Prinsip SI ALIF</span>
-            <h3>Yang setor adalah pemilik kegiatan.</h3>
-            <p>SI ALIF dibuat supaya dokumentasi tidak menumpuk di HP admin dan tidak tercecer di grup chat.</p>
+            <span class="eyebrow">Penggunaan SI ALIF</span>
+            <h3>Dokumentasi diisi oleh pemilik kegiatan.</h3>
+            <p>SI ALIF membantu setiap bidang menyimpan dokumentasi langsung ke tempat yang sama, tanpa perlu mengirim ulang melalui chat.</p>
             <ul class="check-list">
-              <li>Foto tetap milik kegiatan.</li>
-              <li>Metadata dicatat saat masih segar.</li>
+              <li>Foto dan video tetap terhubung dengan kegiatannya.</li>
+              <li>Informasi kegiatan dicatat saat masih mudah diingat.</li>
               <li>Tempat kegiatan cukup ditulis singkat dan jelas.</li>
-              <li>Admin tinggal mencari ketika butuh.</li>
+              <li>Dokumentasi lebih mudah ditemukan saat diperlukan.</li>
             </ul>
           </aside>
         </div>
@@ -383,7 +400,7 @@
             <span>⇄</span>
             <div>
               <strong>Otomatis digabung</strong>
-              <small>Nama, bidang, tanggal, dan lokasi cocok dengan kegiatan yang sudah ada. Pesanan Medsos tetap mengikuti kegiatan pertama.</small>
+              <small>Nama, bidang, tanggal, dan lokasi cocok dengan kegiatan yang sudah ada. Permintaan konten mengikuti data kegiatan yang sudah tercatat.</small>
             </div>
           </div>
 
@@ -402,11 +419,11 @@
               <div>
                 <span>📣</span>
                 <div>
-                  <strong>Pesanan Medsos masuk To Do List</strong>
-                  <small id="successPublicationText">Masuk ke daftar Pesanan Medsos.</small>
+                  <strong>Permintaan konten masuk antrean</strong>
+                  <small id="successPublicationText">Masuk ke antrean Tim Konten.</small>
                 </div>
               </div>
-              <button class="secondary" type="button" id="successViewOrder">Lihat Pesanan</button>
+              <button class="secondary" type="button" id="successViewOrder">Lihat Permintaan</button>
             </div>
 
             <div class="success-actions">
@@ -566,8 +583,8 @@
           <div class="trash-modal-head">
             <div>
               <span class="eyebrow">Admin • Trash SI ALIF</span>
-              <h3 id="trashModalTitle">Masih bisa dibalikin.</h3>
-              <p>Folder atau media yang dihapus dari SI ALIF akan nongkrong di sini sebelum dihapus permanen.</p>
+              <h3 id="trashModalTitle">Item terhapus masih dapat dipulihkan.</h3>
+              <p>Folder atau media yang dihapus dari SI ALIF tersimpan sementara di sini sebelum dihapus permanen.</p>
             </div>
             <button class="lightbox-close trash-close" type="button" data-trash-close aria-label="Tutup">×</button>
           </div>
@@ -582,7 +599,7 @@
           <div class="trash-empty" id="siAlifTrashEmpty" hidden>
             <span>✓</span>
             <strong>Trash kosong.</strong>
-            <small>Nggak ada yang perlu diselamatkan. Aman wkwk.</small>
+            <small>Belum ada item di Trash SI ALIF.</small>
           </div>
         </div>
       </div>
@@ -646,7 +663,7 @@
         <div class="activity-action-dialog" role="dialog" aria-modal="true" aria-labelledby="activityTargetTitle">
           <div class="activity-action-head">
             <div>
-              <span class="eyebrow">Admin • Rapikan Galeri</span>
+              <span class="eyebrow">Admin • Kelola Galeri</span>
               <h3 id="activityTargetTitle">Pilih kegiatan tujuan</h3>
               <p id="activityTargetDescription">-</p>
             </div>
@@ -679,16 +696,16 @@
         <div class="similar-activity-dialog" role="dialog" aria-modal="true" aria-labelledby="similarActivityTitle">
           <div class="similar-activity-head">
             <div>
-              <span class="eyebrow">SI ALIF 07.1 • Anti folder mirip</span>
-              <h3 id="similarActivityTitle">Eh, kayaknya kegiatan ini sudah ada.</h3>
-              <p>Belum tentu sama. Pilih kegiatan lama kalau memang satu kegiatan; kalau berbeda, tetap buat yang baru.</p>
+              <span class="eyebrow">Pemeriksaan Duplikasi</span>
+              <h3 id="similarActivityTitle">Kegiatan serupa sudah ditemukan.</h3>
+              <p>Periksa kegiatan yang ditemukan. Gunakan kegiatan lama jika memang sama, atau lanjutkan sebagai kegiatan baru jika berbeda.</p>
             </div>
             <button class="lightbox-close" type="button" data-similar-close aria-label="Tutup">×</button>
           </div>
 
           <div class="similar-activity-body">
             <div class="similar-publication-note" id="similarPublicationNote" hidden>
-              📣 Kalau digabung ke kegiatan lama, Pesanan Medsos mengikuti kegiatan yang sudah ada dan tidak membuat pesanan baru.
+              📣 Jika dokumentasi ditambahkan ke kegiatan lama, permintaan konten mengikuti data kegiatan yang sudah ada dan tidak membuat permintaan baru.
             </div>
 
             <div class="similar-activity-list" id="similarActivityList"></div>
@@ -735,9 +752,9 @@
         <article class="panel orders-panel">
           <div class="orders-head">
             <div>
-              <span class="eyebrow">Daftar kerja SI ALIF</span>
-              <h3>Pesanan Medsos</h3>
-              <p>Daftar publikasi yang perlu dibuat dari dokumentasi kegiatan.</p>
+              <span class="eyebrow">Antrean Tim Konten</span>
+              <h3>Permintaan Konten</h3>
+              <p>Permintaan pembuatan konten dari dokumentasi kegiatan yang sudah disetor.</p>
             </div>
             <div class="bot-status" id="botStatus">
               <span class="bot-dot"></span>
@@ -747,7 +764,7 @@
 
           <div class="todo-summary">
             <strong id="orderCountActive">0</strong>
-            <span>pesanan belum selesai</span>
+            <span>permintaan belum selesai</span>
           </div>
 
           <div class="orders-list" id="ordersList"></div>
@@ -768,12 +785,12 @@
         <span>▧</span><small>Galeri</small>
       </button>
       <button class="mobile-item mobile-orders admin-nav-only" data-view="orders">
-        <span>✦</span><small>Pesanan</small><b class="mobile-count" id="ordersMobileCount" hidden>0</b>
+        <span>✦</span><small>Konten</small><b class="mobile-count" id="ordersMobileCount" hidden>0</b>
       </button>
     </nav>
   </div>
 
   <script src="./assets/js/config.js?v=0731"></script>
-  <script src="./assets/js/app.js?v=0746"></script>
+  <script src="./assets/js/app.js?v=0749"></script>
 </body>
 </html>

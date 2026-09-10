@@ -1,11 +1,11 @@
-const CACHE = "si-alif-07-4-6-gallery-open-hotfix";
+const CACHE = "si-alif-07-4-9-ui-purpose-polish";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0746",
+  "./assets/css/style.css?v=0749",
   "./assets/js/config.js?v=0731",
-  "./assets/js/app.js?v=0746",
-  "./manifest.webmanifest?v=0746",
+  "./assets/js/app.js?v=0749",
+  "./manifest.webmanifest?v=0749",
   "./assets/icons/icon.svg",
   "./assets/icons/icon.png",
   "./assets/brand/si-alif-doodle-logo.png",
