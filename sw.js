@@ -1,11 +1,11 @@
-const CACHE = "si-alif-07-4-2-bulk-download-zip";
+const CACHE = "si-alif-07-4-4-split-photo-video-preview";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0742",
+  "./assets/css/style.css?v=0744",
   "./assets/js/config.js?v=0731",
-  "./assets/js/app.js?v=0742",
-  "./manifest.webmanifest?v=0742",
+  "./assets/js/app.js?v=0744",
+  "./manifest.webmanifest?v=0744",
   "./assets/icons/icon.svg",
   "./assets/icons/icon.png",
   "./assets/brand/si-alif-doodle-logo.png",

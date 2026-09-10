@@ -3423,49 +3423,447 @@ function resetUploadQueueState({ keepFiles = false } = {}) {
   renderUploadQueue();
 }
 
-function renderSelectedFilePreview() {
-  const grid = $("#previewGrid");
-  grid.innerHTML = "";
-  document.querySelector(".direct-video-note")?.remove();
+let previewRenderToken = 0;
 
-  selectedFiles.slice(0, 15).forEach(file => {
-    const url = URL.createObjectURL(file);
+const PREVIEW_IMAGE_LIMIT = 15;
+const PREVIEW_VIDEO_LIMIT = 12;
+const PREVIEW_THUMB_SIZE = 220;
+const PREVIEW_IMAGE_CONCURRENCY = 3;
+const PREVIEW_VIDEO_CONCURRENCY = 1;
+const PREVIEW_VIDEO_TIMEOUT = 9000;
 
-    if (file.type.startsWith("video/")) {
-      const wrap = document.createElement("div");
-      wrap.className = "preview-video";
-      const video = document.createElement("video");
-      video.src = url;
+function drawBitmapCover(bitmap, canvas) {
+  const size = PREVIEW_THUMB_SIZE;
+  canvas.width = size;
+  canvas.height = size;
+
+  const context = canvas.getContext("2d", {
+    alpha: false,
+    desynchronized: true
+  });
+
+  if (!context) return;
+
+  const scale = Math.max(
+    size / Math.max(1, bitmap.width),
+    size / Math.max(1, bitmap.height)
+  );
+
+  const sourceWidth = size / scale;
+  const sourceHeight = size / scale;
+  const sourceX = Math.max(0, (bitmap.width - sourceWidth) / 2);
+  const sourceY = Math.max(0, (bitmap.height - sourceHeight) / 2);
+
+  context.drawImage(
+    bitmap,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    size,
+    size
+  );
+}
+
+function drawVideoCover(video, canvas) {
+  const size = PREVIEW_THUMB_SIZE;
+  canvas.width = size;
+  canvas.height = size;
+
+  const context = canvas.getContext("2d", {
+    alpha: false,
+    desynchronized: true
+  });
+
+  if (!context) return;
+
+  const width = Math.max(1, video.videoWidth || size);
+  const height = Math.max(1, video.videoHeight || size);
+  const scale = Math.max(size / width, size / height);
+
+  const sourceWidth = size / scale;
+  const sourceHeight = size / scale;
+  const sourceX = Math.max(0, (width - sourceWidth) / 2);
+  const sourceY = Math.max(0, (height - sourceHeight) / 2);
+
+  context.drawImage(
+    video,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    size,
+    size
+  );
+}
+
+function formatPreviewDuration(seconds) {
+  const value = Number(seconds || 0);
+  if (!Number.isFinite(value) || value <= 0) return "";
+
+  const total = Math.round(value);
+  const minutes = Math.floor(total / 60);
+  const remainder = total % 60;
+
+  return `${minutes}:${String(remainder).padStart(2, "0")}`;
+}
+
+async function renderFastImageThumbnail(file, slot, renderToken) {
+  try {
+    if (typeof createImageBitmap === "function") {
+      const bitmap = await createImageBitmap(file, {
+        resizeWidth: PREVIEW_THUMB_SIZE,
+        resizeHeight: PREVIEW_THUMB_SIZE,
+        resizeQuality: "low"
+      });
+
+      if (renderToken !== previewRenderToken || !slot.isConnected) {
+        bitmap.close?.();
+        return;
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.className = "preview-thumb-canvas";
+      canvas.setAttribute("aria-label", file.name);
+      drawBitmapCover(bitmap, canvas);
+      bitmap.close?.();
+
+      slot.replaceChildren(canvas);
+      slot.classList.remove("preview-thumb-loading");
+      slot.classList.add("preview-thumb-ready");
+      return;
+    }
+
+    throw new Error("createImageBitmap unavailable");
+  } catch (error) {
+    if (renderToken !== previewRenderToken || !slot.isConnected) return;
+
+    const image = document.createElement("img");
+    image.alt = file.name;
+    image.loading = "lazy";
+    image.decoding = "async";
+
+    const objectUrl = URL.createObjectURL(file);
+    image.src = objectUrl;
+
+    const cleanup = () => URL.revokeObjectURL(objectUrl);
+    image.addEventListener("load", cleanup, { once: true });
+    image.addEventListener("error", cleanup, { once: true });
+
+    slot.replaceChildren(image);
+    slot.classList.remove("preview-thumb-loading");
+    slot.classList.add("preview-thumb-ready");
+  }
+}
+
+async function renderFastVideoThumbnail(file, slot, renderToken) {
+  const video = document.createElement("video");
+  const objectUrl = URL.createObjectURL(file);
+  let settled = false;
+  let timeoutId = 0;
+
+  const cleanup = () => {
+    if (timeoutId) clearTimeout(timeoutId);
+    video.pause?.();
+    video.removeAttribute("src");
+    video.load?.();
+    URL.revokeObjectURL(objectUrl);
+  };
+
+  const failSoft = () => {
+    if (settled) return;
+    settled = true;
+  };
+
+  try {
+    await new Promise((resolve, reject) => {
+      const finish = (handler) => {
+        if (settled) return;
+        settled = true;
+        handler();
+      };
+
+      timeoutId = setTimeout(
+        () => finish(() => reject(new Error("video preview timeout"))),
+        PREVIEW_VIDEO_TIMEOUT
+      );
+
       video.muted = true;
       video.playsInline = true;
       video.preload = "metadata";
-      wrap.appendChild(video);
 
-      const badge = document.createElement("span");
-      badge.textContent = "▶ VIDEO";
-      wrap.appendChild(badge);
-      grid.appendChild(wrap);
-    } else {
-      const img = document.createElement("img");
-      img.alt = file.name;
-      img.src = url;
-      grid.appendChild(img);
+      video.addEventListener("error", () => {
+        finish(() => reject(new Error("video preview gagal dibaca")));
+      }, { once: true });
+
+      video.addEventListener("loadedmetadata", () => {
+        if (renderToken !== previewRenderToken || !slot.isConnected) {
+          finish(resolve);
+          return;
+        }
+
+        const duration = Number(video.duration || 0);
+        const durationLabel = slot.querySelector("[data-preview-duration]");
+
+        if (durationLabel) {
+          durationLabel.textContent = formatPreviewDuration(duration);
+          durationLabel.hidden = !durationLabel.textContent;
+        }
+
+        const targetTime =
+          Number.isFinite(duration) && duration > 0.8
+            ? Math.min(0.8, Math.max(0.15, duration * 0.08))
+            : 0;
+
+        if (targetTime > 0) {
+          try {
+            video.currentTime = targetTime;
+          } catch {
+            video.preload = "auto";
+          }
+        } else {
+          video.preload = "auto";
+        }
+      }, { once: true });
+
+      video.addEventListener("seeked", () => {
+        finish(resolve);
+      }, { once: true });
+
+      video.addEventListener("loadeddata", () => {
+        // Short videos / codecs that don't emit seeked still get a frame.
+        if (video.readyState >= 2 && (!video.duration || video.currentTime === 0)) {
+          finish(resolve);
+        }
+      });
+
+      video.src = objectUrl;
+      video.load();
+    });
+
+    if (
+      renderToken !== previewRenderToken ||
+      !slot.isConnected ||
+      video.readyState < 2 ||
+      !video.videoWidth ||
+      !video.videoHeight
+    ) {
+      cleanup();
+      return;
     }
-  });
 
-  if (selectedFiles.length > 15) {
-    const more = document.createElement("div");
-    more.className = "activity-thumb";
-    more.textContent = `+${selectedFiles.length - 15}`;
-    grid.appendChild(more);
+    const canvas = document.createElement("canvas");
+    canvas.className = "preview-video-canvas";
+    canvas.setAttribute("aria-label", file.name);
+    drawVideoCover(video, canvas);
+
+    const mediaLayer = slot.querySelector(".preview-video-media");
+    if (mediaLayer) {
+      mediaLayer.replaceChildren(canvas);
+    }
+
+    slot.classList.remove("preview-video-loading");
+    slot.classList.add("preview-video-ready");
+  } catch (error) {
+    // Keep the lightweight VIDEO fallback card.
+    slot.classList.remove("preview-video-loading");
+    slot.classList.add("preview-video-fallback");
+  } finally {
+    cleanup();
+  }
+}
+
+async function runPreviewQueue(tasks, renderer, concurrency, renderToken) {
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < tasks.length) {
+      const index = cursor++;
+      const task = tasks[index];
+
+      if (renderToken !== previewRenderToken) return;
+
+      await renderer(task.file, task.slot, renderToken);
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
   }
 
-  const videoCount = selectedFiles.filter(file => file.type.startsWith("video/")).length;
-  if (videoCount) {
+  const workers = Array.from(
+    { length: Math.min(concurrency, tasks.length) },
+    () => worker()
+  );
+
+  await Promise.all(workers);
+}
+
+function buildPreviewSection(title, count, kind) {
+  const section = document.createElement("section");
+  section.className = `selected-preview-section selected-preview-${kind}`;
+
+  const head = document.createElement("div");
+  head.className = "selected-preview-head";
+
+  const heading = document.createElement("strong");
+  heading.textContent =
+    `${kind === "video" ? "🎬" : "🖼️"} ${title}`;
+
+  const badge = document.createElement("span");
+  badge.textContent = String(count);
+
+  head.append(heading, badge);
+
+  const grid = document.createElement("div");
+  grid.className = `preview-grid preview-grid-${kind}`;
+
+  section.append(head, grid);
+
+  return { section, grid };
+}
+
+function appendPreviewMore(grid, hiddenCount, label) {
+  if (hiddenCount <= 0) return;
+
+  const more = document.createElement("div");
+  more.className = "activity-thumb preview-more-count";
+  more.textContent = `+${hiddenCount}`;
+  more.title = `${hiddenCount} ${label} lainnya tetap akan ikut diupload`;
+  grid.appendChild(more);
+}
+
+function renderSelectedFilePreview() {
+  const root = $("#previewGrid");
+  previewRenderToken += 1;
+  const renderToken = previewRenderToken;
+
+  root.innerHTML = "";
+  root.classList.add("selected-preview-root");
+  document.querySelector(".direct-video-note")?.remove();
+
+  const imageFiles = selectedFiles.filter(
+    file => file.type.startsWith("image/")
+  );
+
+  const videoFiles = selectedFiles.filter(
+    file => file.type.startsWith("video/")
+  );
+
+  if (!selectedFiles.length) {
+    return;
+  }
+
+  const imageTasks = [];
+  const videoTasks = [];
+
+  if (imageFiles.length) {
+    const { section, grid } = buildPreviewSection(
+      "Foto",
+      imageFiles.length,
+      "image"
+    );
+
+    imageFiles
+      .slice(0, PREVIEW_IMAGE_LIMIT)
+      .forEach((file, index) => {
+        const slot = document.createElement("div");
+        slot.className = "preview-thumb-slot preview-thumb-loading";
+        slot.title = file.name;
+        slot.innerHTML = `
+          <span class="preview-thumb-skeleton" aria-hidden="true"></span>
+          <small>${index + 1}</small>
+        `;
+
+        grid.appendChild(slot);
+        imageTasks.push({ file, slot });
+      });
+
+    appendPreviewMore(
+      grid,
+      imageFiles.length - PREVIEW_IMAGE_LIMIT,
+      "foto"
+    );
+
+    root.appendChild(section);
+  }
+
+  if (videoFiles.length) {
+    const { section, grid } = buildPreviewSection(
+      "Video",
+      videoFiles.length,
+      "video"
+    );
+
+    videoFiles
+      .slice(0, PREVIEW_VIDEO_LIMIT)
+      .forEach((file, index) => {
+        const slot = document.createElement("div");
+        slot.className =
+          "preview-video-card preview-video-loading";
+        slot.title = file.name;
+
+        slot.innerHTML = `
+          <div class="preview-video-media">
+            <span class="preview-thumb-skeleton" aria-hidden="true"></span>
+            <strong class="preview-video-placeholder">🎬</strong>
+          </div>
+          <div class="preview-video-overlay">
+            <span>VIDEO</span>
+            <b data-preview-duration hidden></b>
+          </div>
+          <small>${escapeHtml(file.name)}</small>
+        `;
+
+        grid.appendChild(slot);
+        videoTasks.push({ file, slot });
+      });
+
+    appendPreviewMore(
+      grid,
+      videoFiles.length - PREVIEW_VIDEO_LIMIT,
+      "video"
+    );
+
+    root.appendChild(section);
+
     const note = document.createElement("div");
     note.className = "direct-video-note";
-    note.innerHTML = `<strong>🎬 ${videoCount} video</strong><span>Video akan dikirim bertahap per chunk agar lebih stabil.</span>`;
-    grid.insertAdjacentElement("afterend", note);
+    note.innerHTML =
+      `<strong>🎬 Preview video aktif</strong>` +
+      `<span>SI-ALIF mengambil satu frame kecil dari tiap video secara bertahap. File asli tidak dibuka bersamaan dan tetap dikirim tanpa kompres.</span>`;
+
+    root.insertAdjacentElement("afterend", note);
+  }
+
+  // Video gets its own lightweight queue and is intentionally prioritised.
+  if (videoTasks.length) {
+    setTimeout(() => {
+      runPreviewQueue(
+        videoTasks,
+        renderFastVideoThumbnail,
+        PREVIEW_VIDEO_CONCURRENCY,
+        renderToken
+      ).catch(() => {});
+    }, 0);
+  }
+
+  if (imageTasks.length) {
+    const startImages = () => {
+      runPreviewQueue(
+        imageTasks,
+        renderFastImageThumbnail,
+        PREVIEW_IMAGE_CONCURRENCY,
+        renderToken
+      ).catch(() => {});
+    };
+
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(startImages, { timeout: 140 });
+    } else {
+      setTimeout(startImages, 0);
+    }
   }
 }
 
