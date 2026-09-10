@@ -1456,6 +1456,8 @@ function updateGallerySelectionUi() {
   const count = gallerySelected.size;
   $("#gallerySelectedCount").textContent = count;
   $("#galleryDownloadSelected").disabled = count === 0;
+  $("#galleryDownloadSelected").textContent =
+    count > 0 ? `↓ Download ZIP (${count})` : "↓ Download ZIP";
   $("#galleryMoveSelected").disabled = count === 0;
   $("#galleryDeleteSelected").disabled = count === 0;
   $("#gallerySelectAll").textContent =
@@ -1860,19 +1862,293 @@ function openActivityGallery(activityId) {
   navigateTo("gallery", { galleryFolderId: activityId });
 }
 
-async function downloadGalleryFile(file, index, total) {
-  const button = $("#galleryDownloadSelected");
-  button.textContent = `↓ Mengunduh ${index}/${total}...`;
+const ZIP_UTF8_FLAG = 0x0800;
+const ZIP_STORE_METHOD = 0;
+const ZIP32_MAX = 0xffffffff;
+const ZIP_SAFE_BROWSER_LIMIT = 2 * 1024 * 1024 * 1024;
 
-  const blob = await apiFetchBlob(`/api/files/${encodeURIComponent(file.id)}/download`);
-  const objectUrl = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = objectUrl;
-  link.download = file.name || `foto-${index}.jpg`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+const ZIP_CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+
+  for (let i = 0; i < 256; i++) {
+    let value = i;
+
+    for (let bit = 0; bit < 8; bit++) {
+      value = (value & 1)
+        ? (0xedb88320 ^ (value >>> 1))
+        : (value >>> 1);
+    }
+
+    table[i] = value >>> 0;
+  }
+
+  return table;
+})();
+
+function zipSafeName(value, fallback = "media") {
+  let name = String(value || "")
+    .split(/[\\/]/)
+    .pop()
+    .replace(/[\u0000-\u001f<>:"|?*]+/g, "_")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!name || name === "." || name === "..") {
+    name = fallback;
+  }
+
+  if (name.length > 180) {
+    const dot = name.lastIndexOf(".");
+    const ext = dot > 0 ? name.slice(dot).slice(0, 20) : "";
+    const stem = dot > 0 ? name.slice(0, dot) : name;
+    name = `${stem.slice(0, Math.max(1, 180 - ext.length))}${ext}`;
+  }
+
+  return name;
+}
+
+function uniqueZipEntryName(value, index, usedNames) {
+  const raw = zipSafeName(value, `media-${index}`);
+  const dot = raw.lastIndexOf(".");
+  const hasExt = dot > 0 && dot < raw.length - 1;
+  const stem = hasExt ? raw.slice(0, dot) : raw;
+  const ext = hasExt ? raw.slice(dot) : "";
+
+  let candidate = raw;
+  let suffix = 2;
+
+  while (usedNames.has(candidate.toLocaleLowerCase("id-ID"))) {
+    candidate = `${stem} (${suffix})${ext}`;
+    suffix += 1;
+  }
+
+  usedNames.add(candidate.toLocaleLowerCase("id-ID"));
+  return candidate;
+}
+
+function zipDosDateTime(value) {
+  const source = value ? new Date(value) : new Date();
+  const date = Number.isNaN(source.getTime()) ? new Date() : source;
+
+  const year = Math.min(2107, Math.max(1980, date.getFullYear()));
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const seconds = Math.floor(date.getSeconds() / 2);
+
+  return {
+    time: ((hours << 11) | (minutes << 5) | seconds) & 0xffff,
+    date: (((year - 1980) << 9) | (month << 5) | day) & 0xffff
+  };
+}
+
+function zipCrc32Update(crc, bytes) {
+  let value = crc >>> 0;
+
+  for (let i = 0; i < bytes.length; i++) {
+    value = ZIP_CRC32_TABLE[(value ^ bytes[i]) & 0xff] ^ (value >>> 8);
+  }
+
+  return value >>> 0;
+}
+
+async function zipCrc32Blob(blob) {
+  let crc = 0xffffffff;
+  const reader = blob.stream().getReader();
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      crc = zipCrc32Update(crc, value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function zipLocalHeader(nameBytes, crc, size, dosTime, dosDate) {
+  const buffer = new ArrayBuffer(30 + nameBytes.length);
+  const view = new DataView(buffer);
+
+  view.setUint32(0, 0x04034b50, true);
+  view.setUint16(4, 20, true);
+  view.setUint16(6, ZIP_UTF8_FLAG, true);
+  view.setUint16(8, ZIP_STORE_METHOD, true);
+  view.setUint16(10, dosTime, true);
+  view.setUint16(12, dosDate, true);
+  view.setUint32(14, crc >>> 0, true);
+  view.setUint32(18, size >>> 0, true);
+  view.setUint32(22, size >>> 0, true);
+  view.setUint16(26, nameBytes.length, true);
+  view.setUint16(28, 0, true);
+
+  new Uint8Array(buffer, 30).set(nameBytes);
+  return new Uint8Array(buffer);
+}
+
+function zipCentralHeader(nameBytes, crc, size, dosTime, dosDate, localOffset) {
+  const buffer = new ArrayBuffer(46 + nameBytes.length);
+  const view = new DataView(buffer);
+
+  view.setUint32(0, 0x02014b50, true);
+  view.setUint16(4, 20, true);
+  view.setUint16(6, 20, true);
+  view.setUint16(8, ZIP_UTF8_FLAG, true);
+  view.setUint16(10, ZIP_STORE_METHOD, true);
+  view.setUint16(12, dosTime, true);
+  view.setUint16(14, dosDate, true);
+  view.setUint32(16, crc >>> 0, true);
+  view.setUint32(20, size >>> 0, true);
+  view.setUint32(24, size >>> 0, true);
+  view.setUint16(28, nameBytes.length, true);
+  view.setUint16(30, 0, true);
+  view.setUint16(32, 0, true);
+  view.setUint16(34, 0, true);
+  view.setUint16(36, 0, true);
+  view.setUint32(38, 0, true);
+  view.setUint32(42, localOffset >>> 0, true);
+
+  new Uint8Array(buffer, 46).set(nameBytes);
+  return new Uint8Array(buffer);
+}
+
+function zipEndOfCentralDirectory(entryCount, centralSize, centralOffset) {
+  const buffer = new ArrayBuffer(22);
+  const view = new DataView(buffer);
+
+  view.setUint32(0, 0x06054b50, true);
+  view.setUint16(4, 0, true);
+  view.setUint16(6, 0, true);
+  view.setUint16(8, entryCount, true);
+  view.setUint16(10, entryCount, true);
+  view.setUint32(12, centralSize >>> 0, true);
+  view.setUint32(16, centralOffset >>> 0, true);
+  view.setUint16(20, 0, true);
+
+  return new Uint8Array(buffer);
+}
+
+function galleryZipFilename() {
+  const activity = activities.find(
+    item => String(item.id) === String(galleryActivityId)
+  );
+
+  const activityName = zipSafeName(
+    activity?.name || $("#galleryFolderName")?.textContent || "Dokumentasi SI-ALIF",
+    "Dokumentasi SI-ALIF"
+  ).replace(/\.[A-Za-z0-9]{1,8}$/, "");
+
+  const date = String(activity?.date || "").trim();
+
+  return zipSafeName(
+    `${activityName}${date ? ` - ${date}` : ""}.zip`,
+    "Dokumentasi SI-ALIF.zip"
+  );
+}
+
+async function buildGalleryZip(files, button) {
+  const estimatedMediaBytes = files.reduce(
+    (total, file) => total + Number(file.size || 0),
+    0
+  );
+
+  if (files.length > 65535) {
+    throw new Error("Terlalu banyak file untuk satu ZIP.");
+  }
+
+  if (estimatedMediaBytes >= ZIP_SAFE_BROWSER_LIMIT) {
+    throw new Error(
+      "Total media lebih dari 2 GB. Pecah pilihan menjadi beberapa ZIP agar browser/HP tetap aman."
+    );
+  }
+
+  const encoder = new TextEncoder();
+  const usedNames = new Set();
+  const parts = [];
+  const centralEntries = [];
+  let localOffset = 0;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const position = i + 1;
+
+    button.textContent = `↓ Menyiapkan ZIP ${position}/${files.length}...`;
+
+    const blob = await apiFetchBlob(
+      `/api/files/${encodeURIComponent(file.id)}/download`
+    );
+
+    if (blob.size >= ZIP32_MAX) {
+      throw new Error(`"${file.name}" terlalu besar untuk format ZIP ini.`);
+    }
+
+    const entryName = uniqueZipEntryName(file.name, position, usedNames);
+    const nameBytes = encoder.encode(entryName);
+
+    if (nameBytes.length > 65535) {
+      throw new Error(`Nama file terlalu panjang: "${entryName}".`);
+    }
+
+    const { time, date } = zipDosDateTime(file.modifiedAt || file.createdAt);
+    const crc = await zipCrc32Blob(blob);
+
+    const localHeader = zipLocalHeader(
+      nameBytes,
+      crc,
+      blob.size,
+      time,
+      date
+    );
+
+    if (localOffset + localHeader.byteLength + blob.size >= ZIP32_MAX) {
+      throw new Error(
+        "Ukuran ZIP terlalu besar. Pecah media menjadi beberapa pilihan."
+      );
+    }
+
+    parts.push(localHeader, blob);
+
+    centralEntries.push(
+      zipCentralHeader(
+        nameBytes,
+        crc,
+        blob.size,
+        time,
+        date,
+        localOffset
+      )
+    );
+
+    localOffset += localHeader.byteLength + blob.size;
+  }
+
+  const centralOffset = localOffset;
+  let centralSize = 0;
+
+  for (const entry of centralEntries) {
+    parts.push(entry);
+    centralSize += entry.byteLength;
+  }
+
+  if (centralOffset + centralSize >= ZIP32_MAX) {
+    throw new Error(
+      "Ukuran ZIP terlalu besar. Pecah media menjadi beberapa pilihan."
+    );
+  }
+
+  parts.push(
+    zipEndOfCentralDirectory(
+      centralEntries.length,
+      centralSize,
+      centralOffset
+    )
+  );
+
+  return new Blob(parts, { type: "application/zip" });
 }
 
 async function downloadSelectedGalleryFiles() {
@@ -1884,15 +2160,26 @@ async function downloadSelectedGalleryFiles() {
   button.disabled = true;
 
   try {
-    for (let i = 0; i < chosen.length; i++) {
-      await downloadGalleryFile(chosen[i], i + 1, chosen.length);
-      if (chosen.length > 1) {
-        await new Promise(resolve => setTimeout(resolve, 250));
-      }
-    }
-    showToast(`${chosen.length} file dikirim ke download browser.`);
+    const zipBlob = await buildGalleryZip(chosen, button);
+    button.textContent = "↓ Menyimpan ZIP...";
+
+    const objectUrl = URL.createObjectURL(zipBlob);
+    const link = document.createElement("a");
+
+    link.href = objectUrl;
+    link.download = galleryZipFilename();
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+
+    showToast(
+      `${chosen.length} file dibungkus jadi 1 ZIP. Kualitas media tetap asli.`
+    );
   } catch (error) {
-    showToast(`Download gagal: ${error.message}`);
+    showToast(`ZIP gagal dibuat: ${error.message}`);
   } finally {
     button.textContent = original;
     button.disabled = false;
