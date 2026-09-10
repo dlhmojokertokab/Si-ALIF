@@ -1,11 +1,11 @@
-const CACHE = "si-alif-07-3-2-sidebar-brand-sync";
+const CACHE = "si-alif-07-3-3-uploadkey-hotfix";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0732",
+  "./assets/css/style.css?v=0733",
   "./assets/js/config.js?v=0731",
-  "./assets/js/app.js?v=0731",
-  "./manifest.webmanifest?v=0731",
+  "./assets/js/app.js?v=0733",
+  "./manifest.webmanifest?v=0733",
   "./assets/icons/icon.svg",
   "./assets/icons/icon.png",
   "./assets/brand/si-alif-doodle-logo.png",

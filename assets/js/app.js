@@ -3050,15 +3050,14 @@ const today = new Date();
 $("#activityDate").value = today.toISOString().slice(0, 10);
 
 function createUploadKey(file, index) {
+  // Google Drive custom appProperties limits key + value to 124 UTF-8 bytes.
+  // Do NOT include file name/size/timestamp here; a UUID is already unique
+  // and keeps the property comfortably below Drive's limit.
   const randomPart = crypto.randomUUID
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    ? crypto.randomUUID().replace(/-/g, "")
+    : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 14)}`;
 
-  const safeName = String(file.name || "media")
-    .replace(/[^A-Za-z0-9._-]+/g, "_")
-    .slice(0, 50);
-
-  return `sialif:${randomPart}:${index}:${file.size}:${file.lastModified}:${safeName}`;
+  return `u:${randomPart}:${Number(index || 0).toString(36)}`;
 }
 
 function makeUploadQueue(files) {
