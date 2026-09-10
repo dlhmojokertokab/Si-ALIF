@@ -27,6 +27,7 @@ let lastSubmittedActivityId = null;
 let currentDetailActivityId = null;
 let galleryActivityId = "";
 let galleryFiles = [];
+let galleryMediaFilter = "photo";
 let gallerySelected = new Set();
 let galleryObjectUrls = new Map();
 let folderCoverUrls = new Map();
@@ -1338,6 +1339,7 @@ function showGalleryFolders() {
   $("#galleryFolderView").hidden = false;
   $("#galleryGrid").innerHTML = "";
   $("#galleryToolbar").hidden = true;
+  $("#galleryMediaTabs").hidden = true;
 
   applyGalleryFilters();
 }
@@ -1452,21 +1454,87 @@ function renderGalleryFolders(items) {
   });
 }
 
+function isGalleryVideo(file) {
+  return String(file?.mimeType || "").startsWith("video/");
+}
+
+function galleryVisibleFiles() {
+  if (galleryMediaFilter === "video") {
+    return galleryFiles.filter(isGalleryVideo);
+  }
+
+  if (galleryMediaFilter === "photo") {
+    return galleryFiles.filter(file => !isGalleryVideo(file));
+  }
+
+  return [...galleryFiles];
+}
+
+function chooseDefaultGalleryMediaFilter() {
+  const photoCount = galleryFiles.filter(file => !isGalleryVideo(file)).length;
+  const videoCount = galleryFiles.filter(isGalleryVideo).length;
+
+  if (photoCount > 0) return "photo";
+  if (videoCount > 0) return "video";
+  return "all";
+}
+
+function updateGalleryMediaTabs() {
+  const tabs = $("#galleryMediaTabs");
+  if (!tabs) return;
+
+  const photoCount = galleryFiles.filter(file => !isGalleryVideo(file)).length;
+  const videoCount = galleryFiles.filter(isGalleryVideo).length;
+  const allCount = galleryFiles.length;
+
+  $("#galleryPhotoCount").textContent = photoCount;
+  $("#galleryVideoCount").textContent = videoCount;
+  $("#galleryAllCount").textContent = allCount;
+
+  tabs.hidden = allCount === 0;
+
+  $$("[data-gallery-media-filter]").forEach(button => {
+    const active = button.dataset.galleryMediaFilter === galleryMediaFilter;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+
+    if (button.dataset.galleryMediaFilter === "photo") {
+      button.disabled = photoCount === 0;
+    } else if (button.dataset.galleryMediaFilter === "video") {
+      button.disabled = videoCount === 0;
+    } else {
+      button.disabled = allCount === 0;
+    }
+  });
+}
+
 function updateGallerySelectionUi() {
-  const count = gallerySelected.size;
-  $("#gallerySelectedCount").textContent = count;
-  $("#galleryDownloadSelected").disabled = count === 0;
+  const visibleFiles = galleryVisibleFiles();
+  const visibleIds = new Set(visibleFiles.map(file => String(file.id)));
+  const visibleSelectedCount = [...gallerySelected].filter(
+    id => visibleIds.has(String(id))
+  ).length;
+
+  $("#gallerySelectedCount").textContent = gallerySelected.size;
+  $("#galleryDownloadSelected").disabled = gallerySelected.size === 0;
   $("#galleryDownloadSelected").textContent =
-    count > 0 ? `↓ Download ZIP (${count})` : "↓ Download ZIP";
-  $("#galleryMoveSelected").disabled = count === 0;
-  $("#galleryDeleteSelected").disabled = count === 0;
+    gallerySelected.size > 0
+      ? `↓ Download ZIP (${gallerySelected.size})`
+      : "↓ Download ZIP";
+  $("#galleryMoveSelected").disabled = gallerySelected.size === 0;
+  $("#galleryDeleteSelected").disabled = gallerySelected.size === 0;
+
   $("#gallerySelectAll").textContent =
-    galleryFiles.length > 0 && count === galleryFiles.length ? "Semua Dipilih" : "Pilih Semua";
+    visibleFiles.length > 0 &&
+    visibleSelectedCount === visibleFiles.length
+      ? "Semua Dipilih"
+      : "Pilih Semua";
 
   $$(".gallery-card").forEach(card => {
     const selected = gallerySelected.has(card.dataset.fileId);
     card.classList.toggle("selected", selected);
     card.setAttribute("aria-checked", String(selected));
+
     const checkbox = card.querySelector(".gallery-check");
     if (checkbox) {
       checkbox.textContent = selected ? "✓" : "";
@@ -1475,7 +1543,6 @@ function updateGallerySelectionUi() {
     }
   });
 }
-
 function toggleGalleryFile(fileId) {
   if (gallerySelected.has(fileId)) gallerySelected.delete(fileId);
   else gallerySelected.add(fileId);
@@ -1513,7 +1580,8 @@ function closeMediaLightbox() {
 }
 
 async function renderMediaLightbox() {
-  const file = galleryFiles[lightboxIndex];
+  const lightboxFiles = galleryVisibleFiles();
+  const file = lightboxFiles[lightboxIndex];
   if (!file) {
     closeMediaLightbox();
     return;
@@ -1535,8 +1603,8 @@ async function renderMediaLightbox() {
 
   $("#lightboxFileMeta").textContent = meta || "Media";
   $("#lightboxDrive").href = file.driveUrl || "#";
-  $("#lightboxPrev").disabled = galleryFiles.length <= 1;
-  $("#lightboxNext").disabled = galleryFiles.length <= 1;
+  $("#lightboxPrev").disabled = lightboxFiles.length <= 1;
+  $("#lightboxNext").disabled = lightboxFiles.length <= 1;
 
   if (lightboxObjectUrl) {
     URL.revokeObjectURL(lightboxObjectUrl);
@@ -1574,19 +1642,24 @@ async function renderMediaLightbox() {
 }
 
 function openMediaLightbox(index) {
-  if (!galleryFiles[index]) return;
+  const lightboxFiles = galleryVisibleFiles();
+  if (!lightboxFiles[index]) return;
   lightboxIndex = index;
   renderMediaLightbox();
 }
 
 function moveMediaLightbox(step) {
-  if (!galleryFiles.length || lightboxIndex < 0) return;
-  lightboxIndex = (lightboxIndex + step + galleryFiles.length) % galleryFiles.length;
+  const lightboxFiles = galleryVisibleFiles();
+  if (!lightboxFiles.length || lightboxIndex < 0) return;
+
+  lightboxIndex =
+    (lightboxIndex + step + lightboxFiles.length) % lightboxFiles.length;
+
   renderMediaLightbox();
 }
 
 async function downloadLightboxMedia() {
-  const file = galleryFiles[lightboxIndex];
+  const file = galleryVisibleFiles()[lightboxIndex];
   if (!file) return;
 
   const button = $("#lightboxDownload");
@@ -1613,7 +1686,8 @@ async function downloadLightboxMedia() {
 }
 
 async function deleteLightboxMedia() {
-  const file = galleryFiles[lightboxIndex];
+  const visibleBefore = galleryVisibleFiles();
+  const file = visibleBefore[lightboxIndex];
   if (!file) return;
 
   const unlocked = await ensureAdminUnlock();
@@ -1635,8 +1709,14 @@ async function deleteLightboxMedia() {
     });
 
     galleryFolderFilesCache.delete(String(galleryActivityId));
-    galleryFiles.splice(lightboxIndex, 1);
+    galleryFiles = galleryFiles.filter(
+      item => String(item.id) !== String(file.id)
+    );
+    gallerySelected.delete(file.id);
+
     await loadActivitiesFromApi();
+
+    const visibleAfter = galleryVisibleFiles();
 
     if (!galleryFiles.length) {
       closeMediaLightbox();
@@ -1645,11 +1725,19 @@ async function deleteLightboxMedia() {
       return;
     }
 
-    if (lightboxIndex >= galleryFiles.length) {
-      lightboxIndex = galleryFiles.length - 1;
+    if (!visibleAfter.length) {
+      closeMediaLightbox();
+      galleryMediaFilter = chooseDefaultGalleryMediaFilter();
+      renderGalleryPhotos();
+      showToast("Media dipindahkan ke Trash SI ALIF.");
+      return;
     }
 
-    renderGalleryPhotos();
+    if (lightboxIndex >= visibleAfter.length) {
+      lightboxIndex = visibleAfter.length - 1;
+    }
+
+    renderGalleryPhotos({ preserveSelection: true });
     await renderMediaLightbox();
     showToast("Media dipindahkan ke Trash SI ALIF.");
   } catch (error) {
@@ -1659,7 +1747,6 @@ async function deleteLightboxMedia() {
     button.textContent = original;
   }
 }
-
 
 async function deleteGalleryMediaById(file, button) {
   if (!file?.id) return;
@@ -1766,11 +1853,15 @@ function createGalleryCard(file, index) {
 function renderGalleryPhotos(options = {}) {
   const preserveSelection = Boolean(options.preserveSelection);
   const grid = $("#galleryGrid");
+
   grid.innerHTML = "";
   cleanupGalleryObjectUrls();
 
   if (preserveSelection) {
-    const existingIds = new Set(galleryFiles.map(file => String(file.id)));
+    const existingIds = new Set(
+      galleryFiles.map(file => String(file.id))
+    );
+
     gallerySelected = new Set(
       [...gallerySelected].filter(id => existingIds.has(String(id)))
     );
@@ -1778,22 +1869,58 @@ function renderGalleryPhotos(options = {}) {
     gallerySelected.clear();
   }
 
+  updateGalleryMediaTabs();
+
   if (!galleryFiles.length) {
     $("#galleryToolbar").hidden = true;
-    setGalleryState("empty", "Folder ini kosong", "Belum ada file foto di aktivitas ini.");
+    $("#galleryMediaTabs").hidden = true;
+    setGalleryState(
+      "empty",
+      "Folder ini kosong",
+      "Belum ada foto atau video di aktivitas ini."
+    );
+    return;
+  }
+
+  const visibleFiles = galleryVisibleFiles();
+
+  if (!visibleFiles.length) {
+    $("#galleryToolbar").hidden = true;
+    $("#galleryState").hidden = false;
+
+    if (galleryMediaFilter === "video") {
+      setGalleryState(
+        "empty",
+        "Belum ada video",
+        "Folder ini belum memiliki dokumentasi video."
+      );
+    } else if (galleryMediaFilter === "photo") {
+      setGalleryState(
+        "empty",
+        "Belum ada foto",
+        "Folder ini belum memiliki dokumentasi foto."
+      );
+    } else {
+      setGalleryState(
+        "empty",
+        "Belum ada media",
+        "Folder ini belum memiliki dokumentasi."
+      );
+    }
+
+    updateGallerySelectionUi();
     return;
   }
 
   $("#galleryState").hidden = true;
   $("#galleryToolbar").hidden = false;
 
-  galleryFiles.forEach((file, index) => {
+  visibleFiles.forEach((file, index) => {
     grid.appendChild(createGalleryCard(file, index));
   });
 
   updateGallerySelectionUi();
 }
-
 async function openGalleryFolder(activityId, options = {}) {
   const { updateRoute = true } = options;
 
@@ -1852,6 +1979,7 @@ async function openGalleryFolder(activityId, options = {}) {
 
   try {
     galleryFiles = await getFolderFiles(activity.id);
+    galleryMediaFilter = chooseDefaultGalleryMediaFilter();
     renderGalleryPhotos();
   } catch (error) {
     setGalleryState("error", "Folder gagal dibuka", error.message);
@@ -4741,12 +4869,37 @@ $("#galleryBackFromFolder").addEventListener("click", () => {
 });
 
 $("#gallerySelectAll").addEventListener("click", () => {
-  if (galleryFiles.length && gallerySelected.size === galleryFiles.length) {
-    gallerySelected.clear();
+  const visibleFiles = galleryVisibleFiles();
+  if (!visibleFiles.length) return;
+
+  const visibleIds = visibleFiles.map(file => String(file.id));
+  const allVisibleSelected = visibleIds.every(id =>
+    gallerySelected.has(id)
+  );
+
+  if (allVisibleSelected) {
+    visibleIds.forEach(id => gallerySelected.delete(id));
   } else {
-    gallerySelected = new Set(galleryFiles.map(file => file.id));
+    visibleIds.forEach(id => gallerySelected.add(id));
   }
+
   updateGallerySelectionUi();
+});
+
+$$("[data-gallery-media-filter]").forEach(button => {
+  button.addEventListener("click", () => {
+    const nextFilter = button.dataset.galleryMediaFilter;
+    if (!["photo", "video", "all"].includes(nextFilter)) return;
+    if (nextFilter === galleryMediaFilter) return;
+
+    galleryMediaFilter = nextFilter;
+
+    // Hidden selections across tabs are confusing on mobile.
+    // A tab switch starts a clean selection state.
+    gallerySelected.clear();
+    closeMediaLightbox();
+    renderGalleryPhotos();
+  });
 });
 
 $("#galleryClearSelection").addEventListener("click", () => {

@@ -6,17 +6,17 @@
   <meta name="theme-color" content="#0f766e" />
   <meta name="description" content="SI ALIF — Sistem Informasi Aktivitas, Lokasi, Informasi, dan Foto" />
   <title>SI ALIF</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0744" />
+  <link rel="manifest" href="./manifest.webmanifest?v=0745" />
   <link rel="icon" href="./assets/icons/favicon.ico?v=0731" sizes="any" />
   <link rel="icon" href="./assets/icons/si-alif-favicon-32.png?v=0731" type="image/png" sizes="32x32" />
   <link rel="icon" href="./assets/icons/si-alif-favicon-192.png?v=0731" type="image/png" sizes="192x192" />
   <link rel="apple-touch-icon" href="./assets/icons/si-alif-favicon-180.png?v=0731" sizes="180x180" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0744" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0745" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
     <div class="route-boot-mark route-boot-mark-image" aria-hidden="true">
-      <img src="./assets/icons/si-alif-favicon-192.png?v=0744" alt="" />
+      <img src="./assets/icons/si-alif-favicon-192.png?v=0745" alt="" />
     </div>
     <strong>SI ALIF</strong>
     <small>Membuka halaman...</small>
@@ -27,7 +27,7 @@
     <aside class="sidebar" aria-label="Navigasi utama">
       <div class="brand">
         <div class="brand-mark brand-mark-image" aria-hidden="true">
-          <img src="./assets/icons/si-alif-favicon-192.png?v=0744" alt="" />
+          <img src="./assets/icons/si-alif-favicon-192.png?v=0745" alt="" />
         </div>
         <div>
           <div class="brand-title">SI ALIF</div>
@@ -52,7 +52,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 07.4.4</strong>
+        <strong>SI ALIF 07.4.5</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -521,6 +521,18 @@
               </div>
             </div>
 
+            <div class="gallery-media-tabs" id="galleryMediaTabs" hidden role="tablist" aria-label="Jenis media">
+              <button class="gallery-media-tab active" type="button" data-gallery-media-filter="photo" role="tab" aria-selected="true">
+                🖼 Foto <span id="galleryPhotoCount">0</span>
+              </button>
+              <button class="gallery-media-tab" type="button" data-gallery-media-filter="video" role="tab" aria-selected="false">
+                🎬 Video <span id="galleryVideoCount">0</span>
+              </button>
+              <button class="gallery-media-tab" type="button" data-gallery-media-filter="all" role="tab" aria-selected="false">
+                Semua <span id="galleryAllCount">0</span>
+              </button>
+            </div>
+
             <div class="gallery-toolbar" id="galleryToolbar" hidden>
               <div class="gallery-selection">
                 <strong id="gallerySelectedCount">0</strong>
@@ -762,6 +774,6 @@
   </div>
 
   <script src="./assets/js/config.js?v=0731"></script>
-  <script src="./assets/js/app.js?v=0744"></script>
+  <script src="./assets/js/app.js?v=0745"></script>
 </body>
 </html>
