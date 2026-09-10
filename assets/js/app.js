@@ -15,6 +15,7 @@ let selectedFiles = [];
 let uploadQueueEntries = [];
 let activeUploadSession = null;
 let uploadQueueRunning = false;
+let uploadQueueVisible = false;
 let coordinates = null;
 let backendOnline = false;
 let telegramConfigured = false;
@@ -3105,7 +3106,7 @@ function renderUploadQueue() {
 
   if (!box || !list) return;
 
-  if (!uploadQueueEntries.length) {
+  if (!uploadQueueEntries.length || !uploadQueueVisible) {
     box.hidden = true;
     list.innerHTML = "";
     retry.hidden = true;
@@ -3164,6 +3165,7 @@ function resetUploadQueueState({ keepFiles = false } = {}) {
   uploadQueueEntries = [];
   activeUploadSession = null;
   uploadQueueRunning = false;
+  uploadQueueVisible = false;
 
   if (!keepFiles) {
     selectedFiles = [];
@@ -3228,6 +3230,7 @@ $("#photoInput").addEventListener("change", event => {
   }
 
   activeUploadSession = null;
+  uploadQueueVisible = false;
   makeUploadQueue(selectedFiles);
   renderSelectedFilePreview();
   renderUploadQueue();
@@ -3515,6 +3518,7 @@ async function processUploadQueue(activityId, { retryFailedOnly = false } = {}) 
     return uploadQueueStats();
   }
 
+  uploadQueueVisible = true;
   uploadQueueRunning = true;
   renderUploadQueue();
 
@@ -3855,6 +3859,7 @@ $("#documentationForm").addEventListener("submit", async event => {
 
   // File dipilih sebelum queue 06.8 dibuat? Sinkronkan sekarang.
   if (selectedFiles.length && uploadQueueEntries.length !== selectedFiles.length) {
+    uploadQueueVisible = false;
     makeUploadQueue(selectedFiles);
     renderUploadQueue();
   }

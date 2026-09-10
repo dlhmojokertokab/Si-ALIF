@@ -1,11 +1,11 @@
-const CACHE = "si-alif-07-3-3-uploadkey-hotfix";
+const CACHE = "si-alif-07-3-4-queue-after-submit";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0733",
+  "./assets/css/style.css?v=0734",
   "./assets/js/config.js?v=0731",
-  "./assets/js/app.js?v=0733",
-  "./manifest.webmanifest?v=0733",
+  "./assets/js/app.js?v=0734",
+  "./manifest.webmanifest?v=0734",
   "./assets/icons/icon.svg",
   "./assets/icons/icon.png",
   "./assets/brand/si-alif-doodle-logo.png",
