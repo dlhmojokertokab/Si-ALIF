@@ -6102,3 +6102,74 @@ body:not(.admin-mode) .gallery-toolbar-actions #galleryDownloadSelected {
 .route-boot-mark-image span {
   display: none !important;
 }
+
+
+/* =========================================================
+   SI ALIF 07.4 — SINGLE SMART SUBMIT
+   User no longer chooses "new vs existing".
+   SI-ALIF decides using exact auto-merge + similar warning.
+   ========================================================= */
+
+.smart-submit-note {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid #ddcff0;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #f8f3ff, #fff);
+}
+
+.smart-submit-note[hidden] {
+  display: none !important;
+}
+
+.smart-submit-note > span {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eee5fb;
+  color: var(--primary-strong);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.smart-submit-note > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.smart-submit-note strong {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.smart-submit-note small {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-soft);
+}
+
+@media (max-width: 760px) {
+  .smart-submit-note {
+    padding: 9px 10px;
+  }
+
+  .smart-submit-note > span {
+    width: 30px;
+    height: 30px;
+  }
+
+  .smart-submit-note strong {
+    font-size: 11.5px;
+  }
+
+  .smart-submit-note small {
+    font-size: 10px;
+  }
+}

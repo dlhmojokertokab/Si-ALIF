@@ -6,17 +6,17 @@
   <meta name="theme-color" content="#0f766e" />
   <meta name="description" content="SI ALIF — Sistem Informasi Aktivitas, Lokasi, Informasi, dan Foto" />
   <title>SI ALIF</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0734" />
+  <link rel="manifest" href="./manifest.webmanifest?v=0740" />
   <link rel="icon" href="./assets/icons/favicon.ico?v=0731" sizes="any" />
   <link rel="icon" href="./assets/icons/si-alif-favicon-32.png?v=0731" type="image/png" sizes="32x32" />
   <link rel="icon" href="./assets/icons/si-alif-favicon-192.png?v=0731" type="image/png" sizes="192x192" />
   <link rel="apple-touch-icon" href="./assets/icons/si-alif-favicon-180.png?v=0731" sizes="180x180" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0734" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0740" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
     <div class="route-boot-mark route-boot-mark-image" aria-hidden="true">
-      <img src="./assets/icons/si-alif-favicon-192.png?v=0734" alt="" />
+      <img src="./assets/icons/si-alif-favicon-192.png?v=0740" alt="" />
     </div>
     <strong>SI ALIF</strong>
     <small>Membuka halaman...</small>
@@ -27,7 +27,7 @@
     <aside class="sidebar" aria-label="Navigasi utama">
       <div class="brand">
         <div class="brand-mark brand-mark-image" aria-hidden="true">
-          <img src="./assets/icons/si-alif-favicon-192.png?v=0734" alt="" />
+          <img src="./assets/icons/si-alif-favicon-192.png?v=0740" alt="" />
         </div>
         <div>
           <div class="brand-title">SI ALIF</div>
@@ -52,7 +52,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 07.3.4</strong>
+        <strong>SI ALIF 07.4</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -92,8 +92,8 @@
             <p>Setor dokumentasi, cek pesanan, atau buka bahan terbaru tanpa muter-muter menu.</p>
           </div>
           <div class="dashboard-hero-actions">
-            <button class="primary big" type="button" data-view="submit">＋ Setor Baru</button>
-            <button class="secondary big" type="button" data-dashboard-existing>↳ Tambah Bahan</button>
+            <button class="primary big" type="button" data-view="submit">＋ Setor Dokumentasi</button>
+            <button class="secondary big" type="button" data-view="gallery">▧ Buka Galeri</button>
           </div>
         </div>
 
@@ -162,16 +162,8 @@
             <button class="dashboard-quick-action" type="button" data-view="submit">
               <span>＋</span>
               <div>
-                <strong>Setor Baru</strong>
-                <small>Buat kegiatan baru.</small>
-              </div>
-            </button>
-
-            <button class="dashboard-quick-action" type="button" data-dashboard-existing>
-              <span>↳</span>
-              <div>
-                <strong>Tambah Bahan</strong>
-                <small>Masukkan foto/video ke kegiatan lama.</small>
+                <strong>Setor Dokumentasi</strong>
+                <small>Isi kegiatan, SI-ALIF yang menentukan foldernya.</small>
               </div>
             </button>
 
@@ -188,6 +180,14 @@
               <div>
                 <strong>Pesanan Medsos</strong>
                 <small>Lihat yang belum selesai.</small>
+              </div>
+            </button>
+
+            <button class="dashboard-quick-action" type="button" data-dashboard-trash>
+              <span>🗑</span>
+              <div>
+                <strong>Trash SI-ALIF</strong>
+                <small>Pulihkan dokumentasi yang terhapus.</small>
               </div>
             </button>
           </div>
@@ -208,34 +208,23 @@
             </div>
 
             <form id="documentationForm">
-              <div class="documentation-mode">
-                <button class="documentation-mode-card active" type="button" data-documentation-mode="new">
-                  <strong>＋ Kegiatan Baru</strong>
-                  <span>Buat folder kegiatan baru.</span>
-                </button>
-                <button class="documentation-mode-card" type="button" data-documentation-mode="existing">
-                  <strong>↳ Tambah Bahan</strong>
-                  <span>Gabungkan bahan dari orang lain ke folder yang sama.</span>
-                </button>
+              <div class="smart-submit-note new-activity-only">
+                <span>✦</span>
+                <div>
+                  <strong>Cukup isi dan kirim.</strong>
+                  <small>Kalau kegiatan yang sama sudah ada, SI-ALIF otomatis menggabungkan dokumentasi ke folder tersebut.</small>
+                </div>
               </div>
 
               <div class="existing-activity-picker" id="existingActivitySection" hidden>
                 <div class="shared-contribution-banner" id="sharedContributionBanner" hidden>
                   <span class="shared-contribution-icon">🔗</span>
                   <div>
-                    <small>Tambahkan dokumentasi ke</small>
+                    <small>Dokumentasi akan ditambahkan ke</small>
                     <strong id="sharedContributionName">Kegiatan</strong>
-                    <span id="sharedContributionMeta">Folder sudah dipilih dari link yang dibagikan.</span>
+                    <span id="sharedContributionMeta">Folder sudah dipilih otomatis dari link/galeri.</span>
                   </div>
                 </div>
-
-                <label class="field field-wide" id="existingActivityChooser">
-                  <span>Pilih kegiatan yang sudah ada</span>
-                  <select id="existingActivitySelect">
-                    <option value="">Pilih folder kegiatan</option>
-                  </select>
-                  <small>Foto/video baru akan masuk ke folder ini tanpa membuat kegiatan duplikat.</small>
-                </label>
               </div>
 
               <div class="field-grid">
@@ -523,7 +512,7 @@
                 <p id="galleryFolderMeta">-</p>
               </div>
               <div class="gallery-photo-header-actions">
-                <button class="primary" id="galleryAddMaterial" type="button">＋ Tambah Bahan</button>
+                <button class="primary" id="galleryAddMaterial" type="button">＋ Tambah Dokumentasi</button>
                 <button class="secondary" id="galleryShareContribution" type="button">🔗 Bagikan</button>
                 <button class="secondary admin-only" id="galleryEditInfo" type="button">✎ Edit Info</button>
                 <button class="secondary admin-only" id="galleryMergeActivity" type="button">⇄ Gabungkan</button>
@@ -773,6 +762,6 @@
   </div>
 
   <script src="./assets/js/config.js?v=0731"></script>
-  <script src="./assets/js/app.js?v=0734"></script>
+  <script src="./assets/js/app.js?v=0740"></script>
 </body>
 </html>

@@ -359,8 +359,8 @@ function renderSuccessForActivity(item) {
   lastSubmittedActivityId = item.id || null;
 
   if (successContext === "existing") {
-    $("#successEyebrow").textContent = "Bahan ditambahkan";
-    $("#successTitle").textContent = "Berhasil gabung ke folder";
+    $("#successEyebrow").textContent = "Dokumentasi ditambahkan";
+    $("#successTitle").textContent = "Berhasil masuk ke folder";
     $("#successLead").textContent = "Foto/video tambahan sudah masuk ke kegiatan yang sama. Nggak bikin folder kembar. 💜";
   } else if (successContext === "merged") {
     $("#successEyebrow").textContent = "Anti-tubrukan bekerja";
@@ -459,7 +459,6 @@ function applyRouteFromHash() {
         applySharedContributionTarget(route.submitActivityId);
       } else {
         clearSharedContributionTarget();
-        setDocumentationMode("new");
       }
       return;
     }
@@ -762,14 +761,22 @@ function updateSharedContributionBanner(activityId) {
 
 function applySharedContributionTarget(activityId) {
   sharedContributionMode = true;
+  documentationMode = "existing";
   selectedExistingActivityId = String(activityId || "");
 
-  setDocumentationMode("existing", selectedExistingActivityId);
-
-  $(".documentation-mode").hidden = true;
-  $("#existingActivityChooser").hidden = true;
+  $("#existingActivitySection").hidden = false;
   $("#sharedContributionBanner").hidden = false;
 
+  $$(".new-activity-only").forEach(element => {
+    element.hidden = true;
+  });
+
+  ["activityName", "division", "activityDate", "locationText"].forEach(id => {
+    const field = $(`#${id}`);
+    if (field) field.required = false;
+  });
+
+  $("#submitDocumentation").textContent = "Tambahkan Dokumentasi";
   updateSharedContributionBanner(selectedExistingActivityId);
 
   if (activities.length) {
@@ -786,79 +793,33 @@ function applySharedContributionTarget(activityId) {
 
 function clearSharedContributionTarget() {
   sharedContributionMode = false;
-  $(".documentation-mode").hidden = false;
-  $("#existingActivityChooser").hidden = false;
+  documentationMode = "new";
+  selectedExistingActivityId = "";
+
+  $("#existingActivitySection").hidden = true;
   $("#sharedContributionBanner").hidden = true;
-}
-
-function populateExistingActivitySelect() {
-  const select = $("#existingActivitySelect");
-  if (!select) return;
-
-  const current = selectedExistingActivityId || select.value;
-  select.innerHTML = `<option value="">Pilih folder kegiatan</option>`;
-
-  const eligibleActivities = activities.filter(activityHasMedia);
-
-  eligibleActivities.forEach(item => {
-    const option = document.createElement("option");
-    option.value = item.id;
-    option.textContent = `${item.date} — ${item.name} • ${item.division} • ${item.place}`;
-    select.appendChild(option);
-  });
-
-  if (current && eligibleActivities.some(item => String(item.id) === String(current))) {
-    select.value = current;
-  }
-
-  if (!eligibleActivities.length && !sharedContributionMode) {
-    const first = select.querySelector("option");
-    if (first) first.textContent = "Belum ada kegiatan aktif di Galeri";
-  }
-
-  if (sharedContributionMode && selectedExistingActivityId) {
-    updateSharedContributionBanner(selectedExistingActivityId);
-  }
-}
-
-function setDocumentationMode(mode, activityId = "") {
-  documentationMode = mode === "existing" ? "existing" : "new";
-
-  $$("[data-dashboard-existing]").forEach(button => {
-  button.addEventListener("click", () => {
-    clearSharedContributionTarget();
-    setDocumentationMode("existing");
-    navigateTo("submit");
-  });
-});
-
-$$("[data-documentation-mode]").forEach(button => {
-    button.classList.toggle("active", button.dataset.documentationMode === documentationMode);
-  });
-
-  const existing = documentationMode === "existing";
-  $("#existingActivitySection").hidden = !existing;
 
   $$(".new-activity-only").forEach(element => {
-    element.hidden = existing;
+    element.hidden = false;
   });
 
   ["activityName", "division", "activityDate", "locationText"].forEach(id => {
     const field = $(`#${id}`);
-    if (field) field.required = !existing;
+    if (field) field.required = true;
   });
 
-  $("#existingActivitySelect").required = existing;
+  $("#submitDocumentation").textContent = "Kirim Dokumentasi";
+}
 
-  if (activityId) {
-    selectedExistingActivityId = String(activityId);
-    populateExistingActivitySelect();
-    $("#existingActivitySelect").value = selectedExistingActivityId;
+function setDocumentationMode(mode, activityId = "") {
+  // 07.4: mode manual dihapus dari UI.
+  // "existing" hanya dipakai untuk direct contribution dari Galeri/share link.
+  if (mode === "existing" && activityId) {
+    applySharedContributionTarget(activityId);
+    return;
   }
 
-  $("#submitDocumentation").textContent = existing
-    ? "Tambahkan Bahan"
-    : "Kirim Dokumentasi";
+  clearSharedContributionTarget();
 }
 
 function openAddMaterialForActivity(activityId) {
@@ -941,7 +902,6 @@ function refreshLists() {
     activities.filter(activityHasMedia).slice(0, 4)
   );
   populateMonthFilters();
-  populateExistingActivitySelect();
   syncFilterControls();
   updateDashboardSummary();
 
@@ -3240,7 +3200,7 @@ $("#photoInput").addEventListener("change", event => {
   if (submitButton) {
     submitButton.disabled = false;
     submitButton.textContent = documentationMode === "existing"
-      ? "Tambahkan Bahan"
+      ? "Tambahkan Dokumentasi"
       : "Kirim Dokumentasi";
   }
 });
@@ -3811,18 +3771,14 @@ $("#documentationForm").addEventListener("submit", async event => {
   const date = $("#activityDate").value;
   const description = $("#description").value.trim();
 
+  if (!selectedFiles.length) {
+    showToast("Pilih minimal satu foto atau video.");
+    return;
+  }
+
   if (isExisting) {
-    if (!sharedContributionMode) {
-      selectedExistingActivityId = $("#existingActivitySelect").value;
-    }
-
     if (!selectedExistingActivityId) {
-      showToast("Pilih kegiatan yang mau ditambahi bahan.");
-      return;
-    }
-
-    if (!selectedFiles.length) {
-      showToast("Pilih minimal satu foto atau video.");
+      showToast("Kegiatan tujuan tidak ditemukan.");
       return;
     }
   } else if (!name || !division || !location || !date) {
@@ -3865,7 +3821,7 @@ $("#documentationForm").addEventListener("submit", async event => {
   }
 
   submitButton.disabled = true;
-  submitButton.textContent = isExisting ? "Menambahkan..." : "Mengirim...";
+  submitButton.textContent = isExisting ? "Menambahkan dokumentasi..." : "Mengirim...";
 
   try {
     if (isExisting) {
@@ -3995,23 +3951,16 @@ $("#successViewOrder").addEventListener("click", () => {
   navigateTo("orders");
 });
 
-$$("[data-documentation-mode]").forEach(button => {
-  button.addEventListener("click", () => {
-    clearSharedContributionTarget();
-    setDocumentationMode(button.dataset.documentationMode);
-  });
-});
-
-$("#existingActivitySelect").addEventListener("change", event => {
-  selectedExistingActivityId = event.target.value;
-});
-
 $("#galleryAddMaterial").addEventListener("click", () => {
   if (galleryActivityId) openAddMaterialForActivity(galleryActivityId);
 });
 
 $("#galleryShareContribution").addEventListener("click", () => {
   if (galleryActivityId) shareContributionLink(galleryActivityId);
+});
+
+$$("[data-dashboard-trash]").forEach(button => {
+  button.addEventListener("click", openSiAlifTrash);
 });
 
 $("#galleryEditInfo").addEventListener("click", openEditActivityModal);
@@ -4157,9 +4106,7 @@ $("#resetButton").addEventListener("click", () => {
   if (docMode) docMode.checked = true;
   const postType = document.querySelector('input[name="publicationType"][value="instagram_post"]');
   if (postType) postType.checked = true;
-  selectedExistingActivityId = "";
   clearSharedContributionTarget();
-  setDocumentationMode("new");
   syncPublicationUi();
 
   setTimeout(() => {
@@ -4190,7 +4137,7 @@ function showToast(message) {
 
 updateAdminWorkspaceUi();
 refreshLists();
-setDocumentationMode("new");
+clearSharedContributionTarget();
 
 // Role diambil dari token sesi bila ada; backend akan memverifikasi token itu
 // saat data dimuat. Staff tanpa Admin selalu beranda di Setor.
