@@ -6173,3 +6173,17 @@ body:not(.admin-mode) .gallery-toolbar-actions #galleryDownloadSelected {
     font-size: 10px;
   }
 }
+
+
+/* SI ALIF 07.4.1 — explain fuzzy candidate */
+.similar-match-reason {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 3px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #f5effd;
+  color: var(--primary-strong);
+  font-size: 9.5px;
+  font-weight: 750;
+}

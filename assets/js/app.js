@@ -3538,6 +3538,7 @@ function renderSimilarActivityMatches(matches) {
           item.location || "-",
           `${Number(item.mediaCount || 0)} media`
         ].join(" • "))}</span>
+        ${item.reason ? `<small class="similar-match-reason">✦ ${escapeHtml(item.reason)}</small>` : ""}
       </div>
 
       <button
