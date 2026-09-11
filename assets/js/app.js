@@ -35,6 +35,7 @@ let galleryFolderFilesCache = new Map();
 let galleryLoading = false;
 let lightboxIndex = -1;
 let lightboxObjectUrl = "";
+let lightboxHistoryClosing = false;
 let documentationMode = "new";
 let selectedExistingActivityId = "";
 let successContext = "new";
@@ -307,7 +308,7 @@ let currentView = adminMode ? "dashboard" : "submit";
 let routingReady = false;
 let handlingRoute = false;
 
-const SI_ALIF_NAV_VERSION = 751;
+const SI_ALIF_NAV_VERSION = 752;
 let currentNavLevel = 0;
 let pendingBoundedNavigation = null;
 let skippingOldHistory = false;
@@ -806,6 +807,34 @@ function initializeRouting() {
 
 window.addEventListener("popstate", event => {
   const fromLevel = currentNavLevel;
+  const lightboxVisible = !$("#mediaLightbox")?.hidden;
+
+  // Preview media adalah lapisan di atas folder, bukan halaman baru.
+  // Tombol Back Android/browser harus menutup preview terlebih dahulu dan
+  // tetap berada di folder yang sama.
+  if (lightboxVisible) {
+    hideMediaLightbox();
+
+    if (stateIsCurrentNav(event.state)) {
+      currentNavLevel = Number(event.state.siAlifLevel || 0);
+    }
+
+    syncSavedRoute(window.location.hash || workspaceHomeHash());
+    return;
+  }
+
+  // Saat tombol X menutup preview, closeMediaLightbox() melakukan history.back()
+  // untuk membuang entry modal. Jangan render ulang folder dari nol.
+  if (lightboxHistoryClosing) {
+    lightboxHistoryClosing = false;
+
+    if (stateIsCurrentNav(event.state)) {
+      currentNavLevel = Number(event.state.siAlifLevel || 0);
+    }
+
+    syncSavedRoute(window.location.hash || workspaceHomeHash());
+    return;
+  }
 
   // Jika kita sengaja sedang collapse history, jangan render halaman antara.
   if (pendingBoundedNavigation !== null) {
@@ -1846,7 +1875,7 @@ async function loadGalleryThumbnail(file, img) {
 }
 
 
-function closeMediaLightbox() {
+function hideMediaLightbox() {
   const box = $("#mediaLightbox");
   if (!box) return;
 
@@ -1860,6 +1889,21 @@ function closeMediaLightbox() {
 
   $("#lightboxStage").innerHTML = "";
   lightboxIndex = -1;
+}
+
+function closeMediaLightbox() {
+  const hasLightboxHistory = Boolean(history.state?.siAlifLightbox);
+
+  // Tutup tampilannya sekarang agar tombol X terasa instan.
+  hideMediaLightbox();
+
+  // Preview punya satu entry history sendiri dengan hash folder yang sama.
+  // Menghapus entry ini membuat X dan tombol Back punya perilaku identik:
+  // keduanya kembali ke folder, bukan ke daftar Galeri.
+  if (hasLightboxHistory) {
+    lightboxHistoryClosing = true;
+    history.back();
+  }
 }
 
 async function renderMediaLightbox() {
@@ -1927,7 +1971,27 @@ async function renderMediaLightbox() {
 function openMediaLightbox(index) {
   const lightboxFiles = galleryVisibleFiles();
   if (!lightboxFiles[index]) return;
+
+  const box = $("#mediaLightbox");
+  const openingFreshPreview = !box || box.hidden;
+
   lightboxIndex = index;
+
+  if (openingFreshPreview && !history.state?.siAlifLightbox) {
+    const hashValue = window.location.hash || routeHash("gallery", {
+      galleryFolderId: galleryActivityId
+    });
+
+    history.pushState(
+      {
+        ...makeNavState(hashValue, currentNavLevel),
+        siAlifLightbox: true
+      },
+      "",
+      hashValue
+    );
+  }
+
   renderMediaLightbox();
 }
 
