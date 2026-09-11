@@ -308,7 +308,7 @@ let currentView = adminMode ? "dashboard" : "submit";
 let routingReady = false;
 let handlingRoute = false;
 
-const SI_ALIF_NAV_VERSION = 752;
+const SI_ALIF_NAV_VERSION = 753;
 let currentNavLevel = 0;
 let pendingBoundedNavigation = null;
 let skippingOldHistory = false;
@@ -1945,26 +1945,16 @@ async function renderMediaLightbox() {
     </div>
   `;
 
-  try {
-    const blob = await apiFetchBlob(`/api/files/${encodeURIComponent(file.id)}/download`);
-    lightboxObjectUrl = URL.createObjectURL(blob);
+  const mediaUrl = `${API_BASE_URL}/api/files/${encodeURIComponent(file.id)}/download?inline=1`;
 
-    if (String(file.mimeType || "").startsWith("video/")) {
-      stage.innerHTML = `
-        <video class="lightbox-video" controls playsinline preload="metadata">
-          <source src="${lightboxObjectUrl}" type="${escapeHtml(file.mimeType || "video/mp4")}">
-        </video>
-      `;
-    } else {
-      stage.innerHTML = `<img class="lightbox-image" src="${lightboxObjectUrl}" alt="${escapeHtml(file.name)}">`;
-    }
-  } catch (error) {
+  if (String(file.mimeType || "").startsWith("video/")) {
     stage.innerHTML = `
-      <div class="media-lightbox-error">
-        <strong>Media gagal dimuat</strong>
-        <span>${escapeHtml(error.message)}</span>
-      </div>
+      <video class="lightbox-video" controls playsinline preload="metadata">
+        <source src="${mediaUrl}" type="${escapeHtml(file.mimeType || "video/mp4")}">
+      </video>
     `;
+  } else {
+    stage.innerHTML = `<img class="lightbox-image" src="${mediaUrl}" alt="${escapeHtml(file.name)}">`;
   }
 }
 
@@ -2009,27 +1999,19 @@ async function downloadLightboxMedia() {
   const file = galleryVisibleFiles()[lightboxIndex];
   if (!file) return;
 
-  const button = $("#lightboxDownload");
-  const original = button.textContent;
-  button.disabled = true;
-  button.textContent = "Mengunduh...";
-
-  try {
-    const blob = await apiFetchBlob(`/api/files/${encodeURIComponent(file.id)}/download`);
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = file.name || "media";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
-  } catch (error) {
-    showToast(`Download gagal: ${error.message}`);
-  } finally {
-    button.disabled = false;
-    button.textContent = original;
+  if (!API_BASE_URL) {
+    showToast("Download gagal: API SI-ALIF belum tersedia.");
+    return;
   }
+
+  const link = document.createElement("a");
+  link.href = `${API_BASE_URL}/api/files/${encodeURIComponent(file.id)}/download`;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  showToast("Unduhan dikirim langsung ke browser.");
 }
 
 async function deleteLightboxMedia() {
@@ -2637,6 +2619,32 @@ async function buildGalleryZip(files, button) {
   return new Blob(parts, { type: "application/zip" });
 }
 
+function submitServerZipDownload(files) {
+  if (!API_BASE_URL) {
+    throw new Error("API_BASE_URL belum diatur di assets/js/config.js");
+  }
+
+  if (!galleryActivityId) {
+    throw new Error("Folder kegiatan belum dipilih.");
+  }
+
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = `${API_BASE_URL}/api/activities/${encodeURIComponent(galleryActivityId)}/download-zip`;
+  form.style.display = "none";
+
+  const fileIds = document.createElement("input");
+  fileIds.type = "hidden";
+  fileIds.name = "fileIds";
+  fileIds.value = JSON.stringify(files.map(file => file.id));
+  form.appendChild(fileIds);
+
+  document.body.appendChild(form);
+  form.submit();
+
+  setTimeout(() => form.remove(), 1500);
+}
+
 async function downloadSelectedGalleryFiles() {
   const chosen = galleryFiles.filter(file => gallerySelected.has(file.id));
   if (!chosen.length) return;
@@ -2644,39 +2652,21 @@ async function downloadSelectedGalleryFiles() {
   const button = $("#galleryDownloadSelected");
   const original = button.textContent;
   button.disabled = true;
-
-  beginTransferGuard(
-    "download",
-    `Menyiapkan ${chosen.length} file untuk diunduh sebagai ZIP.`
-  );
+  button.textContent = "↓ Menyiapkan unduhan...";
 
   try {
-    const zipBlob = await buildGalleryZip(chosen, button);
-    button.textContent = "↓ Menyimpan ZIP...";
-    updateTransferGuardDetail("download", "ZIP siap. Memulai unduhan...");
-
-    const objectUrl = URL.createObjectURL(zipBlob);
-    const link = document.createElement("a");
-
-    link.href = objectUrl;
-    link.download = galleryZipFilename();
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
-
+    submitServerZipDownload(chosen);
     showToast(
-      `${chosen.length} file dibungkus jadi 1 ZIP. Kualitas media tetap asli.`
+      `Menyiapkan ZIP ${chosen.length} file di server. Tunggu sampai unduhan muncul di browser.`
     );
   } catch (error) {
-    showToast(`ZIP gagal dibuat: ${error.message}`);
+    showToast(`Unduhan gagal dimulai: ${error.message}`);
   } finally {
-    endTransferGuard("download");
-    button.textContent = original;
-    button.disabled = false;
-    updateGallerySelectionUi();
+    setTimeout(() => {
+      button.textContent = original;
+      button.disabled = false;
+      updateGallerySelectionUi();
+    }, 2500);
   }
 }
 

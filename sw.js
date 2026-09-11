@@ -1,11 +1,11 @@
-const CACHE = "si-alif-07-5-2-lightbox-back-fix";
+const CACHE = "si-alif-07-5-3-server-zip";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0752",
+  "./assets/css/style.css?v=0753",
   "./assets/js/config.js?v=0731",
-  "./assets/js/app.js?v=0752",
-  "./manifest.webmanifest?v=0752",
+  "./assets/js/app.js?v=0753",
+  "./manifest.webmanifest?v=0753",
   "./assets/icons/icon.svg",
   "./assets/icons/icon.png",
   "./assets/brand/si-alif-doodle-logo.png",
