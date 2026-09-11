@@ -1,11 +1,11 @@
-const CACHE = "si-alif-07-4-9-ui-purpose-polish";
+const CACHE = "si-alif-07-5-1-gallery-home-transfer-pause";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0749",
+  "./assets/css/style.css?v=0751",
   "./assets/js/config.js?v=0731",
-  "./assets/js/app.js?v=0749",
-  "./manifest.webmanifest?v=0749",
+  "./assets/js/app.js?v=0751",
+  "./manifest.webmanifest?v=0751",
   "./assets/icons/icon.svg",
   "./assets/icons/icon.png",
   "./assets/brand/si-alif-doodle-logo.png",

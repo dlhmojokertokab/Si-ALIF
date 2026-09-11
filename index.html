@@ -6,17 +6,17 @@
   <meta name="theme-color" content="#0f766e" />
   <meta name="description" content="SI ALIF — Sistem Informasi Aktivitas, Lokasi, Informasi, dan Foto" />
   <title>SI ALIF</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0749" />
+  <link rel="manifest" href="./manifest.webmanifest?v=0751" />
   <link rel="icon" href="./assets/icons/favicon.ico?v=0731" sizes="any" />
   <link rel="icon" href="./assets/icons/si-alif-favicon-32.png?v=0731" type="image/png" sizes="32x32" />
   <link rel="icon" href="./assets/icons/si-alif-favicon-192.png?v=0731" type="image/png" sizes="192x192" />
   <link rel="apple-touch-icon" href="./assets/icons/si-alif-favicon-180.png?v=0731" sizes="180x180" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0749" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0751" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
     <div class="route-boot-mark route-boot-mark-image" aria-hidden="true">
-      <img src="./assets/icons/si-alif-favicon-192.png?v=0749" alt="" />
+      <img src="./assets/icons/si-alif-favicon-192.png?v=0751" alt="" />
     </div>
     <strong>SI ALIF</strong>
     <small>Membuka halaman...</small>
@@ -27,7 +27,7 @@
     <aside class="sidebar" aria-label="Navigasi utama">
       <div class="brand">
         <div class="brand-mark brand-mark-image" aria-hidden="true">
-          <img src="./assets/icons/si-alif-favicon-192.png?v=0749" alt="" />
+          <img src="./assets/icons/si-alif-favicon-192.png?v=0751" alt="" />
         </div>
         <div>
           <div class="brand-title">SI ALIF</div>
@@ -39,11 +39,11 @@
         <button class="nav-item active admin-nav-only" data-view="dashboard">
           <span>⌂</span><span>Dashboard</span>
         </button>
-        <button class="nav-item" data-view="submit">
-          <span>＋</span><span>Setor Dokumentasi</span>
-        </button>
         <button class="nav-item" data-view="gallery">
           <span>▧</span><span>Galeri</span>
+        </button>
+        <button class="nav-item" data-view="submit">
+          <span>＋</span><span>Tambah Dokumentasi</span>
         </button>
         <button class="nav-item nav-orders admin-nav-only" data-view="orders">
           <span>✦</span><span>Permintaan Konten</span>
@@ -52,7 +52,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 07.4.9</strong>
+        <strong>SI ALIF 07.5.1</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -92,7 +92,7 @@
             <p>Setor dokumentasi, pantau permintaan konten, dan temukan bahan kegiatan dari satu tempat.</p>
           </div>
           <div class="dashboard-hero-actions">
-            <button class="primary big" type="button" data-view="submit">＋ Setor Dokumentasi</button>
+            <button class="primary big" type="button" data-view="submit">＋ Tambah Dokumentasi</button>
             <button class="secondary big" type="button" data-view="gallery">▧ Buka Galeri</button>
           </div>
         </div>
@@ -162,7 +162,7 @@
             <button class="dashboard-quick-action" type="button" data-view="submit">
               <span>＋</span>
               <div>
-                <strong>Setor Dokumentasi</strong>
+                <strong>Tambah Dokumentasi</strong>
                 <small>Isi kegiatan sekali, SI-ALIF yang mengatur foldernya.</small>
               </div>
             </button>
@@ -202,7 +202,7 @@
                 <div class="title-icon">＋</div>
                 <div>
                   <span class="eyebrow">Dokumentasi Kegiatan</span>
-                  <h3>Setor Dokumentasi</h3>
+                  <h3>Tambah Dokumentasi</h3>
                 </div>
               </div>
             </div>
@@ -427,7 +427,7 @@
             </div>
 
             <div class="success-actions">
-              <button class="secondary" type="button" data-view="submit">＋ Setor Lagi</button>
+              <button class="secondary" type="button" data-view="submit">＋ Tambah Lagi</button>
               <button class="primary" type="button" id="successViewGallery">▧ Buka Folder di Galeri</button>
               <button class="secondary" type="button" id="successShareContribution">🔗 Bagikan Link Tambah Dokumentasi</button>
               
@@ -467,7 +467,7 @@
           <div class="detail-actions">
             <button class="primary" type="button" id="detailOpenGallery">▧ Lihat Galeri Foto</button>
             <a class="button-link" id="detailDriveLink" href="#" target="_blank" rel="noopener">Buka Folder Drive ↗</a>
-            <button class="secondary" type="button" data-view="submit">＋ Setor Dokumentasi Baru</button>
+            <button class="secondary" type="button" data-view="submit">＋ Tambah Dokumentasi Baru</button>
             
           </div>
         </article>
@@ -484,7 +484,10 @@
                 <p>Semua kegiatan tersimpan sebagai folder. Buka folder untuk melihat foto, video, dan detail dokumentasi.</p>
                 <div class="filter-summary gallery-filter-summary" id="galleryFilterResult">Semua folder</div>
               </div>
-              <button class="secondary gallery-trash-action admin-only" id="openSiAlifTrash" type="button">🗑 Trash SI ALIF</button>
+              <div class="gallery-head-actions">
+                <button class="primary" type="button" data-view="submit">＋ Tambah Dokumentasi</button>
+                <button class="secondary gallery-trash-action admin-only" id="openSiAlifTrash" type="button">🗑 Trash SI ALIF</button>
+              </div>
             </div>
 
             <div class="smart-filter-bar gallery-filter-bar" data-filter-scope="gallery">
@@ -771,6 +774,18 @@
         </article>
       </section>
 
+      <div class="transfer-guard" id="transferGuard" role="status" aria-live="polite" hidden>
+        <div class="transfer-guard-icon" aria-hidden="true">↥</div>
+        <div class="transfer-guard-copy">
+          <strong id="transferGuardTitle">Proses sedang berlangsung</strong>
+          <span id="transferGuardText">Tetap buka SI-ALIF sampai proses selesai.</span>
+          <small id="transferGuardDetail" hidden></small>
+          <small class="transfer-wake-status" id="transferWakeStatus">
+            SI-ALIF akan menjaga layar tetap aktif jika diizinkan perangkat.
+          </small>
+        </div>
+      </div>
+
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
     </main>
 
@@ -778,11 +793,11 @@
       <button class="mobile-item active admin-nav-only" data-view="dashboard">
         <span>⌂</span><small>Beranda</small>
       </button>
-      <button class="mobile-item mobile-submit" data-view="submit">
-        <span>＋</span><small>Setor</small>
-      </button>
       <button class="mobile-item" data-view="gallery">
         <span>▧</span><small>Galeri</small>
+      </button>
+      <button class="mobile-item mobile-submit" data-view="submit">
+        <span>＋</span><small>Tambah</small>
       </button>
       <button class="mobile-item mobile-orders admin-nav-only" data-view="orders">
         <span>✦</span><small>Konten</small><b class="mobile-count" id="ordersMobileCount" hidden>0</b>
@@ -791,6 +806,6 @@
   </div>
 
   <script src="./assets/js/config.js?v=0731"></script>
-  <script src="./assets/js/app.js?v=0749"></script>
+  <script src="./assets/js/app.js?v=0751"></script>
 </body>
 </html>

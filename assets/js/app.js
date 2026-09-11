@@ -1,6 +1,6 @@
 const titleMap = {
   dashboard: "Dashboard",
-  submit: "Setor Dokumentasi",
+  submit: "Tambah Dokumentasi",
   gallery: "Galeri",
   orders: "Permintaan Konten",
   success: "Tersimpan",
@@ -44,6 +44,255 @@ let activityTargetAction = "";
 let similarActivityResolver = null;
 let similarActivityMatches = [];
 
+// 07.5.0 — Mobile Transfer Guard
+// Web/PWA tidak dapat menjamin transfer terus berjalan saat Android
+// menidurkan tab di background. Guard ini menjaga layar tetap aktif selama
+// transfer ketika halaman masih terlihat, memberi peringatan sebelum tab
+// ditutup/reload, dan mengingatkan pengguna untuk tetap membuka SI-ALIF.
+const activeTransferGuards = new Map();
+let transferWakeLock = null;
+let transferWakeLockRequestPending = false;
+
+// Saat halaman SI-ALIF masuk background, browser mobile dapat menghentikan
+// eksekusi JavaScript. Agar status transfer tetap jelas, SI-ALIF sengaja
+// menahan langkah upload berikutnya sampai halaman aktif kembali.
+let uploadPausedByVisibility = false;
+let uploadStopRequested = false;
+let uploadVisibilityWaiters = [];
+let uploadResumePromptOpen = false;
+
+function resolveUploadVisibilityWaiters(shouldContinue) {
+  const waiters = uploadVisibilityWaiters.splice(0);
+  waiters.forEach(resolve => resolve(Boolean(shouldContinue)));
+}
+
+function pauseUploadForBackground() {
+  if (!uploadQueueRunning || !activeTransferGuards.has("upload")) return;
+
+  uploadPausedByVisibility = true;
+  updateTransferGuardDetail(
+    "upload",
+    "Upload dijeda sementara karena SI-ALIF tidak sedang aktif."
+  );
+}
+
+function promptResumeUploadAfterBackground() {
+  if (
+    document.visibilityState !== "visible" ||
+    !uploadQueueRunning ||
+    !uploadPausedByVisibility ||
+    uploadResumePromptOpen
+  ) {
+    return;
+  }
+
+  uploadResumePromptOpen = true;
+
+  // Dialog ditampilkan setelah pengguna kembali ke SI-ALIF. Browser tidak
+  // mengizinkan halaman web menampilkan dialog di atas aplikasi lain saat
+  // pengguna sudah berpindah aplikasi.
+  setTimeout(() => {
+    const shouldContinue = window.confirm(
+      "Upload akan terjeda saat SI-ALIF tidak aktif.\n\nApakah Anda ingin melanjutkan upload?"
+    );
+
+    uploadResumePromptOpen = false;
+    uploadPausedByVisibility = false;
+
+    if (shouldContinue) {
+      uploadStopRequested = false;
+      updateTransferGuardDetail("upload", "Melanjutkan upload...");
+      requestTransferWakeLock();
+      resolveUploadVisibilityWaiters(true);
+      return;
+    }
+
+    uploadStopRequested = true;
+    updateTransferGuardDetail(
+      "upload",
+      "Upload dihentikan sementara. Gunakan Coba Lagi untuk melanjutkan file yang belum selesai."
+    );
+    resolveUploadVisibilityWaiters(false);
+  }, 120);
+}
+
+async function waitForUploadForeground() {
+  if (uploadStopRequested) return false;
+
+  if (
+    document.visibilityState === "visible" &&
+    !uploadPausedByVisibility
+  ) {
+    return true;
+  }
+
+  uploadPausedByVisibility = true;
+
+  return new Promise(resolve => {
+    uploadVisibilityWaiters.push(resolve);
+
+    if (document.visibilityState === "visible") {
+      promptResumeUploadAfterBackground();
+    }
+  });
+}
+
+function transferGuardCopy(kind) {
+  if (kind === "download") {
+    return {
+      title: "Menyiapkan unduhan ZIP",
+      text: "Tetap buka SI-ALIF dan jangan kunci layar sampai file ZIP mulai diunduh."
+    };
+  }
+
+  return {
+    title: "Unggah sedang berlangsung",
+    text: "Tetap buka SI-ALIF dan jangan kunci layar sampai seluruh file selesai diunggah."
+  };
+}
+
+function transferGuardCurrent() {
+  const entries = [...activeTransferGuards.entries()];
+  if (!entries.length) return null;
+
+  const preferred = entries.find(([key]) => key === "upload") || entries[entries.length - 1];
+  return {
+    key: preferred[0],
+    ...preferred[1]
+  };
+}
+
+function renderTransferGuard() {
+  const banner = $("#transferGuard");
+  if (!banner) return;
+
+  const current = transferGuardCurrent();
+  if (!current) {
+    banner.hidden = true;
+    return;
+  }
+
+  $("#transferGuardTitle").textContent = current.title;
+  $("#transferGuardText").textContent = current.text;
+
+  const detail = $("#transferGuardDetail");
+  if (detail) {
+    detail.textContent = current.detail || "";
+    detail.hidden = !current.detail;
+  }
+
+  const wakeStatus = $("#transferWakeStatus");
+  if (wakeStatus) {
+    if (!("wakeLock" in navigator)) {
+      wakeStatus.textContent = "Perangkat ini tidak mendukung pencegahan layar tidur. Jangan kunci layar secara manual.";
+    } else if (transferWakeLock && !transferWakeLock.released) {
+      wakeStatus.textContent = "Layar dijaga tetap aktif selama SI-ALIF tetap terbuka.";
+    } else {
+      wakeStatus.textContent = "SI-ALIF akan menjaga layar tetap aktif jika diizinkan perangkat.";
+    }
+  }
+
+  banner.hidden = false;
+}
+
+async function requestTransferWakeLock() {
+  if (!activeTransferGuards.size) return;
+  if (!("wakeLock" in navigator)) {
+    renderTransferGuard();
+    return;
+  }
+  if (document.visibilityState !== "visible") return;
+  if (transferWakeLockRequestPending) return;
+  if (transferWakeLock && !transferWakeLock.released) return;
+
+  transferWakeLockRequestPending = true;
+
+  try {
+    transferWakeLock = await navigator.wakeLock.request("screen");
+
+    transferWakeLock.addEventListener("release", () => {
+      transferWakeLock = null;
+      renderTransferGuard();
+    });
+  } catch (error) {
+    console.warn("Wake Lock tidak tersedia:", error?.message || error);
+    transferWakeLock = null;
+  } finally {
+    transferWakeLockRequestPending = false;
+    renderTransferGuard();
+  }
+}
+
+async function releaseTransferWakeLock() {
+  const lock = transferWakeLock;
+  transferWakeLock = null;
+
+  if (lock && !lock.released) {
+    try {
+      await lock.release();
+    } catch {}
+  }
+
+  renderTransferGuard();
+}
+
+function beginTransferGuard(kind, detail = "") {
+  const copy = transferGuardCopy(kind);
+
+  activeTransferGuards.set(kind, {
+    ...copy,
+    detail
+  });
+
+  renderTransferGuard();
+  requestTransferWakeLock();
+}
+
+function updateTransferGuardDetail(kind, detail = "") {
+  const current = activeTransferGuards.get(kind);
+  if (!current) return;
+
+  activeTransferGuards.set(kind, {
+    ...current,
+    detail
+  });
+
+  renderTransferGuard();
+}
+
+function endTransferGuard(kind) {
+  activeTransferGuards.delete(kind);
+
+  if (activeTransferGuards.size) {
+    renderTransferGuard();
+    requestTransferWakeLock();
+    return;
+  }
+
+  releaseTransferWakeLock();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    pauseUploadForBackground();
+    return;
+  }
+
+  if (activeTransferGuards.size) {
+    requestTransferWakeLock();
+  }
+
+  promptResumeUploadAfterBackground();
+});
+
+window.addEventListener("beforeunload", event => {
+  if (!activeTransferGuards.size) return;
+
+  event.preventDefault();
+  event.returnValue = "";
+});
+
+
 const filterState = {
   query: "",
   division: "",
@@ -58,13 +307,13 @@ let currentView = adminMode ? "dashboard" : "submit";
 let routingReady = false;
 let handlingRoute = false;
 
-const SI_ALIF_NAV_VERSION = 749;
+const SI_ALIF_NAV_VERSION = 751;
 let currentNavLevel = 0;
 let pendingBoundedNavigation = null;
 let skippingOldHistory = false;
 
 function workspaceHomeHash() {
-  return adminMode ? "#dashboard" : "#submit";
+  return adminMode ? "#dashboard" : "#gallery";
 }
 
 function isAdminOnlyView(view) {
@@ -72,7 +321,7 @@ function isAdminOnlyView(view) {
 }
 
 function sanitizeWorkspaceView(view) {
-  if (!adminMode && isAdminOnlyView(view)) return "submit";
+  if (!adminMode && isAdminOnlyView(view)) return "gallery";
   return view;
 }
 
@@ -128,7 +377,7 @@ function parseRouteValue(hashValue = window.location.hash) {
     return { view };
   }
 
-  return { view: adminMode ? "dashboard" : "submit" };
+  return { view: adminMode ? "dashboard" : "gallery" };
 }
 
 function parseRouteHash() {
@@ -140,7 +389,7 @@ function routeLevel(hashValue) {
 
   const isHome =
     (adminMode && route.view === "dashboard") ||
-    (!adminMode && route.view === "submit" && !route.submitActivityId);
+    (!adminMode && route.view === "gallery" && !route.galleryFolderId);
 
   if (isHome) return 0;
 
@@ -514,10 +763,8 @@ function applyRouteFromHash() {
 }
 
 function initializeRouting() {
-  const savedRoute = sessionStorage.getItem("si-alif-route");
   const rawRequestedHash =
-    window.location.hash ||
-    (savedRoute && savedRoute.startsWith("#") ? savedRoute : workspaceHomeHash());
+    window.location.hash || workspaceHomeHash();
 
   const parsedRequested = parseRouteValue(rawRequestedHash);
   const requestedHash = routeHash(parsedRequested.view, {
@@ -2248,6 +2495,10 @@ async function buildGalleryZip(files, button) {
     const position = i + 1;
 
     button.textContent = `↓ Menyiapkan ZIP ${position}/${files.length}...`;
+    updateTransferGuardDetail(
+      "download",
+      `Menyiapkan file ${position} dari ${files.length}.`
+    );
 
     const blob = await apiFetchBlob(
       `/api/files/${encodeURIComponent(file.id)}/download`
@@ -2330,9 +2581,15 @@ async function downloadSelectedGalleryFiles() {
   const original = button.textContent;
   button.disabled = true;
 
+  beginTransferGuard(
+    "download",
+    `Menyiapkan ${chosen.length} file untuk diunduh sebagai ZIP.`
+  );
+
   try {
     const zipBlob = await buildGalleryZip(chosen, button);
     button.textContent = "↓ Menyimpan ZIP...";
+    updateTransferGuardDetail("download", "ZIP siap. Memulai unduhan...");
 
     const objectUrl = URL.createObjectURL(zipBlob);
     const link = document.createElement("a");
@@ -2352,6 +2609,7 @@ async function downloadSelectedGalleryFiles() {
   } catch (error) {
     showToast(`ZIP gagal dibuat: ${error.message}`);
   } finally {
+    endTransferGuard("download");
     button.textContent = original;
     button.disabled = false;
     updateGallerySelectionUi();
@@ -4101,6 +4359,10 @@ function setUploadProgress(done, total, text) {
   $("#uploadProgressText").textContent = text;
   $("#uploadProgressValue").textContent = `${value}%`;
   $("#uploadProgressBar").style.width = `${value}%`;
+
+  if (activeTransferGuards.has("upload")) {
+    updateTransferGuardDetail("upload", `${value}% • ${text}`);
+  }
 }
 
 function setUploadProgressPercent(percent, text) {
@@ -4111,6 +4373,10 @@ function setUploadProgressPercent(percent, text) {
   $("#uploadProgressText").textContent = text;
   $("#uploadProgressValue").textContent = `${value}%`;
   $("#uploadProgressBar").style.width = `${value}%`;
+
+  if (activeTransferGuards.has("upload")) {
+    updateTransferGuardDetail("upload", `${value}% • ${text}`);
+  }
 }
 
 function overallUploadPercent(fileIndex, totalFiles, currentFileRatio = 0) {
@@ -4236,6 +4502,11 @@ async function uploadVideoChunked(activityId, entry, onProgress) {
   let finalFile = null;
 
   while (start < totalBytes) {
+    const mayContinue = await waitForUploadForeground();
+    if (!mayContinue) {
+      throw new Error("Upload dijeda oleh pengguna.");
+    }
+
     const endExclusive = Math.min(start + VIDEO_CHUNK_SIZE, totalBytes);
     const endInclusive = endExclusive - 1;
     const chunk = file.slice(start, endExclusive, file.type || "application/octet-stream");
@@ -4379,7 +4650,19 @@ async function processUploadQueue(activityId, { retryFailedOnly = false } = {}) 
     );
 
     for (const entry of targets) {
+      const mayContinue = await waitForUploadForeground();
+
+      if (!mayContinue || uploadStopRequested) {
+        entry.status = "failed";
+        entry.progress = 0;
+        entry.error = "Upload dijeda. Tekan Coba Lagi yang Gagal untuk melanjutkan.";
+        renderUploadQueue();
+        break;
+      }
+
       await uploadOneQueueEntry(activityId, entry);
+
+      if (uploadStopRequested) break;
     }
   } finally {
     uploadQueueRunning = false;
@@ -4628,6 +4911,12 @@ async function retryFailedQueueEntries() {
   retryButton.disabled = true;
   submitButton.disabled = true;
 
+  uploadStopRequested = false;
+  uploadPausedByVisibility = false;
+  resolveUploadVisibilityWaiters(false);
+
+  beginTransferGuard("upload", "Mencoba kembali file yang sebelumnya gagal.");
+
   try {
     await processUploadQueue(activeUploadSession.activityId, {
       retryFailedOnly: true
@@ -4635,6 +4924,8 @@ async function retryFailedQueueEntries() {
 
     await handleQueueResult();
   } finally {
+    endTransferGuard("upload");
+
     if (activeUploadSession) {
       retryButton.disabled = false;
     }
@@ -4821,8 +5112,21 @@ $("#documentationForm").addEventListener("submit", async event => {
       return;
     }
 
-    await processUploadQueue(activeUploadSession.activityId);
-    await handleQueueResult();
+    uploadStopRequested = false;
+    uploadPausedByVisibility = false;
+    resolveUploadVisibilityWaiters(false);
+
+    beginTransferGuard(
+      "upload",
+      `Menyiapkan ${uploadQueueEntries.length} file untuk diunggah.`
+    );
+
+    try {
+      await processUploadQueue(activeUploadSession.activityId);
+      await handleQueueResult();
+    } finally {
+      endTransferGuard("upload");
+    }
   } catch (error) {
     showToast(`Upload gagal: ${error.message}`);
     setUploadProgress(0, 1, `Gagal: ${error.message}`);
