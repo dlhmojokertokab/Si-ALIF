@@ -7083,3 +7083,142 @@ body:not(.admin-mode) .gallery-toolbar-actions #galleryDownloadSelected {
     flex: 1 1 auto;
   }
 }
+
+
+/* 07.5.4 — Custom Upload Resume Modal */
+.upload-resume-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+}
+
+.upload-resume-modal[hidden] {
+  display: none !important;
+}
+
+.upload-resume-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(31, 23, 43, .48);
+  backdrop-filter: blur(7px);
+}
+
+.upload-resume-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(470px, 100%);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px 15px;
+  padding: 22px;
+  border: 1px solid rgba(111, 86, 157, .20);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(233, 222, 251, .72), transparent 42%),
+    #fffdfd;
+  box-shadow: 0 28px 72px rgba(39, 28, 57, .28);
+}
+
+.upload-resume-icon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: #eee8f7;
+  color: #654a96;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.upload-resume-copy {
+  min-width: 0;
+}
+
+.upload-resume-copy .eyebrow {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.upload-resume-copy h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.upload-resume-copy p {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.upload-resume-note {
+  grid-column: 1 / -1;
+  margin-top: 14px;
+  padding: 11px 12px;
+  border: 1px solid rgba(111, 86, 157, .13);
+  border-radius: 13px;
+  background: rgba(244, 240, 250, .72);
+  color: #66577c;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.upload-resume-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 9px;
+  margin-top: 2px;
+}
+
+body.upload-resume-modal-open {
+  overflow: hidden;
+}
+
+@media (max-width: 720px) {
+  .upload-resume-modal {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .upload-resume-dialog {
+    width: 100%;
+    gap: 12px;
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .upload-resume-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    font-size: 20px;
+  }
+
+  .upload-resume-copy h3 {
+    font-size: 20px;
+  }
+
+  .upload-resume-copy p {
+    font-size: 12.5px;
+  }
+
+  .upload-resume-note {
+    margin-top: 10px;
+    font-size: 10.5px;
+  }
+
+  .upload-resume-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-resume-actions .primary {
+    order: -1;
+  }
+}

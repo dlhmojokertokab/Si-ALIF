@@ -61,6 +61,7 @@ let uploadPausedByVisibility = false;
 let uploadStopRequested = false;
 let uploadVisibilityWaiters = [];
 let uploadResumePromptOpen = false;
+let uploadResumeDecisionResolver = null;
 
 function resolveUploadVisibilityWaiters(shouldContinue) {
   const waiters = uploadVisibilityWaiters.splice(0);
@@ -77,6 +78,44 @@ function pauseUploadForBackground() {
   );
 }
 
+function hideUploadResumeModal() {
+  const modal = $("#uploadResumeModal");
+  if (!modal) return;
+
+  modal.hidden = true;
+  document.body.classList.remove("upload-resume-modal-open");
+}
+
+function resolveUploadResumeDecision(shouldContinue) {
+  const resolver = uploadResumeDecisionResolver;
+  uploadResumeDecisionResolver = null;
+
+  hideUploadResumeModal();
+
+  if (resolver) {
+    resolver(Boolean(shouldContinue));
+  }
+}
+
+function showUploadResumeModal() {
+  const modal = $("#uploadResumeModal");
+
+  if (!modal) {
+    return Promise.resolve(false);
+  }
+
+  modal.hidden = false;
+  document.body.classList.add("upload-resume-modal-open");
+
+  return new Promise(resolve => {
+    uploadResumeDecisionResolver = resolve;
+
+    requestAnimationFrame(() => {
+      $("#uploadResumeContinue")?.focus();
+    });
+  });
+}
+
 function promptResumeUploadAfterBackground() {
   if (
     document.visibilityState !== "visible" ||
@@ -89,13 +128,11 @@ function promptResumeUploadAfterBackground() {
 
   uploadResumePromptOpen = true;
 
-  // Dialog ditampilkan setelah pengguna kembali ke SI-ALIF. Browser tidak
-  // mengizinkan halaman web menampilkan dialog di atas aplikasi lain saat
-  // pengguna sudah berpindah aplikasi.
-  setTimeout(() => {
-    const shouldContinue = window.confirm(
-      "Upload akan terjeda saat SI-ALIF tidak aktif.\n\nApakah Anda ingin melanjutkan upload?"
-    );
+  // Browser tidak dapat menampilkan dialog di atas aplikasi lain setelah
+  // pengguna berpindah aplikasi. Karena itu modal SI-ALIF tampil saat
+  // pengguna kembali ke halaman.
+  setTimeout(async () => {
+    const shouldContinue = await showUploadResumeModal();
 
     uploadResumePromptOpen = false;
     uploadPausedByVisibility = false;
@@ -111,7 +148,7 @@ function promptResumeUploadAfterBackground() {
     uploadStopRequested = true;
     updateTransferGuardDetail(
       "upload",
-      "Upload dihentikan sementara. Gunakan Coba Lagi untuk melanjutkan file yang belum selesai."
+      "Upload tetap dijeda. Gunakan Coba Lagi yang Gagal untuk melanjutkan file yang belum selesai."
     );
     resolveUploadVisibilityWaiters(false);
   }, 120);
@@ -308,7 +345,7 @@ let currentView = adminMode ? "dashboard" : "submit";
 let routingReady = false;
 let handlingRoute = false;
 
-const SI_ALIF_NAV_VERSION = 753;
+const SI_ALIF_NAV_VERSION = 754;
 let currentNavLevel = 0;
 let pendingBoundedNavigation = null;
 let skippingOldHistory = false;
@@ -5280,7 +5317,25 @@ $("#lightboxNext").addEventListener("click", () => moveMediaLightbox(1));
 $("#lightboxDownload").addEventListener("click", downloadLightboxMedia);
 $("#lightboxDelete").addEventListener("click", deleteLightboxMedia);
 
+$("#uploadResumeContinue")?.addEventListener("click", () => {
+  resolveUploadResumeDecision(true);
+});
+
+$("#uploadResumePause")?.addEventListener("click", () => {
+  resolveUploadResumeDecision(false);
+});
+
 window.addEventListener("keydown", event => {
+  if (
+    event.key === "Escape" &&
+    uploadResumePromptOpen &&
+    !$("#uploadResumeModal")?.hidden
+  ) {
+    event.preventDefault();
+    resolveUploadResumeDecision(false);
+    return;
+  }
+
   if (!$("#activityTargetModal")?.hidden && event.key === "Escape") {
     closeActivityTargetModal();
     return;

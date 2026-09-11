@@ -6,17 +6,17 @@
   <meta name="theme-color" content="#0f766e" />
   <meta name="description" content="SI ALIF — Sistem Informasi Aktivitas, Lokasi, Informasi, dan Foto" />
   <title>SI ALIF</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=0753" />
+  <link rel="manifest" href="./manifest.webmanifest?v=0754" />
   <link rel="icon" href="./assets/icons/favicon.ico?v=0731" sizes="any" />
   <link rel="icon" href="./assets/icons/si-alif-favicon-32.png?v=0731" type="image/png" sizes="32x32" />
   <link rel="icon" href="./assets/icons/si-alif-favicon-192.png?v=0731" type="image/png" sizes="192x192" />
   <link rel="apple-touch-icon" href="./assets/icons/si-alif-favicon-180.png?v=0731" sizes="180x180" />
-  <link rel="stylesheet" href="./assets/css/style.css?v=0753" />
+  <link rel="stylesheet" href="./assets/css/style.css?v=0754" />
 </head>
 <body class="route-pending">
   <div class="route-boot" id="routeBoot" aria-hidden="true">
     <div class="route-boot-mark route-boot-mark-image" aria-hidden="true">
-      <img src="./assets/icons/si-alif-favicon-192.png?v=0753" alt="" />
+      <img src="./assets/icons/si-alif-favicon-192.png?v=0754" alt="" />
     </div>
     <strong>SI ALIF</strong>
     <small>Membuka halaman...</small>
@@ -27,7 +27,7 @@
     <aside class="sidebar" aria-label="Navigasi utama">
       <div class="brand">
         <div class="brand-mark brand-mark-image" aria-hidden="true">
-          <img src="./assets/icons/si-alif-favicon-192.png?v=0753" alt="" />
+          <img src="./assets/icons/si-alif-favicon-192.png?v=0754" alt="" />
         </div>
         <div>
           <div class="brand-title">SI ALIF</div>
@@ -52,7 +52,7 @@
       </nav>
 
       <div class="sidebar-note">
-        <strong>SI ALIF 07.5.3</strong>
+        <strong>SI ALIF 07.5.4</strong>
         <span id="sidebarModeText">Memeriksa Google Drive...</span>
       </div>
     </aside>
@@ -721,6 +721,39 @@
         </div>
       </div>
 
+      <div class="upload-resume-modal" id="uploadResumeModal" hidden>
+        <div class="upload-resume-backdrop"></div>
+
+        <div
+          class="upload-resume-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="uploadResumeTitle"
+          aria-describedby="uploadResumeDescription"
+        >
+          <div class="upload-resume-icon" aria-hidden="true">↥</div>
+
+          <div class="upload-resume-copy">
+            <span class="eyebrow">Proses Unggah</span>
+            <h3 id="uploadResumeTitle">Upload terjeda</h3>
+            <p id="uploadResumeDescription">
+              SI-ALIF sempat tidak aktif sehingga proses upload dijeda sementara.
+              Apakah Anda ingin melanjutkan?
+            </p>
+
+            <div class="upload-resume-note">
+              File yang sudah selesai diunggah tetap aman. File yang belum selesai
+              dapat dilanjutkan tanpa memilih ulang dokumentasi.
+            </div>
+          </div>
+
+          <div class="upload-resume-actions">
+            <button class="secondary" id="uploadResumePause" type="button">Tetap Jeda</button>
+            <button class="primary" id="uploadResumeContinue" type="button">Lanjutkan Upload</button>
+          </div>
+        </div>
+      </div>
+
       <div class="media-lightbox" id="mediaLightbox" hidden>
         <div class="media-lightbox-backdrop" data-lightbox-close></div>
 
@@ -806,6 +839,6 @@
   </div>
 
   <script src="./assets/js/config.js?v=0731"></script>
-  <script src="./assets/js/app.js?v=0753"></script>
+  <script src="./assets/js/app.js?v=0754"></script>
 </body>
 </html>

@@ -1,11 +1,11 @@
-const CACHE = "si-alif-07-5-3-server-zip";
+const CACHE = "si-alif-07-5-4-upload-resume-modal";
 const ASSETS = [
   "./",
   "./index.html",
-  "./assets/css/style.css?v=0753",
+  "./assets/css/style.css?v=0754",
   "./assets/js/config.js?v=0731",
-  "./assets/js/app.js?v=0753",
-  "./manifest.webmanifest?v=0753",
+  "./assets/js/app.js?v=0754",
+  "./manifest.webmanifest?v=0754",
   "./assets/icons/icon.svg",
   "./assets/icons/icon.png",
   "./assets/brand/si-alif-doodle-logo.png",
